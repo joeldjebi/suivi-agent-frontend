@@ -16,6 +16,7 @@ import {
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
+  Rocket,
   Receipt,
   Settings,
   Shapes,
@@ -29,6 +30,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { useOpenAlerts } from '@/lib/alerts'
+import { useOnboarding } from '@/lib/onboarding'
 import { useSupportAnswers } from '@/lib/support-queries'
 import { Suspense, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router'
@@ -134,6 +136,7 @@ function Navigation({ onNavigate, collapsed = false, onToggle }: { onNavigate?: 
           </div>
         )}
       </div>
+      {user.role === Role.Admin && <OnboardingLink collapsed={collapsed} onNavigate={onNavigate} />}
       {NAV.map((section) => {
         const items = section.items.filter((item) => item.roles.includes(user.role) && (!item.groupsOnly || settings.useGroups))
         if (!items.length) return null
@@ -203,6 +206,44 @@ function Navigation({ onNavigate, collapsed = false, onToggle }: { onNavigate?: 
         </Button>
       )}
     </nav>
+  )
+}
+
+/** Guide « Bien démarrer » en tête du menu, tant qu'il n'est ni terminé ni masqué. */
+function OnboardingLink({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: () => void }) {
+  const { data } = useOnboarding()
+  if (!data || data.dismissed || data.completed) return null
+  const done = data.steps.filter((s) => s.done).length
+  const progress = `${done}/${data.steps.length}`
+  const link = (
+    <NavLink
+      to="/start"
+      onClick={onNavigate}
+      aria-label={collapsed ? `Bien démarrer, ${done} étapes sur ${data.steps.length}` : undefined}
+      className={({ isActive }) =>
+        cn(
+          'flex h-10 w-full items-center gap-2.5 rounded-lg border border-primary/30 bg-primary/5 px-2 text-sm font-medium text-primary transition-colors hover:bg-primary/10',
+          collapsed && 'size-9 justify-center px-0',
+          isActive && 'bg-primary/10',
+        )
+      }
+    >
+      <Rocket className="size-4 shrink-0" aria-hidden />
+      {!collapsed && (
+        <>
+          <span className="flex-1 truncate">Bien démarrer</span>
+          <span className="text-xs tabular-nums">{progress}</span>
+        </>
+      )}
+    </NavLink>
+  )
+  return collapsed ? (
+    <Tooltip>
+      <TooltipTrigger render={<div />}>{link}</TooltipTrigger>
+      <TooltipContent side="right">Bien démarrer · {progress}</TooltipContent>
+    </Tooltip>
+  ) : (
+    link
   )
 }
 

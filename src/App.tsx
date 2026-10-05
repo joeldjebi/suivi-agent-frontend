@@ -24,6 +24,7 @@ const GroupsPage = lazyPage(() => import('@/features/groups/GroupsPage').then((m
 const HelpPage = lazyPage(() => import('@/features/help/HelpPage').then((m) => ({ default: m.HelpPage })))
 const SupportPage = lazyPage(() => import('@/features/support/SupportPage').then((m) => ({ default: m.SupportPage })))
 const TicketPage = lazyPage(() => import('@/features/support/TicketPage').then((m) => ({ default: m.TicketPage })))
+const OnboardingPage = lazyPage(() => import('@/features/onboarding/OnboardingPage').then((m) => ({ default: m.OnboardingPage })))
 const ReportPage = lazyPage(() => import('@/features/report/ReportPage').then((m) => ({ default: m.ReportPage })))
 const AlertsPage = lazyPage(() => import('@/features/alerts/AlertsPage').then((m) => ({ default: m.AlertsPage })))
 const HistoryPage = lazyPage(() => import('@/features/history/HistoryPage').then((m) => ({ default: m.HistoryPage })))
@@ -154,7 +155,7 @@ function TenantApp() {
         <Route
           path="/register"
           element={
-            <PublicOnly redirectTo="/settings">
+            <PublicOnly redirectTo="/start">
               <RegisterPage />
             </PublicOnly>
           }
@@ -238,6 +239,14 @@ function TenantApp() {
                 <FeatureGate feature={Feature.Missions}>
                   <MissionTypesPage />
                 </FeatureGate>
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="start"
+            element={
+              <RoleRoute roles={admin}>
+                <OnboardingPage />
               </RoleRoute>
             }
           />

@@ -1,12 +1,14 @@
 import type { DocArticle, DocArticleSummary } from '@suivi/shared'
 import { useQuery } from '@tanstack/react-query'
-import { BookOpen, LifeBuoy } from 'lucide-react'
+import { Role } from '@suivi/shared'
+import { BookOpen, LifeBuoy, Rocket } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { EmptyState, Page, PageHeader, QueryState } from '@/components/app/page'
 import { SearchInput } from '@/components/app/search-input'
 import { Button } from '@/components/ui/button'
 import { api } from '@/lib/api'
+import { useMe } from '@/lib/auth'
 import { formatDate } from '@/lib/format'
 import { Markdown } from '@/lib/markdown'
 import { cn } from '@/lib/utils'
@@ -17,6 +19,7 @@ import { cn } from '@/lib/utils'
  */
 export function HelpPage() {
   const { slug } = useParams<{ slug: string }>()
+  const { user } = useMe()
   const [search, setSearch] = useState('')
   const list = useQuery({
     queryKey: ['docs'],
@@ -45,6 +48,13 @@ export function HelpPage() {
       <PageHeader
         title="Documentation"
         description="Le manuel d’utilisation de Suivi Agent : prise en main, terrain, organisation, application mobile."
+        actions={
+          user.role === Role.Admin && (
+            <Button variant="outline" nativeButton={false} render={<Link to="/start" />}>
+              <Rocket aria-hidden /> Guide « Bien démarrer »
+            </Button>
+          )
+        }
       />
       <QueryState query={list}>
         <div className="grid gap-4 lg:grid-cols-[18rem_1fr]">
