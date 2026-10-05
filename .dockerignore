@@ -1,0 +1,9 @@
+node_modules
+dist
+shared/node_modules
+shared/dist
+.env
+.env.local
+test-results
+playwright-report
+*.log
