@@ -56,3 +56,12 @@ export function formatPhone(phone: string | null | undefined): string {
   const local = phone.slice(4)
   return (local.match(/.{1,2}/g) ?? [local]).join(' ')
 }
+
+/** Date du jour (ou d'un instant) au format des champs date : AAAA-MM-JJ, heure locale. */
+export function dateInput(at: Date = new Date()): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}`
+}
+
+/** Échéance saisie : fin de journée locale. */
+export const dueFromInput = (value: string) => new Date(`${value}T23:59:00`).toISOString()

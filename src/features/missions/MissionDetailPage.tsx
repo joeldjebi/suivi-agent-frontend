@@ -1,6 +1,6 @@
 import { FieldType, MissionStatus, ProgressMethod, SubmissionStatus } from '@suivi/shared'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { ArchiveRestore, ArrowLeft, Ban, CalendarClock, Check, CircleSlash, FileText, Loader2, Trash2, X } from 'lucide-react'
+import { ArchiveRestore, ArrowLeft, Ban, CalendarClock, Check, CircleSlash, FileText, Loader2, Pencil, Trash2, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { IMPACT_LABELS, RemoveDialog } from '@/components/app/remove-dialog'
@@ -24,6 +24,7 @@ import { progressMethodLabel } from '@/lib/labels'
 import { usePaged } from '@/lib/pagination'
 import { useAgents, useApiMutation, useGroups } from '@/lib/queries'
 import type { MissionDetail, Submission } from '@/lib/types'
+import { MissionEditDialog } from './MissionEditDialog'
 import { MissionPayCard } from './MissionPayCard'
 import { ExportButton } from '@/components/app/export-button'
 import type { MissionField } from '@suivi/shared'
@@ -47,6 +48,7 @@ export function MissionDetailPage() {
   const [rejecting, setRejecting] = useState<Submission | null>(null)
   const [reason, setReason] = useState('')
   const [removing, setRemoving] = useState(false)
+  const [editing, setEditing] = useState(false)
   // Filtres des formulaires reçus (agent, statut, période côté serveur ; texte côté navigateur).
   const [agentFilter, setAgentFilter] = useState(ALL)
   const [statusFilter, setStatusFilter] = useState(ALL)
@@ -126,9 +128,14 @@ export function MissionDetailPage() {
               description={`${m.type.name} · ${m.assigneeAgentId ? 'Agent' : 'Groupe'} : ${assignee ?? '—'}`}
               actions={
                 m.isActive ? (
-                  <Button variant="outline" onClick={() => setRemoving(true)}>
-                    <Trash2 aria-hidden /> Désactiver ou supprimer
-                  </Button>
+                  <>
+                    <Button variant="outline" onClick={() => setRemoving(true)}>
+                      <Trash2 aria-hidden /> Désactiver ou supprimer
+                    </Button>
+                    <Button onClick={() => setEditing(true)}>
+                      <Pencil aria-hidden /> Modifier
+                    </Button>
+                  </>
                 ) : (
                   <>
                     <Button variant="outline" onClick={() => setRemoving(true)}>
@@ -385,6 +392,7 @@ export function MissionDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {m && <MissionEditDialog mission={m} open={editing} onOpenChange={setEditing} />}
       <RemoveDialog
         target={removing && m ? { name: m.title, isActive: m.isActive } : null}
         onOpenChange={setRemoving}

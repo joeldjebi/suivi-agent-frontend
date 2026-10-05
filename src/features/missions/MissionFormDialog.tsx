@@ -11,7 +11,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { api } from '@/lib/api'
 import { useMe } from '@/lib/auth'
-import { fullName } from '@/lib/format'
+import { dateInput, dueFromInput, fullName } from '@/lib/format'
 import { progressMethodLabel } from '@/lib/labels'
 import { useAgents, useApiMutation, useGroups, useMissionTypes } from '@/lib/queries'
 import type { Mission } from '@/lib/types'
@@ -58,7 +58,7 @@ function MissionForm({ onDone }: { onDone: () => void }) {
         progressMethod: method,
         targetValue: method === ProgressMethod.Manual ? undefined : Number(target.replace(',', '.')),
         sumFieldKey: method === ProgressMethod.FieldSum ? sumField : undefined,
-        dueDate: dueDate ? new Date(`${dueDate}T23:59:00`).toISOString() : undefined,
+        dueDate: dueDate ? dueFromInput(dueDate) : undefined,
       }),
     {
       success: 'Mission créée, les agents ont été notifiés',
@@ -77,6 +77,7 @@ function MissionForm({ onDone }: { onDone: () => void }) {
     if (!assigneeId) return setError(assignTo === 'agent' ? 'Choisissez un agent.' : 'Choisissez un groupe.')
     if (method !== ProgressMethod.Manual && !(value > 0)) return setError('L’objectif doit être un nombre supérieur à 0.')
     if (method === ProgressMethod.FieldSum && !sumField) return setError('Choisissez le champ à additionner.')
+    if (dueDate && dueDate < dateInput()) return setError('L’échéance ne peut pas être une date passée.')
     setError(null)
     create.mutate(undefined)
   }
@@ -222,7 +223,7 @@ function MissionForm({ onDone }: { onDone: () => void }) {
           )}
           <Field>
             <FieldLabel htmlFor="mission-due">Échéance (facultatif)</FieldLabel>
-            <Input id="mission-due" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+            <Input id="mission-due" type="date" min={dateInput()} value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
           </Field>
         </div>
         {error && (
