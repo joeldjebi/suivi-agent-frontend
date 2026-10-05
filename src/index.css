@@ -1,0 +1,187 @@
+@import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/plus-jakarta-sans";
+
+/*
+ * Design system « Suivi Agent » (design-system/suivi-agent/MASTER.md) :
+ * Minimalism & Swiss Style, mode clair, bleu de confiance, densité tableau de bord.
+ */
+
+@theme inline {
+  --font-heading: var(--font-sans);
+  --font-sans: "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, sans-serif;
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  /* Statuts des agents : toujours accompagnés d'une icône et d'un libellé. */
+  --color-status-active: var(--status-active);
+  --color-status-paused: var(--status-paused);
+  --color-status-alert: var(--status-alert);
+  --color-status-ended: var(--status-ended);
+  --color-success: var(--status-active);
+  --color-warning: var(--status-paused);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  --background: #f8fafc;
+  --foreground: #1e293b;
+  --card: #ffffff;
+  --card-foreground: #1e293b;
+  --popover: #ffffff;
+  --popover-foreground: #1e293b;
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --secondary: #e9eff8;
+  --secondary-foreground: #1e293b;
+  --muted: #f1f5f9;
+  --muted-foreground: #475569;
+  --accent: #e9eff8;
+  --accent-foreground: #1e293b;
+  --destructive: #dc2626;
+  --border: #e2e8f0;
+  --input: #cbd5e1;
+  --ring: #2563eb;
+  --radius: 0.5rem;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #1e293b;
+  --sidebar-border: #e2e8f0;
+  --sidebar-accent: #e9eff8;
+  --sidebar-accent-foreground: #1d4ed8;
+  /* Contraste ≥ 4.5:1 sur fond blanc pour le texte des statuts */
+  --status-active: #15803d;
+  --status-paused: #b45309;
+  --status-alert: #dc2626;
+  --status-ended: #64748b;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+  html {
+    @apply font-sans;
+  }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  a[href] {
+    cursor: pointer;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Carte : les contrôles Leaflet restent sous les menus et dialogues. */
+.leaflet-container {
+  font-family: inherit;
+  z-index: 0;
+}
+.agent-marker {
+  background: transparent;
+  border: none;
+}
+
+/* Site vitrine : apparitions et mouvements doux, désactivés si l'utilisateur réduit les animations. */
+@keyframes landing-rise {
+  from { opacity: 0; transform: translateY(24px); filter: blur(6px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+@keyframes landing-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+@keyframes landing-orb {
+  0%, 100% { transform: translate(-50%, 0) scale(1); opacity: 0.8; }
+  50% { transform: translate(-50%, -20px) scale(1.1); opacity: 1; }
+}
+.landing-rise { animation: landing-rise 1s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.landing-float { animation: landing-float 5s ease-in-out infinite; }
+.landing-orb { animation: landing-orb 9s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .landing-rise, .landing-float, .landing-orb { animation: none; }
+}
+
+/* Cartes du site vitrine : teinte sobre façon application, variante sombre pour les sections noires. */
+.landing-map .leaflet-tile-pane { filter: saturate(0.55) contrast(1.04) brightness(1.03); }
+.landing-map-dark .leaflet-tile-pane { filter: invert(1) hue-rotate(185deg) brightness(0.88) contrast(0.92) saturate(0.35); }
+.landing-map .leaflet-control-attribution { font-size: 8px; background: rgb(255 255 255 / 0.6); }
+
+/* Site vitrine (refonte) : bordure animée de la formule mise en avant, grain, notifications. */
+@property --landing-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+.landing-border {
+  background: conic-gradient(from var(--landing-angle), #0071e3, #5ac8fa, #bf5af2, #ff375f, #0071e3);
+  animation: landing-spin 6s linear infinite;
+}
+@keyframes landing-spin { to { --landing-angle: 360deg; } }
+.landing-grain::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.08;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+@keyframes landing-toast {
+  0%, 8% { opacity: 0; transform: translate(-50%, -12px) scale(0.96); }
+  14%, 46% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  54%, 100% { opacity: 0; transform: translate(-50%, -12px) scale(0.96); }
+}
+.landing-toast { animation: landing-toast 7s cubic-bezier(0.16, 1, 0.3, 1) infinite 1.5s; opacity: 0; }
+@keyframes landing-notif {
+  from { opacity: 0; translate: 0 -14px; }
+  to { translate: 0 0; }
+}
+.landing-notif { animation: landing-notif 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@media (prefers-reduced-motion: reduce) {
+  .landing-border, .landing-toast, .landing-notif { animation: none; opacity: 1; }
+}
+/* Pastilles d'agents proportionnées aux petites cartes (téléphone, tuiles, écran du MacBook). */
+.landing-map { container-type: inline-size; }
+@container (max-width: 640px) {
+  .landing-map .agent-marker > div { transform: scale(0.7); }
+}
+@container (max-width: 420px) {
+  .landing-map .agent-marker > div { transform: scale(0.55); }
+}
