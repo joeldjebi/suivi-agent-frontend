@@ -39,7 +39,18 @@ const schema = (creating: boolean) =>
 
 type Values = z.infer<ReturnType<typeof schema>>
 
-export function UserFormDialog({ open, onOpenChange, user }: { open: boolean; onOpenChange: (open: boolean) => void; user?: User }) {
+export function UserFormDialog({
+  open,
+  onOpenChange,
+  user,
+  defaultRole = Role.Agent,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  user?: User
+  /** Rôle proposé à la création (ex. depuis la page des chefs d'équipe) */
+  defaultRole?: Role
+}) {
   const { settings } = useMe()
   const groups = useGroups()
   const creating = !user
@@ -56,13 +67,13 @@ export function UserFormDialog({ open, onOpenChange, user }: { open: boolean; on
         lastName: user?.lastName ?? '',
         email: user?.email ?? '',
         phone: user?.phone ?? '',
-        role: user?.role ?? Role.Agent,
+        role: user?.role ?? defaultRole,
         groupId: user?.groupId ?? NO_GROUP,
         onProbation: user?.onProbation ?? false,
         password: '',
       })
     }
-  }, [open, user, form])
+  }, [open, user, defaultRole, form])
 
   const save = useApiMutation(
     (v: Values) => {
@@ -80,7 +91,7 @@ export function UserFormDialog({ open, onOpenChange, user }: { open: boolean; on
     },
     {
       success: creating ? 'Utilisateur créé' : 'Utilisateur mis à jour',
-      invalidate: [['users'], ['groups']],
+      invalidate: [['users'], ['groups'], ['team-leads']],
       onSuccess: () => onOpenChange(false),
     },
   )

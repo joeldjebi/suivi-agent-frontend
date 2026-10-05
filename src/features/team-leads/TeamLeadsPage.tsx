@@ -1,3 +1,4 @@
+import { Role } from '@suivi/shared'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import {
   AlertTriangle,
@@ -7,6 +8,9 @@ import {
   ChevronRight,
   Clock,
   Hourglass,
+  Plus,
+  Settings,
+  UsersRound,
   Search,
   ShieldCheck,
   UserCog,
@@ -16,6 +20,11 @@ import {
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import { PeriodPicker } from '@/components/app/period-picker'
+import { Button } from '@/components/ui/button'
+import { GroupDialog } from '@/features/groups/GroupsPage'
+import { UserFormDialog } from '@/features/users/UserFormDialog'
+import { useMe } from '@/lib/auth'
+import { useGroups } from '@/lib/queries'
 import { EmptyState, Page, PageHeader, QueryState } from '@/components/app/page'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -46,6 +55,11 @@ export function TeamLeadsPage() {
   const period = usePeriod()
   const [search, setSearch] = useState('')
   const [alertsOnly, setAlertsOnly] = useState(false)
+  const [creating, setCreating] = useState<'lead' | 'group' | null>(null)
+  const { settings } = useMe()
+  const groups = useGroups()
+  // Un chef d'équipe encadre un groupe : sans groupe, on commence par en créer un.
+  const noGroup = settings.useGroups && groups.data?.length === 0
   const [sort, setSort] = useState<Sort>({ key: 'name', desc: false })
 
   const query = useQuery({
@@ -88,7 +102,20 @@ export function TeamLeadsPage() {
       <PageHeader
         title="Chefs d’équipe"
         description="Réactivité sur les demandes de zone, encadrement des agents et présence de chaque chef."
+        actions={!noGroup && <CreateAction groupsOn={settings.useGroups} onCreate={setCreating} />}
       />
+      {noGroup && (
+        <div className="flex flex-col gap-3 rounded-lg border border-primary/30 bg-primary/5 p-4 sm:flex-row sm:items-center">
+          <UsersRound className="size-5 shrink-0 text-primary" aria-hidden />
+          <p className="flex-1 text-sm">
+            <span className="font-medium">Commencez par créer un groupe.</span> Un chef d’équipe encadre un groupe d’agents et ses zones :
+            créez le groupe, puis nommez son chef.
+          </p>
+          <Button onClick={() => setCreating('group')}>
+            <Plus aria-hidden /> Créer un groupe
+          </Button>
+        </div>
+      )}
 
       <div className="flex flex-wrap items-end justify-between gap-3 rounded-lg border bg-card p-3">
         <PeriodPicker period={period} />
@@ -147,8 +174,11 @@ export function TeamLeadsPage() {
                 icon={UserCog}
                 title={leads.length ? 'Aucun chef ne correspond' : 'Aucun chef d’équipe'}
                 description={
-                  leads.length ? 'Modifiez la recherche ou les filtres.' : 'Créez un utilisateur avec le rôle « Chef d’équipe ».'
+                  leads.length
+                    ? 'Modifiez la recherche ou les filtres.'
+                    : 'Le chef d’équipe suit ses agents sur la carte et valide leurs demandes de zone, depuis le web ou l’application.'
                 }
+                action={!leads.length && !noGroup && <CreateAction groupsOn={settings.useGroups} onCreate={setCreating} />}
               />
             ) : (
               <div className={cn('overflow-x-auto rounded-lg border bg-card', query.isPlaceholderData && 'opacity-60')}>
@@ -262,6 +292,8 @@ export function TeamLeadsPage() {
           </>
         )}
       </QueryState>
+      <UserFormDialog open={creating === 'lead'} onOpenChange={(o) => !o && setCreating(null)} defaultRole={Role.TeamLead} />
+      <GroupDialog open={creating === 'group'} onOpenChange={(o) => !o && setCreating(null)} />
     </Page>
   )
 }
@@ -324,5 +356,20 @@ function SortHead({
         <Icon className={cn('size-3.5', !active && 'opacity-50')} aria-hidden />
       </button>
     </TableHead>
+  )
+}
+
+/** Groupes désactivés : on les active ; sinon : nouveau chef (sans groupe, le bandeau propose d'en créer un). */
+function CreateAction({ groupsOn, onCreate }: { groupsOn: boolean; onCreate: (what: 'lead' | 'group') => void }) {
+  if (!groupsOn)
+    return (
+      <Button variant="outline" nativeButton={false} render={<Link to="/settings" />}>
+        <Settings aria-hidden /> Activer les groupes
+      </Button>
+    )
+  return (
+    <Button onClick={() => onCreate('lead')}>
+      <Plus aria-hidden /> Nouveau chef d’équipe
+    </Button>
   )
 }
