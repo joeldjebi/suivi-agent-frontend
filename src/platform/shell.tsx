@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import {
   Building2,
   Globe,
+  Smartphone,
   Inbox,
   FileClock,
   KeyRound,
@@ -64,6 +65,7 @@ const NAV: { title: string; items: { to: string; label: string; icon: LucideIcon
     title: 'Site vitrine',
     items: [
       { to: '/site', label: 'Contenu du site', icon: Globe },
+      { to: '/app-onboarding', label: 'Onboarding de l’app', icon: Smartphone },
       { to: '/leads', label: 'Demandes de démo', icon: Inbox },
     ],
   },

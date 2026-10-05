@@ -19,6 +19,7 @@ const LeadsPage = lazyPage(() => import('./pages/LeadsPage').then((m) => ({ defa
 const AccountPage = lazyPage(() => import('./pages/AccountPage').then((m) => ({ default: m.AccountPage })))
 const SupportPage = lazyPage(() => import('./pages/SupportPage').then((m) => ({ default: m.SupportPage })))
 const DocsPage = lazyPage(() => import('./pages/DocsPage').then((m) => ({ default: m.DocsPage })))
+const AppOnboardingPage = lazyPage(() => import('./pages/AppOnboardingPage').then((m) => ({ default: m.AppOnboardingPage })))
 const AuditPage = lazyPage(() => import('./pages/AuditPage').then((m) => ({ default: m.AuditPage })))
 
 function Spinner() {
@@ -84,6 +85,7 @@ export function PlatformApp() {
           <Route path="audit" element={<AuditPage />} />
           <Route path="account" element={<AccountPage />} />
           <Route path="site" element={<SitePage />} />
+          <Route path="app-onboarding" element={<AppOnboardingPage />} />
           <Route path="leads" element={<LeadsPage />} />
           <Route path="support" element={<SupportPage />} />
           <Route path="documentation" element={<DocsPage />} />
