@@ -25,11 +25,7 @@ export function NotificationsButton() {
 
   return (
     <Popover>
-      <PopoverTrigger
-        render={
-          <Button variant="ghost" size="icon" className="relative" aria-label={`Notifications, ${unread} non lues`} />
-        }
-      >
+      <PopoverTrigger render={<Button variant="ghost" size="icon" className="relative" aria-label={`Notifications, ${unread} non lues`} />}>
         <Bell aria-hidden />
         {/* Emplacement fixe : le badge ne décale pas la barre d'outils. */}
         <span

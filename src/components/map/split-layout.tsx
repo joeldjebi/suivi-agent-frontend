@@ -81,7 +81,9 @@ export function MapSplitLayout({
             >
               <PanelLeftOpen aria-hidden />
               <span className="font-medium">{title}</span>
-              {collapsedSummary && <span className={cn('border-l pl-2 text-xs font-normal text-muted-foreground')}>{collapsedSummary}</span>}
+              {collapsedSummary && (
+                <span className={cn('border-l pl-2 text-xs font-normal text-muted-foreground')}>{collapsedSummary}</span>
+              )}
             </Button>
           </div>
         )}

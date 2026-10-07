@@ -69,17 +69,14 @@ function RemoveContent({ target, config, onDone }: { target: RemoveTarget; confi
     invalidate: config.invalidate,
     onSuccess: onDone,
   })
-  const remove = useApiMutation(
-    () => api.delete(config.url, { params: { force: impact.data?.requiresForce || undefined } }),
-    {
-      success: `Suppression définitive effectuée : « ${target.name} ».`,
-      invalidate: config.invalidate,
-      onSuccess: () => {
-        onDone()
-        config.onRemoved?.()
-      },
+  const remove = useApiMutation(() => api.delete(config.url, { params: { force: impact.data?.requiresForce || undefined } }), {
+    success: `Suppression définitive effectuée : « ${target.name} ».`,
+    invalidate: config.invalidate,
+    onSuccess: () => {
+      onDone()
+      config.onRemoved?.()
     },
-  )
+  })
 
   const linked = Object.entries(impact.data?.impact ?? {}).filter(([, n]) => n > 0)
   const needsTyping = !!impact.data?.requiresForce
@@ -89,7 +86,9 @@ function RemoveContent({ target, config, onDone }: { target: RemoveTarget; confi
     return (
       <>
         <DialogHeader>
-          <DialogTitle>Retirer {config.noun} « {target.name} »</DialogTitle>
+          <DialogTitle>
+            Retirer {config.noun} « {target.name} »
+          </DialogTitle>
           <DialogDescription>Choisissez comment retirer cet élément.</DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-2">
@@ -140,7 +139,9 @@ function RemoveContent({ target, config, onDone }: { target: RemoveTarget; confi
   return (
     <>
       <DialogHeader>
-        <DialogTitle>Supprimer définitivement {config.noun} « {target.name} » ?</DialogTitle>
+        <DialogTitle>
+          Supprimer définitivement {config.noun} « {target.name} » ?
+        </DialogTitle>
         <DialogDescription>Cette action est irréversible.</DialogDescription>
       </DialogHeader>
       {impact.isPending ? (

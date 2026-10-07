@@ -8,8 +8,10 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { api } from '@/lib/api'
 import { dateInput, dueFromInput } from '@/lib/format'
-import { useApiMutation } from '@/lib/queries'
+import { useMe } from '@/lib/auth'
+import { useAgents, useApiMutation, useGroups, useZones } from '@/lib/queries'
 import type { MissionDetail } from '@/lib/types'
+import { eligibleZones, ZonePicker, type Assignment } from './ZonePicker'
 
 /**
  * Modification d'une mission : titre, consignes, objectif et échéance. Le type, l'assignation
@@ -42,6 +44,25 @@ function EditForm({ mission, onDone }: { mission: MissionDetail; onDone: () => v
   const [dueDate, setDueDate] = useState(initialDue)
   const [error, setError] = useState<string | null>(null)
   const today = dateInput()
+  const { settings } = useMe()
+  const zones = useZones()
+  const groups = useGroups()
+  const agents = useAgents()
+  const initialZones = (mission.zones ?? []).map((z) => z.id)
+  const [zoneIds, setZoneIds] = useState<string[]>(initialZones)
+  const assignment: Assignment = mission.assigneeGroupId
+    ? { kind: 'group', groupId: mission.assigneeGroupId }
+    : mission.assigneeAgentId
+      ? { kind: 'agent', groupId: agents.data?.find((a) => a.id === mission.assigneeAgentId)?.groupId ?? null }
+      : { kind: 'open' }
+  // Zones permises, plus celles déjà retenues (pour pouvoir les retirer).
+  const eligible = [
+    ...eligibleZones(zones.data ?? [], assignment, settings.useGroups),
+    ...(zones.data ?? []).filter(
+      (z) => initialZones.includes(z.id) && !eligibleZones(zones.data ?? [], assignment, settings.useGroups).some((e) => e.id === z.id),
+    ),
+  ]
+  const zonesChanged = zoneIds.length !== initialZones.length || zoneIds.some((id) => !initialZones.includes(id))
 
   const save = useApiMutation(
     () =>
@@ -51,6 +72,7 @@ function EditForm({ mission, onDone }: { mission: MissionDetail; onDone: () => v
         ...(manual ? {} : { targetValue: Number(target.replace(',', '.')) }),
         // Échéance inchangée : renvoyée telle quelle (même si elle est déjà passée).
         ...(dueDate && dueDate !== initialDue ? { dueDate: dueFromInput(dueDate) } : {}),
+        ...(zonesChanged ? { zoneIds } : {}),
       }),
     { success: 'Mission mise à jour', invalidate: [['missions']], onSuccess: onDone },
   )
@@ -59,6 +81,7 @@ function EditForm({ mission, onDone }: { mission: MissionDetail; onDone: () => v
     if (!title.trim()) return setError('Donnez un titre à la mission.')
     if (!manual && !(Number(target.replace(',', '.')) > 0)) return setError('L’objectif doit être un nombre supérieur à 0.')
     if (dueDate !== initialDue && dueDate && dueDate < today) return setError('L’échéance ne peut pas être une date passée.')
+    if (!zoneIds.length) return setError('Choisissez au moins une zone où la mission se fait.')
     setError(null)
     save.mutate(undefined)
   }
@@ -67,7 +90,7 @@ function EditForm({ mission, onDone }: { mission: MissionDetail; onDone: () => v
     <>
       <DialogHeader>
         <DialogTitle>Modifier la mission</DialogTitle>
-        <DialogDescription>Le type, l’assignation et la méthode de calcul ne changent pas.</DialogDescription>
+        <DialogDescription>Le type, l’affectation et la méthode de calcul ne changent pas.</DialogDescription>
       </DialogHeader>
       <FieldGroup>
         <Field>
@@ -84,6 +107,15 @@ function EditForm({ mission, onDone }: { mission: MissionDetail; onDone: () => v
             <Input id="edit-target" inputMode="decimal" value={target} onChange={(e) => setTarget(e.target.value)} />
           </Field>
         )}
+        <Field>
+          <FieldLabel>Zones</FieldLabel>
+          <ZonePicker
+            zones={eligible}
+            value={zoneIds}
+            onChange={setZoneIds}
+            groupName={(id) => groups.data?.find((g) => g.id === id)?.name}
+          />
+        </Field>
         <Field>
           <FieldLabel htmlFor="edit-due">Échéance</FieldLabel>
           <Input

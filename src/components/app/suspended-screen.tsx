@@ -22,7 +22,9 @@ export function SuspendedScreen() {
           Une facture n’a pas été réglée à temps. Les agents et les chefs d’équipe n’ont plus accès à l’application jusqu’au paiement.
         </p>
         {user.role === Role.Admin ? (
-          <Button nativeButton={false} render={<Link to="/subscription" />}>Voir les factures</Button>
+          <Button nativeButton={false} render={<Link to="/subscription" />}>
+            Voir les factures
+          </Button>
         ) : (
           <p className="text-sm text-muted-foreground">Contactez l’administrateur de votre structure.</p>
         )}

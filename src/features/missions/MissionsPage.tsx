@@ -1,6 +1,6 @@
 import { MissionStatus } from '@suivi/shared'
 import { keepPreviousData, useQueries, useQuery } from '@tanstack/react-query'
-import { CalendarClock, CircleSlash, Coins, Plus, Target, User as UserIcon, UsersRound, X } from 'lucide-react'
+import { CalendarClock, CircleSlash, Coins, Globe, MapPinned, Plus, Target, User as UserIcon, UsersRound, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { EmptyState, Page, PageHeader, QueryState } from '@/components/app/page'
@@ -15,7 +15,7 @@ import { Progress } from '@/components/ui/progress'
 import { api } from '@/lib/api'
 import { formatDate, formatNumber, fullName } from '@/lib/format'
 import { missionStatusLabel, progressMethodLabel } from '@/lib/labels'
-import { useAgents, useGroups, useMissionTypes } from '@/lib/queries'
+import { useAgents, useGroups, useMissionTypes, useZones } from '@/lib/queries'
 import type { Mission, Page as PageOf } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { MissionFormDialog } from './MissionFormDialog'
@@ -42,6 +42,8 @@ export function MissionsPage() {
   const [search, setSearch] = useState('')
   const [assignee, setAssignee] = useState(ALL)
   const [typeId, setTypeId] = useState(ALL)
+  const [zoneId, setZoneId] = useState(ALL)
+  const zones = useZones()
   const [sort, setSort] = useState('recent')
 
   useEffect(() => {
@@ -52,12 +54,13 @@ export function MissionsPage() {
     return () => clearTimeout(id)
   }, [searchInput])
 
-  const filtersActive = search !== '' || assignee !== ALL || typeId !== ALL || status !== ALL
+  const filtersActive = search !== '' || assignee !== ALL || typeId !== ALL || zoneId !== ALL || status !== ALL
   const resetFilters = () => {
     setSearchInput('')
     setSearch('')
     setAssignee(ALL)
     setTypeId(ALL)
+    setZoneId(ALL)
     setStatus(ALL)
     setPage(1)
   }
@@ -65,7 +68,7 @@ export function MissionsPage() {
   const [assigneeKind, assigneeId] = assignee === ALL ? [null, null] : assignee.split(':')
 
   const query = useQuery({
-    queryKey: ['missions', { status, page, showInactive, search, assignee, typeId, sort }],
+    queryKey: ['missions', { status, page, showInactive, search, assignee, typeId, zoneId, sort }],
     queryFn: async () =>
       (
         await api.get<PageOf<Mission>>('/missions', {
@@ -76,6 +79,7 @@ export function MissionsPage() {
             groupId: assigneeKind === 'group' ? assigneeId : undefined,
             agentId: assigneeKind === 'agent' ? assigneeId : undefined,
             typeId: typeId === ALL ? undefined : typeId,
+            zoneId: zoneId === ALL ? undefined : zoneId,
             sort: sort === 'recent' ? undefined : sort,
             page,
             limit: 24,
@@ -99,7 +103,9 @@ export function MissionsPage() {
   const assigneeOf = (m: Mission) =>
     m.assigneeAgentId
       ? { icon: UserIcon, label: fullName(agents.data?.find((a) => a.id === m.assigneeAgentId)) }
-      : { icon: UsersRound, label: groups.data?.find((g) => g.id === m.assigneeGroupId)?.name ?? 'Groupe' }
+      : m.assigneeGroupId
+        ? { icon: UsersRound, label: groups.data?.find((g) => g.id === m.assigneeGroupId)?.name ?? 'Groupe' }
+        : { icon: Globe, label: 'Ouverte à tous' }
 
   return (
     <Page>
@@ -194,6 +200,28 @@ export function MissionsPage() {
           </Select>
         </div>
         <div className="flex flex-col gap-1.5">
+          <Label>Zone</Label>
+          <Select
+            value={zoneId}
+            onValueChange={(v) => {
+              setZoneId(v ?? ALL)
+              setPage(1)
+            }}
+          >
+            <SelectTrigger className="w-full" aria-label="Zone">
+              <SelectValue>{(v: string) => (v === ALL ? 'Toutes les zones' : zones.data?.find((z) => z.id === v)?.name)}</SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL}>Toutes les zones</SelectItem>
+              {zones.data?.map((z) => (
+                <SelectItem key={z.id} value={z.id}>
+                  {z.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex flex-col gap-1.5">
           <Label>Trier par</Label>
           <Select
             value={sort}
@@ -280,6 +308,11 @@ export function MissionsPage() {
                     <span className="flex items-center gap-1">
                       <who.icon className="size-3.5" aria-hidden /> {who.label}
                     </span>
+                    {!!m.zones?.length && (
+                      <span className="flex items-center gap-1">
+                        <MapPinned className="size-3.5" aria-hidden /> {m.zones.map((z) => z.name).join(', ')}
+                      </span>
+                    )}
                     {m.dueDate && (
                       <span className="flex items-center gap-1">
                         <CalendarClock className="size-3.5" aria-hidden /> {formatDate(m.dueDate)}

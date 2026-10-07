@@ -1,6 +1,19 @@
 import { FieldType, MissionStatus, ProgressMethod, SubmissionStatus } from '@suivi/shared'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { ArchiveRestore, ArrowLeft, Ban, CalendarClock, Check, CircleSlash, FileText, Loader2, Pencil, Trash2, X } from 'lucide-react'
+import {
+  ArchiveRestore,
+  ArrowLeft,
+  Ban,
+  CalendarClock,
+  Check,
+  CircleSlash,
+  FileText,
+  Loader2,
+  MapPinOff,
+  Pencil,
+  Trash2,
+  X,
+} from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { IMPACT_LABELS, RemoveDialog } from '@/components/app/remove-dialog'
@@ -125,7 +138,13 @@ export function MissionDetailPage() {
           <>
             <PageHeader
               title={m.title}
-              description={`${m.type.name} · ${m.assigneeAgentId ? 'Agent' : 'Groupe'} : ${assignee ?? '—'}`}
+              description={[
+                m.type.name,
+                m.assigneeAgentId ? `Agent : ${assignee ?? '—'}` : m.assigneeGroupId ? `Groupe : ${assignee ?? '—'}` : 'Ouverte à tous',
+                m.zones?.length ? `Zones : ${m.zones.map((z) => z.name).join(', ')}` : null,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
               actions={
                 m.isActive ? (
                   <>
@@ -199,7 +218,7 @@ export function MissionDetailPage() {
                   <h2 className="text-sm font-semibold">Contributions</h2>
                   {m.contributions.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
-                      {m.assigneeGroupId ? 'Aucune contribution pour le moment.' : 'Mission individuelle.'}
+                      {m.assigneeAgentId ? 'Mission individuelle.' : 'Aucune contribution pour le moment.'}
                     </p>
                   ) : (
                     <ol className="flex flex-col gap-2">
@@ -342,7 +361,11 @@ export function MissionDetailPage() {
                                   {s.rejectedReason && <span className="text-xs">« {s.rejectedReason} »</span>}
                                 </span>
                               ) : (
-                                <span className="text-sm">Accepté</span>
+                                <span className="flex flex-col items-start gap-1">
+                                  <span className="text-sm">Accepté</span>
+                                  {s.dayId === null && <StatusPill tone="paused" icon={CalendarClock} label="Hors journée" />}
+                                  {s.outOfZone && <StatusPill tone="paused" icon={MapPinOff} label="Hors zone" />}
+                                </span>
                               )}
                             </TableCell>
                             <TableCell>

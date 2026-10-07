@@ -30,7 +30,9 @@ export function FeatureGate({ feature, children }: { feature: Feature; children:
           Votre structure utilise la formule {subscription.planName}.
         </p>
         {user.role === Role.Admin ? (
-          <Button nativeButton={false} render={<Link to="/subscription" />}>Voir les formules</Button>
+          <Button nativeButton={false} render={<Link to="/subscription" />}>
+            Voir les formules
+          </Button>
         ) : (
           <p className="text-sm text-muted-foreground">Demandez à votre administrateur de changer de formule.</p>
         )}

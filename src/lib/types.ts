@@ -110,6 +110,8 @@ export interface Settings {
   alertBatteryPercent: number | null
   alertSignalLost: boolean
   alertMocked: boolean
+  /** Formulaires acceptés seulement pendant une journée dans une zone de la mission */
+  submissionRequiresDay: boolean
   /** Heure du bilan de fin de journée envoyé aux responsables ; null : pas d'envoi */
   dailyReportTime: string | null
   positionRetentionDays: number
@@ -235,6 +237,8 @@ export interface Zone {
   taken: number
   placesLeft: number | null
   isFull: boolean
+  /** Groupes actifs de la zone ; vide : zone libre, ouverte à tous */
+  groupIds?: string[]
 }
 
 export interface ZoneRequest {
@@ -350,6 +354,8 @@ export interface Mission {
   isActive: boolean
   createdAt: string
   progress: Progress
+  /** Zones où la mission se fait */
+  zones?: { id: string; name: string }[]
   /** Rémunération propre (remplace la grille de l'agent pour cette mission) */
   hasOwnPay: boolean
   /** Conditions propres : administrateur seulement */
@@ -369,6 +375,10 @@ export interface Submission {
   submittedAt: string
   status: SubmissionStatus
   rejectedReason: string | null
+  /** Journée pendant laquelle il a été saisi (null : hors journée) */
+  dayId?: string | null
+  /** Saisi hors des zones de la mission, ou position hors du périmètre */
+  outOfZone?: boolean
   agent: User
 }
 

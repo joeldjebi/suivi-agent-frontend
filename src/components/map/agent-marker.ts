@@ -11,12 +11,7 @@ const COLORS = {
  * Marqueur d'agent : pastille aux initiales, couleur du statut et symbole
  * (‖ pause, ! alerte) pour ne pas reposer sur la couleur seule.
  */
-export function agentIcon(opts: {
-  initials: string
-  status: DayStatus
-  alert: boolean
-  selected: boolean
-}): L.DivIcon {
+export function agentIcon(opts: { initials: string; status: DayStatus; alert: boolean; selected: boolean }): L.DivIcon {
   const color = opts.alert ? COLORS.alert : opts.status === DayStatus.Paused ? COLORS.paused : COLORS.active
   const badge = opts.alert ? '!' : opts.status === DayStatus.Paused ? '‖' : ''
   const ring = opts.selected ? `box-shadow:0 0 0 3px #fff,0 0 0 5px ${color};` : 'box-shadow:0 1px 3px rgb(0 0 0 / .35);'

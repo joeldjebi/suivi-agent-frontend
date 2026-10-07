@@ -1,16 +1,5 @@
 import { DayStatus, MissionStatus, ZoneRequestStatus } from '@suivi/shared'
-import {
-  CheckCircle2,
-  Circle,
-  CircleDot,
-  CircleSlash,
-  Clock,
-  PauseCircle,
-  Target,
-  WifiOff,
-  XCircle,
-  type LucideIcon,
-} from 'lucide-react'
+import { CheckCircle2, Circle, CircleDot, CircleSlash, Clock, PauseCircle, Target, WifiOff, XCircle, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { dayStatusLabel, missionStatusLabel, requestStatusLabel } from '@/lib/labels'
 

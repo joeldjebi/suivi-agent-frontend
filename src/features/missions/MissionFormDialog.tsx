@@ -13,8 +13,9 @@ import { api } from '@/lib/api'
 import { useMe } from '@/lib/auth'
 import { dateInput, dueFromInput, fullName } from '@/lib/format'
 import { progressMethodLabel } from '@/lib/labels'
-import { useAgents, useApiMutation, useGroups, useMissionTypes } from '@/lib/queries'
+import { useAgents, useApiMutation, useGroups, useMissionTypes, useZones } from '@/lib/queries'
 import type { Mission } from '@/lib/types'
+import { eligibleZones, ZonePicker, type Assignment } from './ZonePicker'
 
 export function MissionFormDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   return (
@@ -32,10 +33,12 @@ function MissionForm({ onDone }: { onDone: () => void }) {
   const types = useMissionTypes()
   const agents = useAgents()
   const groups = useGroups()
+  const zones = useZones()
+  const [zoneIds, setZoneIds] = useState<string[]>([])
   const [typeId, setTypeId] = useState<string | null>(null)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [assignTo, setAssignTo] = useState<'agent' | 'group'>('agent')
+  const [assignTo, setAssignTo] = useState<'agent' | 'group' | 'open'>('agent')
   const [assigneeId, setAssigneeId] = useState<string | null>(null)
   const [method, setMethod] = useState<ProgressMethod>(ProgressMethod.Count)
   const [target, setTarget] = useState('')
@@ -46,6 +49,15 @@ function MissionForm({ onDone }: { onDone: () => void }) {
   const type = types.data?.find((t) => t.id === typeId)
   const numberFields = type?.fields.filter((f) => f.type === FieldType.Number) ?? []
   const canAssignGroup = settings.useGroups && (groups.data?.length ?? 0) > 0
+  const assignment: Assignment =
+    assignTo === 'open'
+      ? { kind: 'open' }
+      : assignTo === 'group'
+        ? { kind: 'group', groupId: assigneeId ?? '' }
+        : { kind: 'agent', groupId: agents.data?.find((a) => a.id === assigneeId)?.groupId ?? null }
+  const eligible = eligibleZones(zones.data ?? [], assignment, settings.useGroups)
+  // Zones retenues : seulement celles encore permises par l'affectation choisie.
+  const chosenZones = zoneIds.filter((id) => eligible.some((z) => z.id === id))
 
   const create = useApiMutation(
     () =>
@@ -53,6 +65,7 @@ function MissionForm({ onDone }: { onDone: () => void }) {
         typeId,
         title: title.trim(),
         description: description.trim() || undefined,
+        zoneIds: chosenZones,
         assigneeAgentId: assignTo === 'agent' ? assigneeId : undefined,
         assigneeGroupId: assignTo === 'group' ? assigneeId : undefined,
         progressMethod: method,
@@ -74,7 +87,8 @@ function MissionForm({ onDone }: { onDone: () => void }) {
     const value = Number(target.replace(',', '.'))
     if (!typeId) return setError('Choisissez un type de mission.')
     if (!title.trim()) return setError('Donnez un titre à la mission.')
-    if (!assigneeId) return setError(assignTo === 'agent' ? 'Choisissez un agent.' : 'Choisissez un groupe.')
+    if (assignTo !== 'open' && !assigneeId) return setError(assignTo === 'agent' ? 'Choisissez un agent.' : 'Choisissez un groupe.')
+    if (!chosenZones.length) return setError('Choisissez au moins une zone où la mission se fait.')
     if (method !== ProgressMethod.Manual && !(value > 0)) return setError('L’objectif doit être un nombre supérieur à 0.')
     if (method === ProgressMethod.FieldSum && !sumField) return setError('Choisissez le champ à additionner.')
     if (dueDate && dueDate < dateInput()) return setError('L’échéance ne peut pas être une date passée.')
@@ -128,45 +142,60 @@ function MissionForm({ onDone }: { onDone: () => void }) {
 
         <Field>
           <FieldLabel>Assignée à</FieldLabel>
-          {canAssignGroup && (
-            <Tabs
-              value={assignTo}
-              onValueChange={(v) => {
-                setAssignTo(v as typeof assignTo)
-                setAssigneeId(null)
-              }}
-            >
-              <TabsList className="w-full">
-                <TabsTrigger value="agent">Un agent</TabsTrigger>
-                <TabsTrigger value="group">Un groupe</TabsTrigger>
-              </TabsList>
-            </Tabs>
-          )}
-          <Select value={assigneeId} onValueChange={setAssigneeId}>
-            <SelectTrigger className="w-full" aria-label={assignTo === 'agent' ? 'Agent' : 'Groupe'}>
-              <SelectValue placeholder={assignTo === 'agent' ? 'Choisir un agent' : 'Choisir un groupe'}>
-                {(v: string | null) =>
-                  assignTo === 'agent' ? fullName(agents.data?.find((a) => a.id === v)) : groups.data?.find((g) => g.id === v)?.name
-                }
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {assignTo === 'agent'
-                ? agents.data
-                    ?.filter((a) => a.isActive)
-                    .map((a) => (
-                      <SelectItem key={a.id} value={a.id}>
-                        {fullName(a)}
+          <Tabs
+            value={assignTo}
+            onValueChange={(v) => {
+              setAssignTo(v as typeof assignTo)
+              setAssigneeId(null)
+            }}
+          >
+            <TabsList className="w-full">
+              <TabsTrigger value="agent">Un agent</TabsTrigger>
+              {canAssignGroup && <TabsTrigger value="group">Un groupe</TabsTrigger>}
+              <TabsTrigger value="open">Ouverte</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          {assignTo !== 'open' && (
+            <Select value={assigneeId} onValueChange={setAssigneeId}>
+              <SelectTrigger className="w-full" aria-label={assignTo === 'agent' ? 'Agent' : 'Groupe'}>
+                <SelectValue placeholder={assignTo === 'agent' ? 'Choisir un agent' : 'Choisir un groupe'}>
+                  {(v: string | null) =>
+                    assignTo === 'agent' ? fullName(agents.data?.find((a) => a.id === v)) : groups.data?.find((g) => g.id === v)?.name
+                  }
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {assignTo === 'agent'
+                  ? agents.data
+                      ?.filter((a) => a.isActive)
+                      .map((a) => (
+                        <SelectItem key={a.id} value={a.id}>
+                          {fullName(a)}
+                        </SelectItem>
+                      ))
+                  : groups.data?.map((g) => (
+                      <SelectItem key={g.id} value={g.id}>
+                        {g.name}
                       </SelectItem>
-                    ))
-                : groups.data?.map((g) => (
-                    <SelectItem key={g.id} value={g.id}>
-                      {g.name}
-                    </SelectItem>
-                  ))}
-            </SelectContent>
-          </Select>
+                    ))}
+              </SelectContent>
+            </Select>
+          )}
           {assignTo === 'group' && <FieldDescription>Objectif collectif : la contribution de chaque agent reste visible.</FieldDescription>}
+          {assignTo === 'open' && (
+            <FieldDescription>Objectif collectif ouvert à tous les agents qui choisissent une de ses zones.</FieldDescription>
+          )}
+        </Field>
+
+        <Field>
+          <FieldLabel>Zones</FieldLabel>
+          <ZonePicker
+            zones={eligible}
+            value={chosenZones}
+            onChange={setZoneIds}
+            groupName={(id) => groups.data?.find((g) => g.id === id)?.name}
+          />
+          <FieldDescription>L’agent voit la mission en choisissant l’une de ces zones, et y envoie ses formulaires.</FieldDescription>
         </Field>
 
         <Field>

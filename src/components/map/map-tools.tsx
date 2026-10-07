@@ -44,19 +44,17 @@ export function LegendSection({ title, items }: { title: string; items: { swatch
 
 export function MarkerSwatch({ color, symbol }: { color: string; symbol?: string }) {
   return (
-    <span className="relative flex size-5 items-center justify-center rounded-full border-2 border-white text-[9px] font-bold text-white shadow" style={{ background: color }}>
+    <span
+      className="relative flex size-5 items-center justify-center rounded-full border-2 border-white text-[9px] font-bold text-white shadow"
+      style={{ background: color }}
+    >
       {symbol}
     </span>
   )
 }
 
 export function ZoneSwatch({ color, dashed }: { color: string; dashed?: boolean }) {
-  return (
-    <span
-      className="size-4 rounded-sm"
-      style={{ border: `2px ${dashed ? 'dashed' : 'solid'} ${color}`, background: `${color}22` }}
-    />
-  )
+  return <span className="size-4 rounded-sm" style={{ border: `2px ${dashed ? 'dashed' : 'solid'} ${color}`, background: `${color}22` }} />
 }
 
 /** Légende commune aux cartes : remplissage des zones. */

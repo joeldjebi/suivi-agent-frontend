@@ -1,8 +1,8 @@
-@import "tailwindcss";
-@import "leaflet/dist/leaflet.css";
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
-@import "@fontsource-variable/plus-jakarta-sans";
+@import 'tailwindcss';
+@import 'leaflet/dist/leaflet.css';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+@import '@fontsource-variable/plus-jakarta-sans';
 
 /*
  * Design system « Suivi Agent » (design-system/suivi-agent/MASTER.md) :
@@ -11,7 +11,7 @@
 
 @theme inline {
   --font-heading: var(--font-sans);
-  --font-sans: "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Plus Jakarta Sans Variable', ui-sans-serif, system-ui, sans-serif;
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -94,7 +94,7 @@
     @apply font-sans;
   }
   button:not(:disabled),
-  [role="button"]:not([aria-disabled="true"]),
+  [role='button']:not([aria-disabled='true']),
   a[href] {
     cursor: pointer;
   }
@@ -121,28 +121,65 @@
 
 /* Site vitrine : apparitions et mouvements doux, désactivés si l'utilisateur réduit les animations. */
 @keyframes landing-rise {
-  from { opacity: 0; transform: translateY(24px); filter: blur(6px); }
-  to { opacity: 1; transform: none; filter: none; }
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
 }
 @keyframes landing-float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
 }
 @keyframes landing-orb {
-  0%, 100% { transform: translate(-50%, 0) scale(1); opacity: 0.8; }
-  50% { transform: translate(-50%, -20px) scale(1.1); opacity: 1; }
+  0%,
+  100% {
+    transform: translate(-50%, 0) scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: translate(-50%, -20px) scale(1.1);
+    opacity: 1;
+  }
 }
-.landing-rise { animation: landing-rise 1s cubic-bezier(0.16, 1, 0.3, 1) both; }
-.landing-float { animation: landing-float 5s ease-in-out infinite; }
-.landing-orb { animation: landing-orb 9s ease-in-out infinite; }
+.landing-rise {
+  animation: landing-rise 1s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.landing-float {
+  animation: landing-float 5s ease-in-out infinite;
+}
+.landing-orb {
+  animation: landing-orb 9s ease-in-out infinite;
+}
 @media (prefers-reduced-motion: reduce) {
-  .landing-rise, .landing-float, .landing-orb { animation: none; }
+  .landing-rise,
+  .landing-float,
+  .landing-orb {
+    animation: none;
+  }
 }
 
 /* Cartes du site vitrine : teinte sobre façon application, variante sombre pour les sections noires. */
-.landing-map .leaflet-tile-pane { filter: saturate(0.55) contrast(1.04) brightness(1.03); }
-.landing-map-dark .leaflet-tile-pane { filter: invert(1) hue-rotate(185deg) brightness(0.88) contrast(0.92) saturate(0.35); }
-.landing-map .leaflet-control-attribution { font-size: 8px; background: rgb(255 255 255 / 0.6); }
+.landing-map .leaflet-tile-pane {
+  filter: saturate(0.55) contrast(1.04) brightness(1.03);
+}
+.landing-map-dark .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(185deg) brightness(0.88) contrast(0.92) saturate(0.35);
+}
+.landing-map .leaflet-control-attribution {
+  font-size: 8px;
+  background: rgb(255 255 255 / 0.6);
+}
 
 /* Site vitrine (refonte) : bordure animée de la formule mise en avant, grain, notifications. */
 @property --landing-angle {
@@ -154,7 +191,11 @@
   background: conic-gradient(from var(--landing-angle), #0071e3, #5ac8fa, #bf5af2, #ff375f, #0071e3);
   animation: landing-spin 6s linear infinite;
 }
-@keyframes landing-spin { to { --landing-angle: 360deg; } }
+@keyframes landing-spin {
+  to {
+    --landing-angle: 360deg;
+  }
+}
 .landing-grain::after {
   content: '';
   position: absolute;
@@ -164,24 +205,57 @@
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 @keyframes landing-toast {
-  0%, 8% { opacity: 0; transform: translate(-50%, -12px) scale(0.96); }
-  14%, 46% { opacity: 1; transform: translate(-50%, 0) scale(1); }
-  54%, 100% { opacity: 0; transform: translate(-50%, -12px) scale(0.96); }
+  0%,
+  8% {
+    opacity: 0;
+    transform: translate(-50%, -12px) scale(0.96);
+  }
+  14%,
+  46% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+  54%,
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -12px) scale(0.96);
+  }
 }
-.landing-toast { animation: landing-toast 7s cubic-bezier(0.16, 1, 0.3, 1) infinite 1.5s; opacity: 0; }
+.landing-toast {
+  animation: landing-toast 7s cubic-bezier(0.16, 1, 0.3, 1) infinite 1.5s;
+  opacity: 0;
+}
 @keyframes landing-notif {
-  from { opacity: 0; translate: 0 -14px; }
-  to { translate: 0 0; }
+  from {
+    opacity: 0;
+    translate: 0 -14px;
+  }
+  to {
+    translate: 0 0;
+  }
 }
-.landing-notif { animation: landing-notif 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.landing-notif {
+  animation: landing-notif 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
 @media (prefers-reduced-motion: reduce) {
-  .landing-border, .landing-toast, .landing-notif { animation: none; opacity: 1; }
+  .landing-border,
+  .landing-toast,
+  .landing-notif {
+    animation: none;
+    opacity: 1;
+  }
 }
 /* Pastilles d'agents proportionnées aux petites cartes (téléphone, tuiles, écran du MacBook). */
-.landing-map { container-type: inline-size; }
+.landing-map {
+  container-type: inline-size;
+}
 @container (max-width: 640px) {
-  .landing-map .agent-marker > div { transform: scale(0.7); }
+  .landing-map .agent-marker > div {
+    transform: scale(0.7);
+  }
 }
 @container (max-width: 420px) {
-  .landing-map .agent-marker > div { transform: scale(0.55); }
+  .landing-map .agent-marker > div {
+    transform: scale(0.55);
+  }
 }

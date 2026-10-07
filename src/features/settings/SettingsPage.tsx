@@ -345,6 +345,13 @@ function SettingsForm({ settings }: { settings: Settings }) {
           checked={draft.trackDuringPause}
           onChange={(v) => set('trackDuringPause', v)}
         />
+        <Toggle
+          id="submissionRequiresDay"
+          label="Formulaires envoyés uniquement pendant une journée"
+          description="L’agent envoie ses formulaires après avoir démarré sa journée, dans une zone de la mission. Désactivez-le si vos missions se font aussi hors terrain : les formulaires hors journée seront alors signalés."
+          checked={draft.submissionRequiresDay}
+          onChange={(v) => set('submissionRequiresDay', v)}
+        />
         <div className="grid gap-4 sm:grid-cols-2">
           <Field data-invalid={!/^([01]\d|2[0-3]):[0-5]\d$/.test(draft.dailyResetTime)}>
             <FieldLabel htmlFor="resetTime">Heure de remise à zéro des places</FieldLabel>

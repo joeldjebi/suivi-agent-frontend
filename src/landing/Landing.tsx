@@ -262,7 +262,15 @@ function Hero({ data, onAction }: { data: PublicLanding; onAction: LandingProps[
     const mm = gsap.matchMedia()
     mm.add('(min-width: 768px)', () => {
       const tl = gsap.timeline({
-        scrollTrigger: { trigger: ref.current, scroller, start: 'top top', end: '+=110%', scrub: 0.8, pin: true, invalidateOnRefresh: true },
+        scrollTrigger: {
+          trigger: ref.current,
+          scroller,
+          start: 'top top',
+          end: '+=110%',
+          scrub: 0.8,
+          pin: true,
+          invalidateOnRefresh: true,
+        },
       })
       // L'ordinateur part de 80 % de la hauteur et se pose à 9 % du haut : il finit entièrement visible.
       const rise = () => -(ref.current?.offsetHeight ?? 0) * 0.71
@@ -396,7 +404,10 @@ function Bento({ section }: { section: BentoSection }) {
           <Eyebrow>{section.eyebrow}</Eyebrow>
           <Headline>{section.title}</Headline>
         </div>
-        <div data-grid className="grid grid-flow-dense auto-rows-[minmax(300px,auto)] gap-4 @2xl:grid-cols-2 @4xl:auto-rows-[300px] @4xl:grid-cols-4">
+        <div
+          data-grid
+          className="grid grid-flow-dense auto-rows-[minmax(300px,auto)] gap-4 @2xl:grid-cols-2 @4xl:auto-rows-[300px] @4xl:grid-cols-4"
+        >
           {section.tiles.map((tile, i) => (
             <BentoCard key={i} tile={tile} />
           ))}

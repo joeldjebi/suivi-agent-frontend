@@ -12,10 +12,7 @@ export const TILE_URL = import.meta.env.VITE_TILE_URL || 'https://tile.openstree
 export function BaseMap({ children, className, mapRef }: { children?: ReactNode; className?: string; mapRef?: Ref<L.Map> }) {
   return (
     <MapContainer ref={mapRef} center={DEFAULT_CENTER} zoom={12} className={cn('h-full w-full', className)}>
-      <TileLayer
-        url={TILE_URL}
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-      />
+      <TileLayer url={TILE_URL} attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' />
       <AutoResize />
       {children}
     </MapContainer>
