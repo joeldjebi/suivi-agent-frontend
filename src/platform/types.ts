@@ -224,6 +224,11 @@ export interface PlatformSettings {
   suspendAfterDays: number
   trialPlanCode: PlanCode
   defaultPlanCode: PlanCode
+  /** App mobile : en dessous, mise à jour obligatoire */
+  minAppVersion: string | null
+  latestAppVersion: string | null
+  androidStoreUrl: string | null
+  iosStoreUrl: string | null
 }
 
 export interface TenantAlert {

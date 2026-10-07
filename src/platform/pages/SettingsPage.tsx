@@ -54,9 +54,16 @@ export function SettingsPage() {
   })
   return (
     <Page>
-      <PageHeader title="Réglages de facturation" description="Règles communes à toutes les structures." />
+      <PageHeader title="Réglages" description="Règles communes à toutes les structures." />
       <QueryState query={query} rows={4}>
-        {query.data && <Form settings={query.data} />}
+        {query.data && (
+          <>
+            <h2 className="text-base font-semibold">Facturation</h2>
+            <Form settings={query.data} />
+            <h2 className="mt-4 text-base font-semibold">Application mobile</h2>
+            <AppVersionForm settings={query.data} />
+          </>
+        )}
       </QueryState>
     </Page>
   )
@@ -169,6 +176,100 @@ function Form({ settings }: { settings: PlatformSettings }) {
             setDefaultPlan(settings.defaultPlanCode)
           }}
         >
+          Annuler
+        </Button>
+        <Button disabled={!changed || !valid || save.isPending} onClick={() => save.mutate(undefined)}>
+          Enregistrer
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+const VERSION = /^\d+\.\d+\.\d+$/
+const URL_PATTERN = /^https?:\/\/\S+$/
+
+/** Versions de l'app mobile et liens de téléchargement. */
+function AppVersionForm({ settings }: { settings: PlatformSettings }) {
+  const initial = () => ({
+    minAppVersion: settings.minAppVersion ?? '',
+    latestAppVersion: settings.latestAppVersion ?? '',
+    androidStoreUrl: settings.androidStoreUrl ?? '',
+    iosStoreUrl: settings.iosStoreUrl ?? '',
+  })
+  const [v, setV] = useState(initial)
+  const fields = [
+    {
+      key: 'minAppVersion',
+      label: 'Version minimale',
+      hint: 'En dessous, l’app est bloquée et demande la mise à jour (ex. 1.2.0). Vide : rien n’est imposé.',
+      placeholder: '1.2.0',
+      pattern: VERSION,
+    },
+    {
+      key: 'latestAppVersion',
+      label: 'Dernière version publiée',
+      hint: 'Les versions plus anciennes proposent la mise à jour, sans bloquer.',
+      placeholder: '1.3.0',
+      pattern: VERSION,
+    },
+    {
+      key: 'androidStoreUrl',
+      label: 'Lien Android',
+      hint: 'Play Store ou fichier APK à télécharger.',
+      placeholder: 'https://play.google.com/store/apps/details?id=ci.suiviagent.suivi_agent',
+      pattern: URL_PATTERN,
+    },
+    {
+      key: 'iosStoreUrl',
+      label: 'Lien iPhone',
+      hint: 'App Store ou TestFlight.',
+      placeholder: 'https://apps.apple.com/app/…',
+      pattern: URL_PATTERN,
+    },
+  ] as const
+  const invalid = (k: (typeof fields)[number]) => v[k.key] !== '' && !k.pattern.test(v[k.key].trim())
+  const changed = (Object.keys(v) as (keyof typeof v)[]).some((k) => v[k] !== initial()[k])
+  const valid = fields.every((f) => !invalid(f))
+  const missingLink = v.minAppVersion !== '' && !v.androidStoreUrl && !v.iosStoreUrl
+  const save = useApiMutation(
+    () => platformApi.patch('/settings', Object.fromEntries(Object.entries(v).map(([k, x]) => [k, x.trim() === '' ? null : x.trim()]))),
+    { success: 'Réglages de l’app enregistrés', invalidate: [['platform']] },
+  )
+  return (
+    <div className="max-w-2xl rounded-lg border bg-card">
+      <div className="divide-y">
+        {fields.map((f) => (
+          <div key={f.key} className="grid gap-2 p-4 sm:grid-cols-[minmax(0,1fr)_18rem] sm:items-center">
+            <div>
+              <Label htmlFor={f.key}>{f.label}</Label>
+              <p className="mt-0.5 text-xs text-muted-foreground">{f.hint}</p>
+            </div>
+            <div>
+              <Input
+                id={f.key}
+                value={v[f.key]}
+                placeholder={f.placeholder}
+                aria-invalid={invalid(f)}
+                inputMode={f.pattern === VERSION ? 'decimal' : 'url'}
+                onChange={(e) => setV({ ...v, [f.key]: e.target.value })}
+              />
+              {invalid(f) && (
+                <p className="mt-1 text-xs text-destructive">
+                  {f.pattern === VERSION ? 'Format attendu : 1.2.0' : 'Adresse commençant par https://'}
+                </p>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+      {missingLink && (
+        <p className="border-t px-4 py-3 text-sm text-status-paused">
+          Ajoutez au moins un lien : sinon, les agents bloqués ne sauront pas où télécharger la nouvelle version.
+        </p>
+      )}
+      <div className="flex justify-end gap-2 border-t p-3">
+        <Button variant="outline" disabled={!changed} onClick={() => setV(initial())}>
           Annuler
         </Button>
         <Button disabled={!changed || !valid || save.isPending} onClick={() => save.mutate(undefined)}>

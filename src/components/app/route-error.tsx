@@ -1,6 +1,7 @@
 import { AlertTriangle, RefreshCw } from 'lucide-react'
 import { Component, lazy, type ComponentType, type ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
+import { reportError } from '@/lib/monitoring'
 
 const RELOAD_KEY = 'suivi.chunkReload'
 
@@ -47,6 +48,7 @@ export class RouteErrorBoundary extends Component<{ children: ReactNode }, { err
 
   componentDidCatch(error: Error) {
     console.error('Erreur d’affichage', error)
+    reportError(error)
   }
 
   render() {
