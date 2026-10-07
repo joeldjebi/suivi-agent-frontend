@@ -29,7 +29,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { ALERT_META } from '@/lib/alerts'
 import { api } from '@/lib/api'
 import { useMe } from '@/lib/auth'
-import { formatDate, formatPhone, formatTime, fullName } from '@/lib/format'
+import { formatDate, formatPhone, formatTime, formatWorkday, fullName } from '@/lib/format'
 import { useApiMutation, useGroups } from '@/lib/queries'
 import { cn } from '@/lib/utils'
 
@@ -199,7 +199,14 @@ export function ReportPage() {
                             ? `${formatTime(a.startedAt, settings.timezone)} → ${a.endedAt ? formatTime(a.endedAt, settings.timezone) : 'en cours'}`
                             : '—'}
                         </TableCell>
-                        <TableCell className="text-right tabular-nums">{a.startedAt ? hours(a.workedMinutes) : '—'}</TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {a.startedAt ? hours(a.workedMinutes) : '—'}
+                          {a.startedAt && a.targetMinutes ? (
+                            <span className="block text-xs text-muted-foreground">
+                              {Math.round((a.workedMinutes / a.targetMinutes) * 100)} % de {formatWorkday(a.targetMinutes)}
+                            </span>
+                          ) : null}
+                        </TableCell>
                         <TableCell className="text-right tabular-nums">
                           {a.formsAccepted}
                           {a.formsRejected > 0 && <span className="text-xs text-muted-foreground"> (+{a.formsRejected} rejeté)</span>}

@@ -65,3 +65,11 @@ export function dateInput(at: Date = new Date()): string {
 
 /** Échéance saisie : fin de journée locale. */
 export const dueFromInput = (value: string) => new Date(`${value}T23:59:00`).toISOString()
+
+/** Durée de travail : 480 → « 8 h », 450 → « 7 h 30 », 30 → « 30 min ». */
+export function formatWorkday(minutes: number): string {
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+  if (!h) return `${m} min`
+  return m ? `${h} h ${String(m).padStart(2, '0')}` : `${h} h`
+}

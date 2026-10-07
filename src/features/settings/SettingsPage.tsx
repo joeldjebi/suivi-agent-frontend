@@ -13,6 +13,7 @@ import { useAuth, useMe } from '@/lib/auth'
 import { approvalModeLabel, expirationActionLabel } from '@/lib/labels'
 import { useApiMutation } from '@/lib/queries'
 import type { Settings } from '@/lib/types'
+import { DurationSelect } from '@/components/app/duration-select'
 
 const TIMEZONES = ['Africa/Abidjan', 'Africa/Dakar', 'Africa/Lagos', 'Africa/Douala', 'Africa/Casablanca', 'Europe/Paris']
 
@@ -323,6 +324,13 @@ function SettingsForm({ settings }: { settings: Settings }) {
       </Section>
 
       <Section title="Journée de travail" description="Démarrage, pause et remise à zéro quotidienne.">
+        <Field>
+          <FieldLabel htmlFor="workday">Durée de travail par jour</FieldLabel>
+          <DurationSelect id="workday" value={draft.workdayMinutes} onChange={(v) => v && set('workdayMinutes', v)} />
+          <FieldDescription>
+            Objectif affiché aux agents dans l’app et repère du bilan du jour. Modifiable pour un groupe ou un agent (temps partiel).
+          </FieldDescription>
+        </Field>
         <Toggle
           id="zoneRequired"
           label="Zone obligatoire pour démarrer"

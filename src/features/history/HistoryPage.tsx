@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { api } from '@/lib/api'
 import { useMe } from '@/lib/auth'
-import { formatDate, formatDuration, formatTime, fullName } from '@/lib/format'
+import { formatDate, formatDuration, formatTime, formatWorkday, fullName } from '@/lib/format'
 import { dayStatusLabel } from '@/lib/labels'
 import { useAgents, useGroups, useZones } from '@/lib/queries'
 import type { Page as PageOf, WorkDay } from '@/lib/types'
@@ -229,7 +229,14 @@ export function HistoryPage() {
                           <span className="block text-xs text-muted-foreground">fin automatique</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-right tabular-nums">{formatDuration(d.workedSeconds)}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {formatDuration(d.workedSeconds)}
+                        {d.targetMinutes ? (
+                          <span className="block text-xs text-muted-foreground">
+                            {Math.round((d.workedSeconds / 60 / d.targetMinutes) * 100)} % de {formatWorkday(d.targetMinutes)}
+                          </span>
+                        ) : null}
+                      </TableCell>
                       <TableCell className="text-right tabular-nums">
                         {d.pauses.length ? `${d.pauses.length} · ${formatDuration(d.pausedSeconds)}` : '—'}
                       </TableCell>

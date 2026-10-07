@@ -15,6 +15,7 @@ import { useMe } from '@/lib/auth'
 import { roleLabel } from '@/lib/labels'
 import { useApiMutation, useGroups } from '@/lib/queries'
 import type { User } from '@/lib/types'
+import { DurationSelect } from '@/components/app/duration-select'
 
 const NO_GROUP = 'none'
 
@@ -28,6 +29,7 @@ const schema = (creating: boolean) =>
       role: z.enum([Role.Admin, Role.TeamLead, Role.Agent]),
       groupId: z.string(),
       onProbation: z.boolean(),
+      workdayMinutes: z.number().nullable(),
       password: creating
         ? z.string().min(8, 'Au moins 8 caractères')
         : z.string().refine((v) => v === '' || v.length >= 8, 'Au moins 8 caractères, ou vide pour ne pas changer'),
@@ -70,6 +72,7 @@ export function UserFormDialog({
         role: user?.role ?? defaultRole,
         groupId: user?.groupId ?? NO_GROUP,
         onProbation: user?.onProbation ?? false,
+        workdayMinutes: user?.workdayMinutes ?? null,
         password: '',
       })
     }
@@ -85,6 +88,7 @@ export function UserFormDialog({
         role: v.role,
         groupId: v.role === Role.Agent && settings.useGroups && v.groupId !== NO_GROUP ? v.groupId : null,
         onProbation: v.onProbation,
+        workdayMinutes: v.role === Role.Agent ? v.workdayMinutes : null,
         password: v.password || undefined,
       }
       return creating ? api.post('/users', body) : api.patch(`/users/${user.id}`, body)
@@ -203,6 +207,24 @@ export function UserFormDialog({
                       <FieldDescription>En mode mixte, ses choix de zone peuvent nécessiter une approbation.</FieldDescription>
                     </FieldContent>
                     <Switch id="user-probation" checked={field.value} onCheckedChange={field.onChange} />
+                  </Field>
+                )}
+              />
+            )}
+            {role === Role.Agent && (
+              <Controller
+                control={form.control}
+                name="workdayMinutes"
+                render={({ field }) => (
+                  <Field>
+                    <FieldLabel htmlFor="user-workday">Durée de travail par jour</FieldLabel>
+                    <DurationSelect
+                      id="user-workday"
+                      value={field.value}
+                      onChange={field.onChange}
+                      inheritLabel={settings.useGroups ? 'Celle de son groupe ou de la structure' : 'Celle de la structure'}
+                    />
+                    <FieldDescription>Pour un temps partiel ; sinon, laissez la durée par défaut.</FieldDescription>
                   </Field>
                 )}
               />

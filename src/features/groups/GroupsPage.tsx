@@ -18,10 +18,11 @@ import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetT
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { api } from '@/lib/api'
 import { useMe } from '@/lib/auth'
-import { fullName } from '@/lib/format'
+import { formatWorkday, fullName } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { useAgents, useAllUsers, useApiMutation, useGroups, useZones } from '@/lib/queries'
 import type { Group, GroupDetail } from '@/lib/types'
+import { DurationSelect } from '@/components/app/duration-select'
 
 const NONE = 'none'
 
@@ -36,13 +37,15 @@ export function GroupDialog({ open, onOpenChange, group }: { open: boolean; onOp
 }
 
 function GroupForm({ group, onDone }: { group?: Group; onDone: () => void }) {
+  const { settings } = useMe()
   const leaders = useAllUsers(Role.TeamLead)
   const [name, setName] = useState(group?.name ?? '')
   const [leaderId, setLeaderId] = useState<string>(group?.leaderId ?? NONE)
+  const [workday, setWorkday] = useState<number | null>(group?.workdayMinutes ?? null)
 
   const save = useApiMutation(
     () => {
-      const body = { name: name.trim(), leaderId: leaderId === NONE ? null : leaderId }
+      const body = { name: name.trim(), leaderId: leaderId === NONE ? null : leaderId, workdayMinutes: workday }
       return group ? api.patch(`/groups/${group.id}`, body) : api.post('/groups', body)
     },
     { success: group ? 'Groupe mis à jour' : 'Groupe créé', invalidate: [['groups']], onSuccess: onDone },
@@ -79,6 +82,15 @@ function GroupForm({ group, onDone }: { group?: Group; onDone: () => void }) {
           {leaders.data?.length === 0 && (
             <p className="text-xs text-muted-foreground">Créez d'abord un utilisateur avec le rôle « Chef d'équipe ».</p>
           )}
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="group-workday">Durée de travail par jour</FieldLabel>
+          <DurationSelect
+            id="group-workday"
+            value={workday}
+            onChange={setWorkday}
+            inheritLabel={`Celle de la structure (${formatWorkday(settings.workdayMinutes)})`}
+          />
         </Field>
       </FieldGroup>
       <DialogFooter>

@@ -43,6 +43,8 @@ export interface User {
   lastName: string
   phone: string | null
   role: Role
+  /** Durée de travail par jour de l'agent ; vide : celle de son groupe ou de la structure */
+  workdayMinutes?: number | null
   groupId: string | null
   onProbation: boolean
   isActive: boolean
@@ -112,6 +114,8 @@ export interface Settings {
   alertMocked: boolean
   /** Formulaires acceptés seulement pendant une journée dans une zone de la mission */
   submissionRequiresDay: boolean
+  /** Durée de travail attendue par jour pour les agents, en minutes */
+  workdayMinutes: number
   /** Heure du bilan de fin de journée envoyé aux responsables ; null : pas d'envoi */
   dailyReportTime: string | null
   positionRetentionDays: number
@@ -219,6 +223,8 @@ export interface Group {
   leaderId: string | null
   isActive: boolean
   agentCount?: number
+  /** Durée de travail par jour du groupe ; vide : celle de la structure */
+  workdayMinutes?: number | null
 }
 
 export interface GroupDetail extends Group {
@@ -277,6 +283,8 @@ export interface WorkDay {
   endReason: DayEndReason | null
   pauses: DayPause[]
   workedSeconds: number
+  /** Durée de travail attendue de l'agent, en minutes */
+  targetMinutes?: number | null
   pausedSeconds: number
   agent?: User
 }
