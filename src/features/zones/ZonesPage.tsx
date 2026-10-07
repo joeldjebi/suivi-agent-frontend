@@ -30,6 +30,7 @@ import type { Zone } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { ZoneAgentsDialog } from './ZoneAgentsDialog'
 import { ZoneFormDialog } from './ZoneFormDialog'
+import { useOpenFromQuery } from '@/lib/use-open-from-query'
 
 function Occupancy({ zone }: { zone: Zone }) {
   if (zone.capacity === null) {
@@ -66,6 +67,8 @@ export function ZonesPage() {
   const [accessZone, setAccessZone] = useState<Zone | null>(null)
   const [highlight, setHighlight] = useState<string | null>(null)
   const [map, setMap] = useState<L.Map | null>(null)
+  // Lien « Créer une zone » : le tracé démarre aussitôt.
+  useOpenFromQuery(() => setDrawing(true))
 
   const onDrawn = useCallback((area: GeoPolygon) => {
     setDrawing(false)

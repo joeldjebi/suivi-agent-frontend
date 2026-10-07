@@ -199,7 +199,7 @@ function ArticleForm({ article, onDone }: { article: Article | null; onDone: () 
           <div className="min-h-64 rounded-lg border bg-background p-5">
             <h2 className="mb-1 text-xl font-semibold">{title || 'Titre'}</h2>
             {summary && <p className="mb-4 text-muted-foreground">{summary}</p>}
-            <Markdown source={body} />
+            <Markdown source={body} internalLinks={false} />
           </div>
         </div>
       </div>

@@ -23,6 +23,7 @@ import { cn } from '@/lib/utils'
 import { useAgents, useAllUsers, useApiMutation, useGroups, useZones } from '@/lib/queries'
 import type { Group, GroupDetail } from '@/lib/types'
 import { DurationSelect } from '@/components/app/duration-select'
+import { useOpenFromQuery } from '@/lib/use-open-from-query'
 
 const NONE = 'none'
 
@@ -277,6 +278,7 @@ export function GroupsPage() {
   const [dialog, setDialog] = useState<{ open: boolean; group?: Group }>({ open: false })
   const [openId, setOpenId] = useState<string | null>(null)
   const [removing, setRemoving] = useState<Group | null>(null)
+  useOpenFromQuery(() => setDialog({ open: true }))
   const [search, setSearch] = useState('')
   const [leaderFilter, setLeaderFilter] = useState<'all' | 'with' | 'without'>('all')
   const leaderName = (g: Group) => (g.leaderId === user.id ? fullName(user) : fullName(leaders.data?.find((l) => l.id === g.leaderId)))

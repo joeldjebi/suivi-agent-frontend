@@ -19,6 +19,7 @@ import { useAgents, useGroups, useMissionTypes, useZones } from '@/lib/queries'
 import type { Mission, Page as PageOf } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { MissionFormDialog } from './MissionFormDialog'
+import { useOpenFromQuery } from '@/lib/use-open-from-query'
 
 const ALL = 'all'
 const SORT: Record<string, string> = { recent: 'Plus récentes', due: 'Échéance la plus proche', title: 'Titre (A → Z)' }
@@ -38,6 +39,7 @@ export function MissionsPage() {
   const [showInactive, setShowInactive] = useState(false)
   const [page, setPage] = useState(1)
   const [formOpen, setFormOpen] = useState(false)
+  useOpenFromQuery(() => setFormOpen(true))
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
   const [assignee, setAssignee] = useState(ALL)

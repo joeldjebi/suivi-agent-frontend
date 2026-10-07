@@ -1,12 +1,25 @@
+import { ArrowRight } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { Link } from 'react-router'
 import { cn } from './utils'
 
 /**
  * Rendu Markdown minimal et sûr pour la documentation : titres (##, ###), paragraphes,
  * listes (-, 1.), citations (>), **gras**, *italique* et liens [texte](https://…).
+ * Un lien vers un écran de l'application, [Créer une zone](/zones?new=1), devient un bouton.
  * Le HTML n'est jamais interprété : tout passe par React, qui échappe le texte.
  */
-export function Markdown({ source, className }: { source: string; className?: string }) {
+export function Markdown({
+  source,
+  className,
+  internalLinks = true,
+}: {
+  source: string
+  className?: string
+  /** false (console éditeur) : boutons affichés sans navigation */
+  internalLinks?: boolean
+}) {
+  const inline = (text: string) => inlineNodes(text, internalLinks)
   const blocks: ReactNode[] = []
   const lines = source.replace(/\r\n/g, '\n').split('\n')
   let i = 0
@@ -65,16 +78,31 @@ export function Markdown({ source, className }: { source: string; className?: st
   return <div className={cn('flex flex-col gap-3', className)}>{blocks}</div>
 }
 
-/** Gras, italique et liens dans une ligne. */
-function inline(text: string): ReactNode[] {
+const buttonClass =
+  'mr-1.5 mb-1 inline-flex h-7 items-center gap-1 rounded-md border border-primary/30 bg-primary/5 px-2.5 text-xs font-medium text-primary no-underline transition-colors hover:bg-primary/10 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none'
+
+/** Gras, italique, liens externes et boutons vers les écrans de l'application. */
+function inlineNodes(text: string, internalLinks: boolean): ReactNode[] {
   const out: ReactNode[] = []
-  const pattern = /\*\*(.+?)\*\*|\*(.+?)\*|\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g
+  const pattern = /\*\*(.+?)\*\*|\*(.+?)\*|\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|\[([^\]]+)\]\((\/[A-Za-z0-9/_\-?=&]*)\)/g
   let last = 0
   let k = 0
   for (const m of text.matchAll(pattern)) {
     if (m.index > last) out.push(text.slice(last, m.index))
     if (m[1]) out.push(<strong key={k++}>{m[1]}</strong>)
     else if (m[2]) out.push(<em key={k++}>{m[2]}</em>)
+    else if (m[5])
+      out.push(
+        internalLinks ? (
+          <Link key={k++} to={m[6]} className={buttonClass}>
+            {m[5]} <ArrowRight className="size-3.5" aria-hidden />
+          </Link>
+        ) : (
+          <span key={k++} className={buttonClass} title={`Ouvre ${m[6]} dans l’espace de la structure`}>
+            {m[5]} <ArrowRight className="size-3.5" aria-hidden />
+          </span>
+        ),
+      )
     else
       out.push(
         <a key={k++} href={m[4]} target="_blank" rel="noreferrer noopener" className="text-primary underline underline-offset-2">

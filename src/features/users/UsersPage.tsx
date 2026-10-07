@@ -34,6 +34,7 @@ import { useApiMutation, useGroups } from '@/lib/queries'
 import type { Page as PageOf, User, UserStats } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { UserFormDialog } from './UserFormDialog'
+import { useOpenFromQuery } from '@/lib/use-open-from-query'
 
 const ALL = 'all'
 const NO_GROUP = 'none'
@@ -66,6 +67,13 @@ export function UsersPage() {
   const [page, setPage] = useState(1)
   const [editing, setEditing] = useState<User | undefined>()
   const [formOpen, setFormOpen] = useState(false)
+  const [newRole, setNewRole] = useState<Role>(Role.Agent)
+  // Lien « Ajouter un agent / un chef d'équipe » : formulaire ouvert sur ce rôle.
+  useOpenFromQuery((role) => {
+    setNewRole(role === Role.TeamLead ? Role.TeamLead : Role.Agent)
+    setEditing(undefined)
+    setFormOpen(true)
+  })
   const [removing, setRemoving] = useState<User | null>(null)
 
   useEffect(() => {
@@ -382,7 +390,7 @@ export function UsersPage() {
         )}
       </QueryState>
 
-      <UserFormDialog open={formOpen} onOpenChange={setFormOpen} user={editing} />
+      <UserFormDialog open={formOpen} onOpenChange={setFormOpen} user={editing} defaultRole={newRole} />
       <RemoveDialog
         target={removing && { name: fullName(removing), isActive: removing.isActive }}
         onOpenChange={(o) => !o && setRemoving(null)}

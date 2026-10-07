@@ -22,6 +22,7 @@ import { ExportButton } from '@/components/app/export-button'
 import { PayFields } from '../payroll/PayFields'
 import { describePay, draftFrom, draftInvalid, payFromDraft, type PayDraft } from '../payroll/pay-draft'
 import { CircleSlash } from 'lucide-react'
+import { useOpenFromQuery } from '@/lib/use-open-from-query'
 
 interface DraftField extends MissionField {
   /** Texte saisi pour les options d'une liste (une par ligne). */
@@ -289,6 +290,7 @@ export function MissionTypesPage() {
   const payroll = useFeature(Feature.Payroll)
   const [dialog, setDialog] = useState<{ open: boolean; type?: MissionType }>({ open: false })
   const [removing, setRemoving] = useState<MissionType | null>(null)
+  useOpenFromQuery(() => setDialog({ open: true }))
   const toggleActive = useApiMutation((t: MissionType) => api.patch(`/mission-types/${t.id}`, { isActive: !t.isActive }), {
     invalidate: [['mission-types']],
   })

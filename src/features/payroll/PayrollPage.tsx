@@ -36,6 +36,7 @@ import type { PayEstimate, PayGrid, PayRunSummary } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { GridDialog } from './GridDialog'
 import { RUN_TONE, describeGrid, periodKindLabel, runStatusLabel } from './helpers'
+import { useOpenFromQuery } from '@/lib/use-open-from-query'
 
 type Tab = 'current' | 'runs' | 'grids' | 'settings'
 
@@ -284,6 +285,7 @@ function RunsTab({ admin }: { admin: boolean }) {
 function GridsTab() {
   const grids = useQuery({ queryKey: ['pay', 'grids'], queryFn: async () => (await api.get<PayGrid[]>('/pay/grids')).data })
   const [dialog, setDialog] = useState<{ open: boolean; grid?: PayGrid }>({ open: false })
+  useOpenFromQuery(() => setDialog({ open: true }))
   const remove = useApiMutation((id: string) => api.delete(`/pay/grids/${id}`), { success: 'Grille supprimée', invalidate: [['pay']] })
   const roleLabel = (r: string) => (r === 'agent' ? 'Tous les agents' : 'Tous les chefs')
   return (
