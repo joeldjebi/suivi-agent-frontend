@@ -31,6 +31,7 @@ import {
   BellRing,
 } from 'lucide-react'
 import { useOpenAlerts } from '@/lib/alerts'
+import { SosBanner } from './sos-banner'
 import { useOnboarding } from '@/lib/onboarding'
 import { useSupportAnswers } from '@/lib/support-queries'
 import { Suspense, useState } from 'react'
@@ -350,6 +351,7 @@ export function AppShell() {
             <NotificationsButton />
             <UserMenu />
           </header>
+          <SosBanner />
           <SubscriptionBanner />
           <main className="min-h-0 flex-1 overflow-y-auto">
             <RouteErrorBoundary key={location.pathname}>

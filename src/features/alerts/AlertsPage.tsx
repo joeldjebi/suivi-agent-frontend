@@ -1,6 +1,6 @@
 import { AlertType, type AgentAlertInfo } from '@suivi/shared'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { CheckCircle2, Hand, Loader2, Map as MapIcon, Siren } from 'lucide-react'
+import { CheckCircle2, ExternalLink, Hand, Loader2, Map as MapIcon, Phone, ShieldCheck, Siren } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { EmptyState, Page, PageHeader, QueryState } from '@/components/app/page'
@@ -11,10 +11,10 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
-import { ALERT_META, alertDetail, useOpenAlerts } from '@/lib/alerts'
+import { ALERT_META, alertDetail, sosMapUrl, useOpenAlerts } from '@/lib/alerts'
 import { api } from '@/lib/api'
 import { useMe } from '@/lib/auth'
-import { formatDateTime, formatRelative, formatTime, fullName } from '@/lib/format'
+import { formatDateTime, formatPhone, formatRelative, formatTime, fullName } from '@/lib/format'
 import { useApiMutation } from '@/lib/queries'
 import { cn } from '@/lib/utils'
 
@@ -55,7 +55,19 @@ export function AlertsPage() {
       ).data,
   })
   const query = tab === 'open' ? open : history
-  const items = (query.data ?? []).filter((a) => type === ALL || a.type === type)
+  // Alertes sécurité en tête.
+  const items = (query.data ?? [])
+    .filter((a) => type === ALL || a.type === type)
+    .sort((a, b) => Number(b.type === AlertType.Sos) - Number(a.type === AlertType.Sos))
+  const [closing, setClosing] = useState<AgentAlertInfo | null>(null)
+  const close = useApiMutation(() => api.post(`/alerts/${closing!.id}/close`, { note: note.trim() || undefined }), {
+    success: 'Alerte close : l’agent est informé',
+    invalidate: [['alerts']],
+    onSuccess: () => {
+      setClosing(null)
+      setNote('')
+    },
+  })
 
   const ack = useApiMutation(() => api.post(`/alerts/${acking!.id}/ack`, { note: note.trim() || undefined }), {
     success: 'Alerte prise en charge',
@@ -108,12 +120,15 @@ export function AlertsPage() {
           <ul className="flex flex-col gap-2">
             {items.map((a) => {
               const meta = ALERT_META[a.type]
+              const sos = a.type === AlertType.Sos
+              const mapUrl = sos ? sosMapUrl(a) : null
               return (
                 <li
                   key={a.id}
                   className={cn(
                     'flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border bg-card p-3',
                     !a.resolvedAt && !a.acknowledgedAt && 'border-status-alert/30',
+                    sos && !a.resolvedAt && 'border-2 border-status-alert bg-status-alert/5',
                   )}
                 >
                   <span
@@ -142,8 +157,18 @@ export function AlertsPage() {
                       </p>
                     )}
                   </div>
-                  <div className="flex gap-2">
-                    {a.dayId && !a.resolvedAt && (
+                  <div className="flex flex-wrap gap-2">
+                    {sos && !a.resolvedAt && a.agent.phone && (
+                      <Button size="sm" variant="outline" nativeButton={false} render={<a href={`tel:${a.agent.phone}`} />}>
+                        <Phone aria-hidden /> {formatPhone(a.agent.phone)}
+                      </Button>
+                    )}
+                    {mapUrl && (
+                      <Button size="sm" variant="ghost" nativeButton={false} render={<a href={mapUrl} target="_blank" rel="noreferrer" />}>
+                        <ExternalLink aria-hidden /> Position
+                      </Button>
+                    )}
+                    {a.dayId && !a.resolvedAt && !sos && (
                       <Button size="sm" variant="ghost" nativeButton={false} render={<Link to={`/map?agent=${a.agent.id}`} />}>
                         <MapIcon aria-hidden /> Carte
                       </Button>
@@ -151,6 +176,11 @@ export function AlertsPage() {
                     {!a.resolvedAt && !a.acknowledgedAt && (
                       <Button size="sm" variant="outline" onClick={() => setAcking(a)}>
                         <Hand aria-hidden /> Je m’en occupe
+                      </Button>
+                    )}
+                    {sos && !a.resolvedAt && (
+                      <Button size="sm" onClick={() => setClosing(a)}>
+                        <ShieldCheck aria-hidden /> Clore
                       </Button>
                     )}
                   </div>
@@ -187,6 +217,35 @@ export function AlertsPage() {
             <Button disabled={ack.isPending} onClick={() => ack.mutate(undefined)}>
               {ack.isPending && <Loader2 className="animate-spin" aria-hidden />}
               Je m’en occupe
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!closing} onOpenChange={(o) => !o && setClosing(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Clore l’alerte sécurité</DialogTitle>
+            <DialogDescription>
+              {closing && fullName(closing.agent)} est en sécurité ? L’agent sera informé de la clôture.
+            </DialogDescription>
+          </DialogHeader>
+          <Field>
+            <FieldLabel htmlFor="close-note">Comment la situation s’est réglée (facultatif)</FieldLabel>
+            <Textarea
+              id="close-note"
+              value={note}
+              maxLength={300}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Ex. Agent joint, raccompagné au bureau"
+            />
+          </Field>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setClosing(null)}>
+              Annuler
+            </Button>
+            <Button disabled={close.isPending} onClick={() => close.mutate(undefined)}>
+              {close.isPending && <Loader2 className="animate-spin" aria-hidden />}
+              Clore l’alerte
             </Button>
           </DialogFooter>
         </DialogContent>
