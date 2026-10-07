@@ -39,6 +39,7 @@ import { useAgents, useApiMutation, useGroups } from '@/lib/queries'
 import type { MissionDetail, Submission } from '@/lib/types'
 import { MissionEditDialog } from './MissionEditDialog'
 import { MissionPayCard } from './MissionPayCard'
+import { SubmissionPhoto } from './SubmissionPhoto'
 import { ExportButton } from '@/components/app/export-button'
 import type { MissionField } from '@suivi/shared'
 
@@ -351,9 +352,24 @@ export function MissionDetailPage() {
                           <TableRow key={s.id} className={s.status === SubmissionStatus.Rejected ? 'text-muted-foreground' : undefined}>
                             <TableCell className="font-medium">{fullName(s.agent)}</TableCell>
                             <TableCell className="tabular-nums">{formatDateTime(s.submittedAt, settings.timezone)}</TableCell>
-                            {m.type.fields.map((f) => (
-                              <TableCell key={f.key}>{displayValue(f, s.data[f.key])}</TableCell>
-                            ))}
+                            {m.type.fields.map((f) => {
+                              const value = s.data[f.key]
+                              return (
+                                <TableCell key={f.key}>
+                                  {f.type === FieldType.Photo && typeof value === 'string' ? (
+                                    <SubmissionPhoto
+                                      id={value}
+                                      meta={s.photos?.[value]}
+                                      label={f.label}
+                                      agentName={fullName(s.agent)}
+                                      zoneIds={(m.zones ?? []).map((z) => z.id)}
+                                    />
+                                  ) : (
+                                    displayValue(f, value)
+                                  )}
+                                </TableCell>
+                              )
+                            })}
                             <TableCell>
                               {s.status === SubmissionStatus.Rejected ? (
                                 <span className="flex flex-col gap-0.5">

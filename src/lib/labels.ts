@@ -53,6 +53,7 @@ export const fieldTypeLabel: Record<FieldType, string> = {
   [FieldType.Boolean]: 'Oui / Non',
   [FieldType.Date]: 'Date',
   [FieldType.Select]: 'Liste de choix',
+  [FieldType.Photo]: 'Photo géolocalisée',
 }
 
 export const releaseReasonLabel: Record<string, string> = {

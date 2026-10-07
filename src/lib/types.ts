@@ -388,6 +388,16 @@ export interface Submission {
   /** Saisi hors des zones de la mission, ou position hors du périmètre */
   outOfZone?: boolean
   agent: User
+  /** Photos du formulaire : position et heure de prise, par identifiant */
+  photos?: Record<string, PhotoMeta>
+}
+
+export interface PhotoMeta {
+  id: string
+  lat: number | null
+  lng: number | null
+  accuracy: number | null
+  takenAt: string
 }
 
 export interface Notification {
