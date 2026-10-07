@@ -26,7 +26,7 @@ export const featureLabel: Record<Feature, string> = {
   team_leads: 'Suivi des chefs d’équipe',
   audit: 'Journal d’accès',
   payroll: 'Rémunération des agents et chefs',
-  push_notifications: 'Notifications push sur les téléphones',
+  push_notifications: 'Notifications push et messages aux équipes',
 }
 
 /** Inclus dans toutes les formules. */

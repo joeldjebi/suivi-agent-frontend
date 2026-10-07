@@ -28,6 +28,7 @@ import {
   UsersRound,
   Wallet,
   type LucideIcon,
+  BellRing,
 } from 'lucide-react'
 import { useOpenAlerts } from '@/lib/alerts'
 import { useOnboarding } from '@/lib/onboarding'
@@ -79,6 +80,7 @@ const NAV: { title: string; items: NavItem[] }[] = [
       { to: '/map', label: 'Carte en temps réel', icon: MapIcon, roles: STAFF },
       { to: '/alerts', label: 'Alertes', icon: Siren, roles: STAFF },
       { to: '/report', label: 'Bilan du jour', icon: ClipboardList, roles: STAFF },
+      { to: '/broadcasts', label: 'Notifications', icon: BellRing, roles: ADMIN, feature: Feature.PushNotifications },
       { to: '/stats', label: 'Statistiques', icon: BarChart3, roles: ADMIN, feature: Feature.Stats },
       { to: '/approvals', label: 'Demandes de zone', icon: ClipboardCheck, roles: STAFF },
       { to: '/history', label: 'Historique des journées', icon: History, roles: STAFF },

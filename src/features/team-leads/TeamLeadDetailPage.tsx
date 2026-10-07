@@ -30,6 +30,7 @@ import type { LeadTimeline, TeamLeadDetail, TimelineEvent, TimelineType } from '
 import { usePeriod } from '@/lib/period'
 import { cn } from '@/lib/utils'
 import { daysSince, formatResponse, leadAlerts, responseTone } from './helpers'
+import { LeadActions } from './lead-actions'
 import { LeadAvatar } from './shared'
 
 const PAGE_SIZE = 30
@@ -177,7 +178,10 @@ export function TeamLeadDetailPage() {
                   </div>
                 </div>
               </div>
-              <PeriodPicker period={period} />
+              <div className="flex flex-col items-start gap-3 sm:items-end">
+                <LeadActions lead={lead} variant="buttons" />
+                <PeriodPicker period={period} />
+              </div>
             </div>
 
             {leadAlerts(lead).length > 0 && (

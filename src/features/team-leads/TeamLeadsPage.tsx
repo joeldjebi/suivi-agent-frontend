@@ -37,6 +37,7 @@ import type { LeadStats, TeamLeadsOverview } from '@/lib/types'
 import { usePeriod } from '@/lib/period'
 import { cn } from '@/lib/utils'
 import { ABSENT_DAYS, daysSince, formatResponse, leadAlerts, responseTone } from './helpers'
+import { LeadActions } from './lead-actions'
 import { LeadAvatar } from './shared'
 
 type SortKey = 'name' | 'response' | 'unanswered' | 'decided' | 'lastLogin'
@@ -196,7 +197,7 @@ export function TeamLeadsPage() {
                       <SortHead label="Dernière connexion" sortKey="lastLogin" sort={sort} onSort={toggleSort} />
                       <TableHead>Points d’attention</TableHead>
                       <TableHead>
-                        <span className="sr-only">Fiche</span>
+                        <span className="sr-only">Actions</span>
                       </TableHead>
                     </TableRow>
                   </TableHeader>
@@ -280,7 +281,10 @@ export function TeamLeadsPage() {
                             )}
                           </TableCell>
                           <TableCell>
-                            <ChevronRight className="size-4 text-muted-foreground" aria-hidden />
+                            <div className="flex items-center justify-end gap-1">
+                              <LeadActions lead={l} />
+                              <ChevronRight className="size-4 text-muted-foreground" aria-hidden />
+                            </div>
                           </TableCell>
                         </TableRow>
                       )

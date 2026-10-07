@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Field, FieldContent, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Switch } from '@/components/ui/switch'
 import { api } from '@/lib/api'
 import { useMe } from '@/lib/auth'
@@ -30,6 +31,7 @@ const schema = (creating: boolean) =>
       groupId: z.string(),
       onProbation: z.boolean(),
       workdayMinutes: z.number().nullable(),
+      ledGroupIds: z.array(z.string()),
       password: creating
         ? z.string().min(8, 'Au moins 8 caractères')
         : z.string().refine((v) => v === '' || v.length >= 8, 'Au moins 8 caractères, ou vide pour ne pas changer'),
@@ -61,6 +63,9 @@ export function UserFormDialog({
   const role = useWatch({ control: form.control, name: 'role' })
   // Agents et chefs d'équipe se connectent à l'app mobile avec leur numéro.
   const phoneRequired = role !== Role.Admin
+  // Numéro de connexion figé dès la première connexion de l'agent ou du chef (règle de l'API).
+  const phoneLocked = !!user && user.role !== Role.Admin && !!user.lastLoginAt
+  const leading = role === Role.TeamLead && settings.useGroups
 
   useEffect(() => {
     if (open) {
@@ -73,10 +78,13 @@ export function UserFormDialog({
         groupId: user?.groupId ?? NO_GROUP,
         onProbation: user?.onProbation ?? false,
         workdayMinutes: user?.workdayMinutes ?? null,
+        ledGroupIds: user ? (groups.data ?? []).filter((g) => g.leaderId === user.id).map((g) => g.id) : [],
         password: '',
       })
     }
-  }, [open, user, defaultRole, form])
+    // Groupes relus à l'ouverture seulement : la saisie en cours n'est pas écrasée.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, user, defaultRole, form, groups.isSuccess])
 
   const save = useApiMutation(
     (v: Values) => {
@@ -84,12 +92,13 @@ export function UserFormDialog({
         firstName: v.firstName,
         lastName: v.lastName,
         email: v.email,
-        phone: v.phone || null,
+        phone: phoneLocked ? undefined : v.phone || null,
         role: v.role,
         groupId: v.role === Role.Agent && settings.useGroups && v.groupId !== NO_GROUP ? v.groupId : null,
         onProbation: v.onProbation,
         workdayMinutes: v.role === Role.Agent ? v.workdayMinutes : null,
         password: v.password || undefined,
+        ledGroupIds: v.role === Role.TeamLead && settings.useGroups ? v.ledGroupIds : undefined,
       }
       return creating ? api.post('/users', body) : api.patch(`/users/${user.id}`, body)
     },
@@ -139,9 +148,16 @@ export function UserFormDialog({
                   autoComplete="off"
                   placeholder="07 00 00 00 00"
                   aria-invalid={!!errors.phone}
+                  readOnly={phoneLocked}
+                  aria-readonly={phoneLocked}
+                  className={phoneLocked ? 'bg-muted text-muted-foreground' : undefined}
                   {...form.register('phone')}
                 />
-                {phoneRequired && !errors.phone && <FieldDescription>Identifiant de connexion à l'app mobile.</FieldDescription>}
+                {phoneLocked ? (
+                  <FieldDescription>Non modifiable : ce compte s'est déjà connecté à l'app avec ce numéro.</FieldDescription>
+                ) : (
+                  phoneRequired && !errors.phone && <FieldDescription>Identifiant de connexion à l'app mobile.</FieldDescription>
+                )}
                 <FieldError errors={[errors.phone]} />
               </Field>
             </div>
@@ -225,6 +241,49 @@ export function UserFormDialog({
                       inheritLabel={settings.useGroups ? 'Celle de son groupe ou de la structure' : 'Celle de la structure'}
                     />
                     <FieldDescription>Pour un temps partiel ; sinon, laissez la durée par défaut.</FieldDescription>
+                  </Field>
+                )}
+              />
+            )}
+            {leading && (
+              <Controller
+                control={form.control}
+                name="ledGroupIds"
+                render={({ field }) => (
+                  <Field>
+                    <FieldLabel>Groupes dirigés</FieldLabel>
+                    {groups.data?.length ? (
+                      <div className="grid max-h-48 gap-1 overflow-y-auto rounded-lg border p-1 sm:grid-cols-2">
+                        {groups.data.map((g) => {
+                          const checked = field.value.includes(g.id)
+                          const otherLeader = g.leaderId && g.leaderId !== user?.id
+                          return (
+                            <label
+                              key={g.id}
+                              className="flex min-h-11 cursor-pointer items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm hover:bg-muted"
+                            >
+                              <Checkbox
+                                checked={checked}
+                                onCheckedChange={(on) =>
+                                  field.onChange(on ? [...field.value, g.id] : field.value.filter((id) => id !== g.id))
+                                }
+                              />
+                              <span className="min-w-0 flex-1">
+                                <span className="block truncate font-medium">{g.name}</span>
+                                {otherLeader && (
+                                  <span className="block text-xs text-muted-foreground">
+                                    {checked ? 'Sera retiré à son chef actuel' : 'A déjà un chef'}
+                                  </span>
+                                )}
+                              </span>
+                            </label>
+                          )
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">Aucun groupe pour l'instant.</p>
+                    )}
+                    <FieldDescription>Le chef suit et valide les agents de ces groupes.</FieldDescription>
                   </Field>
                 )}
               />

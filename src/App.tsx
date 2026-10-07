@@ -37,6 +37,7 @@ const UsersPage = lazyPage(() => import('@/features/users/UsersPage').then((m) =
 const BrandingPage = lazyPage(() => import('@/features/branding/BrandingPage').then((m) => ({ default: m.BrandingPage })))
 const PayrollPage = lazyPage(() => import('@/features/payroll/PayrollPage').then((m) => ({ default: m.PayrollPage })))
 const PayRunPage = lazyPage(() => import('@/features/payroll/PayRunPage').then((m) => ({ default: m.PayRunPage })))
+const BroadcastsPage = lazyPage(() => import('@/features/broadcasts/BroadcastsPage').then((m) => ({ default: m.BroadcastsPage })))
 const StatsPage = lazyPage(() => import('@/features/stats/StatsPage').then((m) => ({ default: m.StatsPage })))
 const SubscriptionPage = lazyPage(() => import('@/features/subscription/SubscriptionPage').then((m) => ({ default: m.SubscriptionPage })))
 const TeamLeadsPage = lazyPage(() => import('@/features/team-leads/TeamLeadsPage').then((m) => ({ default: m.TeamLeadsPage })))
@@ -208,6 +209,16 @@ function TenantApp() {
               <RoleRoute roles={admin}>
                 <FeatureGate feature={Feature.Stats}>
                   <StatsPage />
+                </FeatureGate>
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="broadcasts"
+            element={
+              <RoleRoute roles={admin}>
+                <FeatureGate feature={Feature.PushNotifications}>
+                  <BroadcastsPage />
                 </FeatureGate>
               </RoleRoute>
             }
