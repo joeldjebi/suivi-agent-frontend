@@ -1,4 +1,5 @@
 import { Feature, Role, SubscriptionStatus } from '@suivi/shared'
+import { LogoMark } from './logo'
 import {
   BarChart3,
   BookOpen,
@@ -130,7 +131,7 @@ function Navigation({ onNavigate, collapsed = false, onToggle }: { onNavigate?: 
     >
       <div className={cn('flex items-center gap-2 px-2 pt-1', collapsed && 'px-0')}>
         <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-          <MapPinned className="size-4" aria-hidden />
+          <LogoMark className="size-5" />
         </span>
         {!collapsed && (
           <div className="min-w-0">

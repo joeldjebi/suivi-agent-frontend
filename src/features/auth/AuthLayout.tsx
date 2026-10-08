@@ -1,4 +1,5 @@
-import { ClipboardCheck, MapPinned, Radio, Target } from 'lucide-react'
+import { ClipboardCheck, Radio, Target } from 'lucide-react'
+import { LogoMark } from '@/components/app/logo'
 import type { ReactNode } from 'react'
 
 const FEATURES = [
@@ -41,7 +42,7 @@ export function AuthLayout({
 
         <div className="relative flex items-center gap-2.5">
           <span className="flex size-10 items-center justify-center rounded-xl bg-white text-primary">
-            <MapPinned className="size-5" />
+            <LogoMark className="size-6" hole="#ffffff" />
           </span>
           <span className="text-lg font-semibold">Suivi Agent</span>
         </div>
@@ -70,7 +71,7 @@ export function AuthLayout({
         <div className="w-full max-w-sm">
           <div className="mb-6 flex flex-col gap-3">
             <span className="flex size-11 items-center justify-center rounded-xl bg-primary text-primary-foreground lg:hidden">
-              <MapPinned className="size-5" aria-hidden />
+              <LogoMark className="size-6" />
             </span>
             <div>
               <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>

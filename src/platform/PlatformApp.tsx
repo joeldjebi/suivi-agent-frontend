@@ -7,6 +7,7 @@ import { to } from './config'
 import { PlatformLoginPage } from './pages/LoginPage'
 import { PlatformShell } from './shell'
 
+const ErrorsPage = lazyPage(() => import('./pages/ErrorsPage').then((m) => ({ default: m.ErrorsPage })))
 const DashboardPage = lazyPage(() => import('./pages/DashboardPage').then((m) => ({ default: m.DashboardPage })))
 const TenantsPage = lazyPage(() => import('./pages/TenantsPage').then((m) => ({ default: m.TenantsPage })))
 const TenantPage = lazyPage(() => import('./pages/TenantPage').then((m) => ({ default: m.TenantPage })))
@@ -83,6 +84,7 @@ export function PlatformApp() {
           <Route path="settings" element={<SettingsPage />} />
           <Route path="admins" element={<AdminsPage />} />
           <Route path="audit" element={<AuditPage />} />
+          <Route path="errors" element={<ErrorsPage />} />
           <Route path="account" element={<AccountPage />} />
           <Route path="site" element={<SitePage />} />
           <Route path="app-onboarding" element={<AppOnboardingPage />} />
