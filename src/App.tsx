@@ -24,6 +24,7 @@ const GroupsPage = lazyPage(() => import('@/features/groups/GroupsPage').then((m
 const HelpPage = lazyPage(() => import('@/features/help/HelpPage').then((m) => ({ default: m.HelpPage })))
 const SupportPage = lazyPage(() => import('@/features/support/SupportPage').then((m) => ({ default: m.SupportPage })))
 const TicketPage = lazyPage(() => import('@/features/support/TicketPage').then((m) => ({ default: m.TicketPage })))
+const SetupWizard = lazyPage(() => import('@/features/setup/SetupWizard').then((m) => ({ default: m.SetupWizard })))
 const OnboardingPage = lazyPage(() => import('@/features/onboarding/OnboardingPage').then((m) => ({ default: m.OnboardingPage })))
 const ReportPage = lazyPage(() => import('@/features/report/ReportPage').then((m) => ({ default: m.ReportPage })))
 const AlertsPage = lazyPage(() => import('@/features/alerts/AlertsPage').then((m) => ({ default: m.AlertsPage })))
@@ -48,6 +49,7 @@ const TeamLeadDetailPage = lazyPage(() =>
 const PlatformApp = lazyPage(() => import('@/platform/PlatformApp').then((m) => ({ default: m.PlatformApp })))
 const LandingPage = lazyPage(() => import('@/landing/LandingPage').then((m) => ({ default: m.LandingPage })))
 const ZonesPage = lazyPage(() => import('@/features/zones/ZonesPage').then((m) => ({ default: m.ZonesPage })))
+const OutletsPage = lazyPage(() => import('@/features/outlets/OutletsPage').then((m) => ({ default: m.OutletsPage })))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -194,6 +196,22 @@ function TenantApp() {
             }
           />
           <Route path="zones" element={<ZonesPage />} />
+          <Route
+            path="outlets"
+            element={
+              <FeatureGate feature={Feature.PointsOfSale}>
+                <OutletsPage />
+              </FeatureGate>
+            }
+          />
+          <Route
+            path="setup"
+            element={
+              <RoleRoute roles={admin}>
+                <SetupWizard />
+              </RoleRoute>
+            }
+          />
           <Route
             path="groups"
             element={

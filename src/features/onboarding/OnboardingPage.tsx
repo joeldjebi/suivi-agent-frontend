@@ -1,5 +1,5 @@
 import { Feature, OnboardingStep, type OnboardingState, type OnboardingStepState } from '@suivi/shared'
-import { BookOpen, Check, CircleCheckBig, EyeOff, LifeBuoy, PartyPopper, Undo2 } from 'lucide-react'
+import { BookOpen, Check, CircleCheckBig, EyeOff, LifeBuoy, PartyPopper, Undo2, Wand2 } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 import { Page, PageHeader, QueryState } from '@/components/app/page'
@@ -120,6 +120,21 @@ export function OnboardingPage() {
           )
         }
       />
+      <Link
+        to="/setup"
+        className="flex flex-col gap-3 rounded-xl border-2 border-primary/30 bg-primary/5 p-4 transition-colors hover:bg-primary/10 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:flex-row sm:items-center"
+      >
+        <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+          <Wand2 className="size-5" aria-hidden />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-semibold">Gagnez du temps : l’assistant prépare tout en 3 questions</span>
+          <span className="block text-sm text-muted-foreground">
+            Votre métier, vos communes et vos agents : zones, formulaires et première mission sont créés pour vous.
+          </span>
+        </span>
+        <span className="text-sm font-medium text-primary">Lancer l’assistant →</span>
+      </Link>
       <QueryState query={query}>
         {query.data && (
           <Steps state={query.data} teamLeads={teamLeads} busy={update.isPending} onCheck={(step, done) => update.mutate({ step, done })} />

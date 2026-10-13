@@ -13,7 +13,7 @@ import { useZones } from '@/lib/queries'
 import type { PhotoMeta, Zone } from '@/lib/types'
 
 /** Image protégée (jeton de session) : chargée par l'API puis affichée depuis la mémoire. */
-function usePhotoUrl(id: string) {
+export function usePhotoUrl(id: string) {
   const blob = useQuery({
     queryKey: ['photos', id],
     queryFn: async () => (await api.get<Blob>(`/photos/${id}`, { responseType: 'blob' })).data,

@@ -1,13 +1,9 @@
+import { useQuery } from '@tanstack/react-query'
 import { Feature, Role, SubscriptionStatus } from '@suivi/shared'
 import { LogoMark } from './logo'
 import {
-  BarChart3,
-  BookOpen,
   ClipboardCheck,
   ClipboardList,
-  CreditCard,
-  FileClock,
-  History,
   LifeBuoy,
   Loader2,
   Lock,
@@ -18,25 +14,32 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Rocket,
-  Receipt,
   Settings,
-  Shapes,
-  Siren,
-  Smartphone,
   Target,
-  UserCog,
   Users,
-  UsersRound,
   Wallet,
   type LucideIcon,
   BellRing,
+  BarChart3,
+  BookOpen,
+  CreditCard,
+  FileClock,
+  History,
+  Receipt,
+  Shapes,
+  Siren,
+  Store,
+  Smartphone,
+  UserCog,
+  UsersRound,
 } from 'lucide-react'
 import { useOpenAlerts } from '@/lib/alerts'
+import { api } from '@/lib/api'
 import { SosBanner } from './sos-banner'
 import { useOnboarding } from '@/lib/onboarding'
 import { useSupportAnswers } from '@/lib/support-queries'
-import { Suspense, useState } from 'react'
-import { Link, NavLink, Outlet, useLocation } from 'react-router'
+import { Suspense, useEffect, useState } from 'react'
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -61,7 +64,7 @@ import { SubscriptionBanner } from './subscription-banner'
 import { SuspendedScreen } from './suspended-screen'
 import { RouteErrorBoundary } from './route-error'
 
-interface NavItem {
+interface NavTab {
   to: string
   label: string
   icon: LucideIcon
@@ -72,64 +75,130 @@ interface NavItem {
   feature?: Feature
 }
 
+interface NavSection {
+  label: string
+  icon: LucideIcon
+  /** Pages de la rubrique, en onglets ; la première ouvre la rubrique. */
+  tabs: NavTab[]
+}
+
 const ADMIN = [Role.Admin]
 const STAFF = [Role.Admin, Role.TeamLead]
 
-const NAV: { title: string; items: NavItem[] }[] = [
+/**
+ * Menu court : une entrée par rubrique, ses pages en onglets en haut de l'écran. Les adresses
+ * des pages ne changent pas (liens du manuel, des notifications, favoris).
+ */
+const NAV: NavSection[] = [
   {
-    title: 'Terrain',
-    items: [
-      { to: '/map', label: 'Carte en temps réel', icon: MapIcon, roles: STAFF },
+    label: 'En direct',
+    icon: MapIcon,
+    tabs: [
+      { to: '/map', label: 'Carte', icon: MapIcon, roles: STAFF },
       { to: '/alerts', label: 'Alertes', icon: Siren, roles: STAFF },
-      { to: '/report', label: 'Bilan du jour', icon: ClipboardList, roles: STAFF },
-      { to: '/broadcasts', label: 'Notifications', icon: BellRing, roles: ADMIN, feature: Feature.PushNotifications },
-      { to: '/stats', label: 'Statistiques', icon: BarChart3, roles: ADMIN, feature: Feature.Stats },
       { to: '/approvals', label: 'Demandes de zone', icon: ClipboardCheck, roles: STAFF },
+    ],
+  },
+  {
+    label: 'Rapports',
+    icon: ClipboardList,
+    tabs: [
+      { to: '/report', label: 'Bilan du jour', icon: ClipboardList, roles: STAFF },
       { to: '/history', label: 'Historique des journées', icon: History, roles: STAFF },
+      { to: '/stats', label: 'Statistiques', icon: BarChart3, roles: ADMIN, feature: Feature.Stats },
+    ],
+  },
+  {
+    label: 'Missions',
+    icon: Target,
+    tabs: [
       { to: '/missions', label: 'Missions', icon: Target, roles: STAFF, feature: Feature.Missions },
+      { to: '/mission-types', label: 'Formulaires', icon: Shapes, roles: ADMIN, feature: Feature.Missions },
     ],
   },
   {
-    title: 'Organisation',
-    items: [
-      { to: '/zones', label: 'Zones', icon: MapPinned, roles: STAFF },
-      { to: '/groups', label: 'Groupes', icon: UsersRound, roles: STAFF, groupsOnly: true, feature: Feature.Groups },
-      { to: '/users', label: 'Utilisateurs', icon: Users, roles: STAFF },
+    label: 'Équipe',
+    icon: Users,
+    tabs: [
+      { to: '/users', label: 'Agents et comptes', icon: Users, roles: STAFF },
       { to: '/team-leads', label: 'Chefs d’équipe', icon: UserCog, roles: ADMIN, feature: Feature.TeamLeads },
-      { to: '/pay', label: 'Rémunération', icon: Wallet, roles: STAFF, feature: Feature.Payroll },
-      { to: '/mission-types', label: 'Types de missions', icon: Shapes, roles: ADMIN, feature: Feature.Missions },
+      { to: '/groups', label: 'Groupes', icon: UsersRound, roles: STAFF, groupsOnly: true, feature: Feature.Groups },
+    ],
+  },
+  { label: 'Zones', icon: MapPinned, tabs: [{ to: '/zones', label: 'Zones', icon: MapPinned, roles: STAFF }] },
+  {
+    label: 'Points de vente',
+    icon: Store,
+    tabs: [{ to: '/outlets', label: 'Points de vente', icon: Store, roles: STAFF, feature: Feature.PointsOfSale }],
+  },
+  {
+    label: 'Messages',
+    icon: BellRing,
+    tabs: [{ to: '/broadcasts', label: 'Notifications aux équipes', icon: BellRing, roles: ADMIN, feature: Feature.PushNotifications }],
+  },
+  {
+    label: 'Rémunération',
+    icon: Wallet,
+    tabs: [{ to: '/pay', label: 'Rémunération', icon: Wallet, roles: STAFF, feature: Feature.Payroll }],
+  },
+  {
+    label: 'Paramètres',
+    icon: Settings,
+    tabs: [
+      { to: '/settings', label: 'Général', icon: Settings, roles: ADMIN },
+      { to: '/branding', label: 'Application mobile', icon: Smartphone, roles: ADMIN, feature: Feature.Branding },
+      { to: '/subscription', label: 'Abonnement', icon: CreditCard, roles: ADMIN },
+      { to: '/billing', label: 'Facturation', icon: Receipt, roles: ADMIN },
+      { to: '/audit', label: 'Journal d’accès', icon: FileClock, roles: ADMIN, feature: Feature.Audit },
     ],
   },
   {
-    title: 'Aide',
-    items: [
+    label: 'Aide',
+    icon: LifeBuoy,
+    tabs: [
+      { to: '/start', label: 'Bien démarrer', icon: Rocket, roles: ADMIN },
       { to: '/help', label: 'Documentation', icon: BookOpen, roles: STAFF },
       { to: '/support', label: 'Support', icon: LifeBuoy, roles: STAFF },
     ],
   },
-  {
-    title: 'Administration',
-    items: [
-      { to: '/settings', label: 'Paramètres', icon: Settings, roles: ADMIN },
-      { to: '/branding', label: 'Application mobile', icon: Smartphone, roles: ADMIN, feature: Feature.Branding },
-      { to: '/billing', label: 'Agents actifs', icon: Receipt, roles: ADMIN },
-      { to: '/audit', label: "Journal d'accès", icon: FileClock, roles: ADMIN, feature: Feature.Audit },
-      { to: '/subscription', label: 'Abonnement', icon: CreditCard, roles: ADMIN },
-    ],
-  },
 ]
 
-function Navigation({ onNavigate, collapsed = false, onToggle }: { onNavigate?: () => void; collapsed?: boolean; onToggle?: () => void }) {
-  const { user, tenant, settings, subscription } = useMe()
+/** L'adresse appartient-elle à cet onglet (page et ses sous-pages) ? */
+const inTab = (path: string, to: string) => path === to || path.startsWith(`${to}/`)
+
+/** Onglets visibles pour cet utilisateur (rôle, groupes). */
+function useVisibleNav() {
+  const { user, settings } = useMe()
+  return NAV.map((s) => ({
+    ...s,
+    tabs: s.tabs.filter((t) => t.roles.includes(user.role) && (!t.groupsOnly || settings.useGroups)),
+  })).filter((s) => s.tabs.length > 0)
+}
+
+/** Compteurs par page : alertes en cours, demandes de zone, réponses du support. */
+function useNavBadges() {
+  const { user } = useMe()
   const pending = usePendingRequests()
   const alerts = useOpenAlerts(user.role !== Role.Agent).data?.length ?? 0
   const answers = useSupportAnswers()
+  return {
+    '/alerts': { count: alerts, color: 'bg-status-alert' },
+    '/approvals': { count: pending, color: 'bg-status-paused' },
+    '/support': { count: answers, color: 'bg-primary' },
+  } as Record<string, { count: number; color: string } | undefined>
+}
+
+function Navigation({ onNavigate, collapsed = false, onToggle }: { onNavigate?: () => void; collapsed?: boolean; onToggle?: () => void }) {
+  const { user, tenant, subscription } = useMe()
+  const sections = useVisibleNav()
+  const badges = useNavBadges()
+  const { pathname } = useLocation()
   return (
     <nav
       aria-label="Navigation principale"
-      className={cn('flex h-full flex-col gap-5 overflow-y-auto p-3', collapsed && 'items-center px-2')}
+      className={cn('flex h-full flex-col gap-1 overflow-y-auto p-3', collapsed && 'items-center px-2')}
     >
-      <div className={cn('flex items-center gap-2 px-2 pt-1', collapsed && 'px-0')}>
+      <div className={cn('mb-3 flex items-center gap-2 px-2 pt-1', collapsed && 'px-0')}>
         <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
           <LogoMark className="size-5" />
         </span>
@@ -140,60 +209,81 @@ function Navigation({ onNavigate, collapsed = false, onToggle }: { onNavigate?: 
           </div>
         )}
       </div>
-      {user.role === Role.Admin && <OnboardingLink collapsed={collapsed} onNavigate={onNavigate} />}
-      {NAV.map((section) => {
-        const items = section.items.filter((item) => item.roles.includes(user.role) && (!item.groupsOnly || settings.useGroups))
-        if (!items.length) return null
-        return (
-          <div key={section.title} className="flex w-full flex-col gap-0.5">
-            {collapsed ? (
-              <span className="mx-auto mb-1 h-px w-6 bg-border" aria-hidden />
-            ) : (
-              <p className="px-2 pb-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">{section.title}</p>
+      {user.role === Role.Admin && (
+        <div className="mb-3 w-full">
+          <OnboardingLink collapsed={collapsed} onNavigate={onNavigate} />
+        </div>
+      )}
+      {sections.map((section) => {
+        const active = section.tabs.some((t) => inTab(pathname, t.to))
+        // Compteur de la rubrique : le plus urgent de ses pages (alertes avant demandes).
+        const badge = section.tabs.map((t) => badges[t.to]).find((b) => b && b.count > 0)
+        const total = section.tabs.reduce((n, t) => n + (badges[t.to]?.count ?? 0), 0)
+        const locked = section.tabs.every((t) => t.feature && !subscription.features.includes(t.feature))
+        const link = (
+          <NavLink
+            key={section.label}
+            to={section.tabs[0].to}
+            onClick={onNavigate}
+            aria-current={active ? 'page' : undefined}
+            aria-label={collapsed ? `${section.label}${total ? `, ${total} à traiter` : ''}` : undefined}
+            className={cn(
+              'relative flex h-10 w-full items-center gap-3 rounded-md px-2.5 text-sm font-medium text-foreground/80 transition-colors hover:bg-muted hover:text-foreground',
+              collapsed && 'justify-center px-0',
+              active && 'bg-sidebar-accent text-sidebar-accent-foreground hover:bg-sidebar-accent',
             )}
-            {items.map((item) => {
-              const badge = item.to === '/approvals' ? pending : item.to === '/alerts' ? alerts : item.to === '/support' ? answers : 0
-              const badgeColor = item.to === '/alerts' ? 'bg-status-alert' : item.to === '/support' ? 'bg-primary' : 'bg-status-paused'
-              const link = (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  onClick={onNavigate}
-                  aria-label={
-                    collapsed ? `${item.label}${badge ? `, ${badge} ${item.to === '/alerts' ? 'en cours' : 'en attente'}` : ''}` : undefined
-                  }
-                  className={({ isActive }) =>
-                    cn(
-                      'relative flex h-9 items-center gap-2.5 rounded-md px-2 text-sm font-medium text-foreground/80 transition-colors hover:bg-muted hover:text-foreground',
-                      collapsed && 'justify-center px-0',
-                      isActive && 'bg-sidebar-accent text-sidebar-accent-foreground hover:bg-sidebar-accent',
-                    )
-                  }
-                >
-                  <item.icon className="size-4 shrink-0" aria-hidden />
-                  {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
-                  {!collapsed && item.feature && !subscription.features.includes(item.feature) && (
-                    <Lock className="size-3.5 text-muted-foreground" aria-label="Non inclus dans votre formule" />
-                  )}
-                  {badge > 0 &&
-                    (collapsed ? (
-                      <span className={cn('absolute top-1 right-1 size-2 rounded-full', badgeColor)} aria-hidden />
-                    ) : (
-                      <span className={cn('rounded-full px-1.5 text-[11px] leading-5 font-semibold text-white tabular-nums', badgeColor)}>
-                        {badge}
-                      </span>
-                    ))}
-                </NavLink>
-              )
-              return collapsed ? (
-                <Tooltip key={item.to}>
-                  <TooltipTrigger render={<div />}>{link}</TooltipTrigger>
-                  <TooltipContent side="right">{item.label}</TooltipContent>
-                </Tooltip>
+          >
+            <section.icon className="size-[18px] shrink-0" aria-hidden />
+            {!collapsed && <span className="flex-1 truncate">{section.label}</span>}
+            {!collapsed && locked && <Lock className="size-3.5 text-muted-foreground" aria-label="Non inclus dans votre formule" />}
+            {badge &&
+              (collapsed ? (
+                <span className={cn('absolute top-1 right-1 size-2 rounded-full', badge.color)} aria-hidden />
               ) : (
-                link
-              )
-            })}
+                <span className={cn('rounded-full px-1.5 text-[11px] leading-5 font-semibold text-white tabular-nums', badge.color)}>
+                  {total}
+                </span>
+              ))}
+          </NavLink>
+        )
+        if (collapsed)
+          return (
+            <Tooltip key={section.label}>
+              <TooltipTrigger render={<div />}>{link}</TooltipTrigger>
+              <TooltipContent side="right">{section.label}</TooltipContent>
+            </Tooltip>
+          )
+        // Rubrique ouverte : ses pages juste en dessous, pour voir d'un coup d'œil les options.
+        return (
+          <div key={section.label} className="flex w-full flex-col">
+            {link}
+            {active && section.tabs.length > 1 && (
+              <ul className="mt-0.5 mb-1 ml-[21px] flex flex-col gap-0.5 border-l-2 border-primary/20 pl-2">
+                {section.tabs.map((t) => {
+                  const on = inTab(pathname, t.to)
+                  const count = badges[t.to]?.count ?? 0
+                  return (
+                    <li key={t.to}>
+                      <Link
+                        to={t.to}
+                        onClick={onNavigate}
+                        aria-current={on ? 'page' : undefined}
+                        className={cn(
+                          'flex h-8 items-center gap-2 rounded-md px-2 text-[13px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground',
+                          on && 'font-semibold text-primary hover:text-primary',
+                        )}
+                      >
+                        <span className="flex-1 truncate">{t.label}</span>
+                        {t.feature && !subscription.features.includes(t.feature) && (
+                          <Lock className="size-3 text-muted-foreground" aria-label="Non inclus dans votre formule" />
+                        )}
+                        {count > 0 && <span className="text-[11px] font-semibold tabular-nums">{count}</span>}
+                      </Link>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
           </div>
         )
       })}
@@ -209,6 +299,54 @@ function Navigation({ onNavigate, collapsed = false, onToggle }: { onNavigate?: 
           {!collapsed && 'Replier le menu'}
         </Button>
       )}
+    </nav>
+  )
+}
+
+/** Onglets de la rubrique ouverte (plusieurs pages) : en haut de l'écran, au-dessus de la page. */
+function SectionTabs() {
+  const { subscription } = useMe()
+  const sections = useVisibleNav()
+  const badges = useNavBadges()
+  const { pathname } = useLocation()
+  const section = sections.find((s) => s.tabs.some((t) => inTab(pathname, t.to)))
+  if (!section || section.tabs.length < 2) return null
+  return (
+    <nav aria-label={`Pages de la rubrique ${section.label}`} className="shrink-0 border-b bg-card px-3 py-2 sm:px-4">
+      <div className="flex items-center gap-3 overflow-x-auto">
+        <span className="hidden shrink-0 items-center gap-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase md:flex">
+          <section.icon className="size-3.5" aria-hidden />
+          {section.label}
+        </span>
+        <div className="flex shrink-0 gap-1 rounded-lg bg-muted p-1">
+          {section.tabs.map((t) => {
+            const active = inTab(pathname, t.to)
+            const badge = badges[t.to]
+            return (
+              <Link
+                key={t.to}
+                to={t.to}
+                aria-current={active ? 'page' : undefined}
+                className={cn(
+                  'flex h-9 shrink-0 items-center gap-2 rounded-md px-3 text-sm font-medium whitespace-nowrap text-muted-foreground transition-colors hover:bg-background/70 hover:text-foreground',
+                  active && 'bg-card text-foreground shadow-sm ring-1 ring-border hover:bg-card',
+                )}
+              >
+                <t.icon className={cn('size-4', active ? 'text-primary' : '')} aria-hidden />
+                {t.label}
+                {t.feature && !subscription.features.includes(t.feature) && (
+                  <Lock className="size-3 text-muted-foreground" aria-label="Non inclus dans votre formule" />
+                )}
+                {badge && badge.count > 0 && (
+                  <span className={cn('rounded-full px-1.5 text-[11px] leading-5 font-semibold text-white tabular-nums', badge.color)}>
+                    {badge.count}
+                  </span>
+                )}
+              </Link>
+            )
+          })}
+        </div>
+      </div>
     </nav>
   )
 }
@@ -322,6 +460,32 @@ function PageLoading() {
   )
 }
 
+/**
+ * Structure toute neuve : l'administrateur arrive directement sur l'assistant de démarrage
+ * (une fois par session ; « plus tard » le désactive).
+ */
+function SetupRedirect() {
+  const { user } = useMe()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const status = useQuery({
+    queryKey: ['setup', 'status'],
+    enabled: user.role === Role.Admin,
+    queryFn: async () => (await api.get<{ suggested: boolean }>('/setup/status')).data,
+  })
+  useEffect(() => {
+    if (!status.data?.suggested || location.pathname === '/setup') return
+    try {
+      if (sessionStorage.getItem('setup.opened')) return
+      sessionStorage.setItem('setup.opened', '1')
+    } catch {
+      // Stockage indisponible : on ouvre l'assistant quand même.
+    }
+    navigate('/setup')
+  }, [status.data?.suggested, location.pathname, navigate])
+  return null
+}
+
 export function AppShell() {
   const { subscription } = useMe()
   const suspended = subscription.status === SubscriptionStatus.Suspended
@@ -330,6 +494,7 @@ export function AppShell() {
   const location = useLocation()
   return (
     <SocketProvider>
+      <SetupRedirect />
       <div className="flex h-dvh overflow-hidden">
         <aside className={cn('hidden shrink-0 border-r bg-sidebar transition-[width] duration-200 lg:block', collapsed ? 'w-16' : 'w-60')}>
           <Navigation collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} />
@@ -352,6 +517,7 @@ export function AppShell() {
             <NotificationsButton />
             <UserMenu />
           </header>
+          <SectionTabs />
           <SosBanner />
           <SubscriptionBanner />
           <main className="min-h-0 flex-1 overflow-y-auto">

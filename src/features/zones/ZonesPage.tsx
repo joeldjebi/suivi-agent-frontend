@@ -30,6 +30,7 @@ import type { Zone } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { ZoneAgentsDialog } from './ZoneAgentsDialog'
 import { ZoneFormDialog } from './ZoneFormDialog'
+import { PlaceSearch, type Place } from './PlaceSearch'
 import { useOpenFromQuery } from '@/lib/use-open-from-query'
 
 function Occupancy({ zone }: { zone: Zone }) {
@@ -67,15 +68,33 @@ export function ZonesPage() {
   const [accessZone, setAccessZone] = useState<Zone | null>(null)
   const [highlight, setHighlight] = useState<string | null>(null)
   const [map, setMap] = useState<L.Map | null>(null)
+  // Lieu recherché : aperçu ajustable avant création.
+  const [place, setPlace] = useState<Place | null>(null)
+  const [placeArea, setPlaceArea] = useState<GeoPolygon | null>(null)
+  const [defaultName, setDefaultName] = useState<string | undefined>()
   // Lien « Créer une zone » : le tracé démarre aussitôt.
   useOpenFromQuery(() => setDrawing(true))
 
   const onDrawn = useCallback((area: GeoPolygon) => {
     setDrawing(false)
     setDrawnArea(area)
+    setDefaultName(undefined)
     setEditing(undefined)
     setFormOpen(true)
   }, [])
+
+  const pickPlace = (picked: Place) => {
+    setDrawing(false)
+    setPlaceArea(null)
+    setPlace(picked)
+  }
+  const createFromPlace = () => {
+    setDrawnArea(placeArea ?? place!.area)
+    setDefaultName(place!.name)
+    setEditing(undefined)
+    setPlace(null)
+    setFormOpen(true)
+  }
 
   const saveShape = useApiMutation(() => api.patch(`/zones/${reshaping!.id}`, { area: reshapedArea }), {
     success: 'Tracé enregistré',
@@ -104,6 +123,24 @@ export function ZonesPage() {
     </div>
   )
 
+  const placeBar = place && (
+    <div className="absolute top-3 left-1/2 z-[400] flex w-[min(36rem,calc(100%-1.5rem))] -translate-x-1/2 flex-wrap items-center gap-2 rounded-lg border bg-card p-2 shadow-lg">
+      <div className="min-w-0 flex-1 px-1">
+        <p className="truncate text-sm font-medium">{place.name}</p>
+        <p className="text-xs text-muted-foreground">
+          {place.trimmed ? `Partie déjà couverte par ${place.overlaps.join(', ')} retirée. ` : ''}
+          Déplacez les points orange pour ajuster si besoin.
+        </p>
+      </div>
+      <Button size="sm" variant="outline" onClick={() => setPlace(null)}>
+        Annuler
+      </Button>
+      <Button size="sm" onClick={createFromPlace}>
+        <Plus aria-hidden /> Créer cette zone
+      </Button>
+    </div>
+  )
+
   // Filtre par nom : la liste seulement, la carte garde toutes les zones.
   const needle = nameFilter.trim().toLowerCase()
   const listed = needle ? zones.filter((z) => z.name.toLowerCase().includes(needle)) : zones
@@ -119,7 +156,15 @@ export function ZonesPage() {
         collapsedSummary={`${activeZones.length} zone(s)`}
         actions={
           isAdmin && (
-            <Button size="sm" onClick={() => setDrawing((d) => !d)} variant={drawing ? 'outline' : 'default'} disabled={!!reshaping}>
+            <Button
+              size="sm"
+              onClick={() => {
+                setPlace(null)
+                setDrawing((d) => !d)
+              }}
+              variant={drawing ? 'outline' : 'default'}
+              disabled={!!reshaping}
+            >
               {drawing ? <X aria-hidden /> : <Plus aria-hidden />}
               {drawing ? 'Annuler' : 'Dessiner une zone'}
             </Button>
@@ -127,6 +172,7 @@ export function ZonesPage() {
         }
         panel={
           <>
+            {isAdmin && <PlaceSearch onPick={pickPlace} disabled={!!reshaping} />}
             <div className="border-b px-3 py-2">
               <SearchInput value={nameFilter} onChange={setNameFilter} placeholder="Filtrer par nom" label="Filtrer les zones par nom" />
             </div>
@@ -150,7 +196,11 @@ export function ZonesPage() {
                     <EmptyState
                       icon={MapPinned}
                       title="Aucune zone"
-                      description={isAdmin ? 'Dessinez votre première zone sur la carte.' : 'Aucune zone n’est attribuée à vos groupes.'}
+                      description={
+                        isAdmin
+                          ? 'Cherchez une commune ou un quartier ci-dessus, ou dessinez la zone sur la carte.'
+                          : 'Aucune zone n’est attribuée à vos groupes.'
+                      }
                     />
                   </div>
                 ) : (
@@ -203,6 +253,7 @@ export function ZonesPage() {
                                 onClick={() => {
                                   setEditing(zone)
                                   setDrawnArea(undefined)
+                                  setDefaultName(undefined)
                                   setFormOpen(true)
                                 }}
                               >
@@ -211,6 +262,7 @@ export function ZonesPage() {
                               <DropdownMenuItem
                                 onClick={() => {
                                   setDrawing(false)
+                                  setPlace(null)
                                   setReshaping(zone)
                                   setReshapedArea(null)
                                 }}
@@ -251,6 +303,7 @@ export function ZonesPage() {
               }
             />
             {reshapeBar}
+            {placeBar}
           </>
         }
         map={
@@ -273,12 +326,13 @@ export function ZonesPage() {
                 </Polygon>
               ))}
             {isAdmin && <DrawPolygonControl enabled={drawing} onDrawn={onDrawn} />}
+            {place && <EditablePolygon key={place.id} area={place.area} onChange={setPlaceArea} />}
             {reshaping && <EditablePolygon key={reshaping.id} area={reshaping.area} onChange={setReshapedArea} />}
           </BaseMap>
         }
       />
 
-      <ZoneFormDialog open={formOpen} onOpenChange={setFormOpen} zone={editing} area={drawnArea} />
+      <ZoneFormDialog open={formOpen} onOpenChange={setFormOpen} zone={editing} area={drawnArea} defaultName={defaultName} />
       <ZoneAgentsDialog zone={accessZone} onOpenChange={(o) => !o && setAccessZone(null)} />
       <RemoveDialog
         target={removing}

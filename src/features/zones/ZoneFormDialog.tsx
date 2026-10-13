@@ -30,6 +30,7 @@ export function ZoneFormDialog({
   onOpenChange,
   zone,
   area,
+  defaultName,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -37,6 +38,8 @@ export function ZoneFormDialog({
   zone?: Zone
   /** Tracé dessiné (création) */
   area?: Polygon
+  /** Nom proposé à la création (lieu recherché) */
+  defaultName?: string
 }) {
   const { settings } = useMe()
   const form = useForm<Values>({ resolver: zodResolver(schema) })
@@ -45,13 +48,13 @@ export function ZoneFormDialog({
   useEffect(() => {
     if (open) {
       form.reset({
-        name: zone?.name ?? '',
+        name: zone?.name ?? defaultName ?? '',
         capacity: zone?.capacity ? String(zone.capacity) : '',
         sensitive: zone?.sensitive ?? false,
         restricted: zone?.restricted ?? false,
       })
     }
-  }, [open, zone, form])
+  }, [open, zone, defaultName, form])
 
   const save = useApiMutation(
     async (values: Values) => {

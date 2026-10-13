@@ -1,5 +1,5 @@
-import { Feature, FieldType, type MissionField } from '@suivi/shared'
-import { ArrowDown, ArrowUp, Coins, Loader2, PenLine, Plus, Shapes, Trash2 } from 'lucide-react'
+import { Feature, FieldType } from '@suivi/shared'
+import { Coins, Loader2, PenLine, Plus, Shapes, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { EmptyState, Page, PageHeader, QueryState } from '@/components/app/page'
 import { IMPACT_LABELS, RemoveDialog } from '@/components/app/remove-dialog'
@@ -7,11 +7,9 @@ import { StatusPill } from '@/components/app/status'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
+import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { Textarea } from '@/components/ui/textarea'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { fieldTypeLabel } from '@/lib/labels'
@@ -23,23 +21,7 @@ import { PayFields } from '../payroll/PayFields'
 import { describePay, draftFrom, draftInvalid, payFromDraft, type PayDraft } from '../payroll/pay-draft'
 import { CircleSlash } from 'lucide-react'
 import { useOpenFromQuery } from '@/lib/use-open-from-query'
-
-interface DraftField extends MissionField {
-  /** Texte saisi pour les options d'une liste (une par ligne). */
-  optionsText: string
-}
-
-/** « Montant collecté (FCFA) » → « montant_collecte_fcfa » */
-function slugify(label: string): string {
-  const slug = label
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '')
-    .slice(0, 50)
-  return /^[a-z]/.test(slug) ? slug : `champ_${slug}`.slice(0, 50)
-}
+import { FieldsEditor, fieldsError, fromDrafts, toDrafts, type DraftField } from '@/components/app/fields-editor'
 
 function TypeDialog({ open, onOpenChange, type }: { open: boolean; onOpenChange: (o: boolean) => void; type?: MissionType }) {
   return (
@@ -54,9 +36,7 @@ function TypeDialog({ open, onOpenChange, type }: { open: boolean; onOpenChange:
 function TypeForm({ type, onDone }: { type?: MissionType; onDone: () => void }) {
   const [name, setName] = useState(type?.name ?? '')
   const [description, setDescription] = useState(type?.description ?? '')
-  const [fields, setFields] = useState<DraftField[]>(() =>
-    (type?.fields ?? []).map((f) => ({ ...f, optionsText: (f.options ?? []).join('\n') })),
-  )
+  const [fields, setFields] = useState<DraftField[]>(() => toDrafts(type?.fields))
   const [error, setError] = useState<string | null>(null)
   // Rémunération (formule Entreprise) : la grille de chaque agent par défaut.
   const payroll = useFeature(Feature.Payroll)
@@ -64,32 +44,12 @@ function TypeForm({ type, onDone }: { type?: MissionType; onDone: () => void }) 
   const [pay, setPay] = useState<PayDraft>(() => draftFrom(type?.pay))
   const hasNumber = fields.some((f) => f.type === FieldType.Number)
 
-  const update = (index: number, patch: Partial<DraftField>) =>
-    setFields((list) => list.map((f, i) => (i === index ? { ...f, ...patch } : f)))
-  const move = (index: number, delta: number) =>
-    setFields((list) => {
-      const next = [...list]
-      const [item] = next.splice(index, 1)
-      next.splice(index + delta, 0, item)
-      return next
-    })
-
   const save = useApiMutation(
     () => {
       const body = {
         name: name.trim(),
         description: description.trim() || undefined,
-        fields: fields.map(({ optionsText, ...f }) => ({
-          ...f,
-          label: f.label.trim(),
-          options:
-            f.type === FieldType.Select
-              ? optionsText
-                  .split('\n')
-                  .map((o) => o.trim())
-                  .filter(Boolean)
-              : undefined,
-        })),
+        fields: fromDrafts(fields),
       }
       return (async () => {
         const saved = type ? await api.patch(`/mission-types/${type.id}`, body) : await api.post<MissionType>('/mission-types', body)
@@ -107,13 +67,9 @@ function TypeForm({ type, onDone }: { type?: MissionType; onDone: () => void }) 
   )
 
   const submit = () => {
-    const keys = fields.map((f) => f.key)
     if (!name.trim()) return setError('Donnez un nom au type de mission.')
-    if (fields.some((f) => !f.label.trim())) return setError('Chaque champ doit avoir un libellé.')
-    if (new Set(keys).size !== keys.length) return setError('Deux champs ont le même identifiant : renommez l’un d’eux.')
-    if (fields.some((f) => f.type === FieldType.Select && !f.optionsText.trim())) {
-      return setError('Les listes de choix doivent proposer au moins une option.')
-    }
+    const invalid = fieldsError(fields)
+    if (invalid) return setError(invalid)
     if (payroll && ownPay && draftInvalid(pay)) return setError(draftInvalid(pay))
     setError(null)
     save.mutate(undefined)
@@ -137,98 +93,12 @@ function TypeForm({ type, onDone }: { type?: MissionType; onDone: () => void }) 
           </Field>
         </div>
 
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium">Champs du formulaire</p>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setFields((list) => [...list, { key: '', label: '', type: FieldType.Text, required: false, optionsText: '' }])}
-            >
-              <Plus aria-hidden /> Ajouter un champ
-            </Button>
-          </div>
-          {fields.length === 0 && (
-            <p className="rounded-md border border-dashed p-4 text-center text-sm text-muted-foreground">
-              Aucun champ : l'agent pourra seulement valider sa visite.
-            </p>
-          )}
-          {fields.map((f, i) => (
-            <div key={i} className="flex flex-col gap-3 rounded-lg border p-3">
-              <div className="grid gap-3 sm:grid-cols-[1fr_11rem]">
-                <Field>
-                  <FieldLabel htmlFor={`f-${i}-label`}>Libellé</FieldLabel>
-                  <Input
-                    id={`f-${i}-label`}
-                    value={f.label}
-                    placeholder="Ex. : Montant collecté (FCFA)"
-                    onChange={(e) =>
-                      update(i, {
-                        label: e.target.value,
-                        ...(type?.fields.some((tf) => tf.key === f.key && f.key) ? {} : { key: slugify(e.target.value) }),
-                      })
-                    }
-                  />
-                  {f.key && <FieldDescription>Identifiant : {f.key}</FieldDescription>}
-                </Field>
-                <Field>
-                  <FieldLabel>Type</FieldLabel>
-                  <Select value={f.type} onValueChange={(v) => v && update(i, { type: v as FieldType })}>
-                    <SelectTrigger className="w-full" aria-label={`Type du champ ${i + 1}`}>
-                      <SelectValue>{(v: FieldType) => fieldTypeLabel[v]}</SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.values(FieldType).map((t) => (
-                        <SelectItem key={t} value={t}>
-                          {fieldTypeLabel[t]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Field>
-              </div>
-              {f.type === FieldType.Select && (
-                <Field>
-                  <FieldLabel htmlFor={`f-${i}-options`}>Options (une par ligne)</FieldLabel>
-                  <Textarea
-                    id={`f-${i}-options`}
-                    rows={3}
-                    value={f.optionsText}
-                    onChange={(e) => update(i, { optionsText: e.target.value })}
-                  />
-                </Field>
-              )}
-              <div className="flex items-center justify-between">
-                <label className="flex items-center gap-2 text-sm">
-                  <Switch checked={f.required} onCheckedChange={(c) => update(i, { required: c })} />
-                  Obligatoire
-                </label>
-                <div className="flex">
-                  <Button variant="ghost" size="icon-sm" aria-label="Monter" disabled={i === 0} onClick={() => move(i, -1)}>
-                    <ArrowUp aria-hidden />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label="Descendre"
-                    disabled={i === fields.length - 1}
-                    onClick={() => move(i, 1)}
-                  >
-                    <ArrowDown aria-hidden />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label="Supprimer le champ"
-                    onClick={() => setFields((l) => l.filter((_, j) => j !== i))}
-                  >
-                    <Trash2 aria-hidden />
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+        <FieldsEditor
+          fields={fields}
+          onChange={setFields}
+          savedKeys={type?.fields.map((f) => f.key)}
+          emptyText="Aucun champ : l'agent pourra seulement valider sa visite."
+        />
         {payroll && (
           <div className="flex flex-col gap-3 rounded-lg border p-3">
             <div className="flex flex-col gap-0.5">
@@ -298,7 +168,7 @@ export function MissionTypesPage() {
   return (
     <Page>
       <PageHeader
-        title="Types de missions"
+        title="Formulaires"
         description="Collecte, prospection… Chaque type définit les champs du formulaire rempli par l'agent."
         actions={
           <Button onClick={() => setDialog({ open: true })}>

@@ -27,6 +27,7 @@ export const featureLabel: Record<Feature, string> = {
   audit: 'Journal d’accès',
   payroll: 'Rémunération des agents et chefs',
   push_notifications: 'Notifications push et messages aux équipes',
+  points_of_sale: 'Points de vente : identification, statuts, import et export',
 }
 
 /** Inclus dans toutes les formules. */

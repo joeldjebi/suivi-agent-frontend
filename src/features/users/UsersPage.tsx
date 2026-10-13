@@ -145,7 +145,7 @@ export function UsersPage() {
   return (
     <Page>
       <PageHeader
-        title="Utilisateurs"
+        title="Agents et comptes"
         description={isAdmin ? 'Administrateurs, chefs d’équipe et agents de votre structure.' : 'Les agents de vos groupes.'}
         actions={
           isAdmin && (
