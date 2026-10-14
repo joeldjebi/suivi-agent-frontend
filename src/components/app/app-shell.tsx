@@ -30,6 +30,7 @@ import {
   Siren,
   Store,
   Package,
+  ChartColumn,
   Smartphone,
   UserCog,
   UsersRound,
@@ -133,6 +134,7 @@ const NAV: NavSection[] = [
     tabs: [
       { to: '/outlets', label: 'Points de vente', icon: Store, roles: STAFF, feature: Feature.PointsOfSale },
       { to: '/products', label: 'Produits', icon: Package, roles: STAFF, feature: Feature.ProductAudits },
+      { to: '/product-insights', label: 'Tableau de bord', icon: ChartColumn, roles: STAFF, feature: Feature.ProductAudits },
     ],
   },
   {

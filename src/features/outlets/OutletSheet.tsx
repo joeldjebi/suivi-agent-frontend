@@ -37,6 +37,7 @@ import { formatDateTime, formatPhone, formatRelative } from '@/lib/format'
 import { useApiMutation } from '@/lib/queries'
 import { cn } from '@/lib/utils'
 import { usePhotoUrl } from '@/lib/use-photo-url'
+import { OutletProducts } from '../products/OutletProducts'
 import { OutletFormDialog } from './OutletFormDialog'
 import { fieldValue, OUTLET_STATUS, STATUSES, useOutlet, useOutletForm, type Outlet, type OutletPage } from './outlets'
 
@@ -175,6 +176,8 @@ export function OutletSheet({
                   ))}
 
                 <StatusForm outlet={outlet} />
+
+                <OutletProducts outletId={outlet.id} />
 
                 {outlet.visits.length > 0 && (
                   <section className="flex flex-col gap-2">
