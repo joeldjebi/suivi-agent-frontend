@@ -1,4 +1,7 @@
-import { FieldType, type MissionField } from '@suivi/shared'
+import { FieldType, type MissionField, PRODUCT_MEASURE_LABELS, type ProductFieldConfig, ProductMeasure, ProductScope } from '@suivi/shared'
+import { Checkbox } from '@/components/ui/checkbox'
+import { cn } from '@/lib/utils'
+import { productName, useProducts } from '@/features/products/products'
 import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Field, FieldDescription, FieldLabel } from '@/components/ui/field'
@@ -43,6 +46,12 @@ export const fromDrafts = (drafts: DraftField[]): MissionField[] =>
 
 /** Ce qui empêche d'enregistrer les champs, ou null. */
 export function fieldsError(drafts: DraftField[]): string | null {
+  const products = drafts.find(
+    (f) =>
+      f.type === FieldType.Products &&
+      (!f.products?.measures.length || (f.products.scope === ProductScope.Selected && !f.products.productIds?.length)),
+  )
+  if (products) return `Le relevé « ${products.label || 'par produit'} » doit avoir des produits et au moins une mesure.`
   const keys = drafts.map((f) => f.key)
   if (drafts.some((f) => !f.label.trim())) return 'Chaque champ doit avoir un libellé.'
   if (new Set(keys).size !== keys.length) return 'Deux champs ont le même identifiant : renommez l’un d’eux.'
@@ -61,6 +70,7 @@ export function FieldsEditor({
   savedKeys = [],
   title = 'Champs du formulaire',
   emptyText,
+  allowProducts = false,
 }: {
   fields: DraftField[]
   onChange: (fields: DraftField[]) => void
@@ -68,6 +78,8 @@ export function FieldsEditor({
   savedKeys?: string[]
   title?: string
   emptyText: string
+  /** Relevé par produit (formulaires de mission, formule qui l'inclut) */
+  allowProducts?: boolean
 }) {
   const update = (index: number, patch: Partial<DraftField>) => onChange(fields.map((f, i) => (i === index ? { ...f, ...patch } : f)))
   const move = (index: number, delta: number) => {
@@ -110,20 +122,34 @@ export function FieldsEditor({
             </Field>
             <Field>
               <FieldLabel>Type</FieldLabel>
-              <Select value={f.type} onValueChange={(v) => v && update(i, { type: v as FieldType })}>
+              <Select
+                value={f.type}
+                onValueChange={(v) =>
+                  v &&
+                  update(i, {
+                    type: v as FieldType,
+                    ...(v === FieldType.Products && !f.products ? { products: DEFAULT_PRODUCTS } : {}),
+                  })
+                }
+              >
                 <SelectTrigger className="w-full" aria-label={`Type du champ ${i + 1}`}>
                   <SelectValue>{(v: FieldType) => fieldTypeLabel[v]}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.values(FieldType).map((t) => (
-                    <SelectItem key={t} value={t}>
-                      {fieldTypeLabel[t]}
-                    </SelectItem>
-                  ))}
+                  {Object.values(FieldType)
+                    .filter((t) => t !== FieldType.Products || allowProducts)
+                    .map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {fieldTypeLabel[t]}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </Field>
           </div>
+          {f.type === FieldType.Products && f.products && (
+            <ProductFieldEditor config={f.products} onChange={(products) => update(i, { products })} />
+          )}
           {f.type === FieldType.Select && (
             <Field>
               <FieldLabel htmlFor={`f-${i}-options`}>Options (une par ligne)</FieldLabel>
@@ -154,6 +180,121 @@ export function FieldsEditor({
           </div>
         </div>
       ))}
+    </div>
+  )
+}
+
+const ALL_CATEGORIES = '__all__'
+
+const DEFAULT_PRODUCTS: ProductFieldConfig = {
+  scope: ProductScope.All,
+  measures: [ProductMeasure.Presence, ProductMeasure.Stock, ProductMeasure.Price],
+}
+
+const SCOPES: [ProductScope, string][] = [
+  [ProductScope.All, 'Tous les produits'],
+  [ProductScope.Own, 'Nos produits'],
+  [ProductScope.Competitor, 'Les concurrents'],
+  [ProductScope.Selected, 'Une sélection'],
+]
+
+/** Relevé par produit : les produits concernés et ce que l'agent relève pour chacun. */
+function ProductFieldEditor({ config, onChange }: { config: ProductFieldConfig; onChange: (config: ProductFieldConfig) => void }) {
+  const products = useProducts()
+  const all = products.data ?? []
+  const categories = [...new Set(all.map((p) => p.category).filter((c): c is string => !!c))]
+  const set = (patch: Partial<ProductFieldConfig>) => onChange({ ...config, ...patch })
+  const selected = new Set(config.productIds ?? [])
+  const concerned = all.filter(
+    (p) =>
+      (config.scope === ProductScope.All ||
+        (config.scope === ProductScope.Own && p.own) ||
+        (config.scope === ProductScope.Competitor && !p.own) ||
+        (config.scope === ProductScope.Selected && selected.has(p.id))) &&
+      (!config.category || p.category === config.category),
+  )
+
+  return (
+    <div className="flex flex-col gap-3 rounded-md bg-muted/40 p-3">
+      <div className="flex flex-col gap-1.5">
+        <p className="text-sm font-medium">Produits relevés</p>
+        <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="Produits relevés">
+          {SCOPES.map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              role="radio"
+              aria-checked={config.scope === value}
+              onClick={() => set({ scope: value })}
+              className={cn(
+                'h-8 rounded-full border bg-background px-3 text-xs font-medium hover:bg-muted',
+                config.scope === value && 'border-primary bg-primary/10 text-primary',
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {categories.length > 0 && config.scope !== ProductScope.Selected && (
+          <Select value={config.category ?? ALL_CATEGORIES} onValueChange={(v) => set({ category: v && v !== ALL_CATEGORIES ? v : null })}>
+            <SelectTrigger size="sm" className="w-60" aria-label="Catégorie">
+              <SelectValue>{(v: string) => (v !== ALL_CATEGORIES ? `Catégorie : ${v}` : 'Toutes les catégories')}</SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL_CATEGORIES}>Toutes les catégories</SelectItem>
+              {categories.map((c) => (
+                <SelectItem key={c} value={c}>
+                  {c}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+        {config.scope === ProductScope.Selected ? (
+          <ul className="flex max-h-48 flex-col divide-y overflow-y-auto rounded-md border bg-background">
+            {all.map((p) => (
+              <li key={p.id}>
+                <label className="flex cursor-pointer items-center gap-2 px-3 py-1.5 text-sm hover:bg-muted">
+                  <Checkbox
+                    checked={selected.has(p.id)}
+                    onCheckedChange={(c) =>
+                      set({
+                        productIds: c ? [...selected, p.id] : [...selected].filter((id) => id !== p.id),
+                      })
+                    }
+                  />
+                  <span className="flex-1">{productName(p)}</span>
+                  {!p.own && <span className="text-xs text-muted-foreground">concurrent</span>}
+                </label>
+              </li>
+            ))}
+            {all.length === 0 && <li className="p-3 text-center text-sm text-muted-foreground">Le catalogue est vide.</li>}
+          </ul>
+        ) : (
+          <FieldDescription>
+            {concerned.length
+              ? `${concerned.length} produit${concerned.length > 1 ? 's' : ''} aujourd’hui : ${concerned
+                  .slice(0, 4)
+                  .map(productName)
+                  .join(', ')}${concerned.length > 4 ? '…' : ''}. Les produits ajoutés au catalogue y entrent d’eux-mêmes.`
+              : 'Aucun produit du catalogue ne correspond pour le moment.'}
+          </FieldDescription>
+        )}
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <p className="text-sm font-medium">Pour chaque produit, l’agent relève</p>
+        <div className="grid gap-1.5 sm:grid-cols-2">
+          {Object.values(ProductMeasure).map((m) => (
+            <label key={m} className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={config.measures.includes(m)}
+                onCheckedChange={(c) => set({ measures: c ? [...config.measures, m] : config.measures.filter((x) => x !== m) })}
+              />
+              {PRODUCT_MEASURE_LABELS[m]}
+            </label>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }

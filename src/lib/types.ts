@@ -377,6 +377,11 @@ export interface Mission {
 
 export interface MissionDetail extends Mission {
   type: MissionType
+  /** Relevés par produit : les produits de chaque champ, par clé de champ */
+  products?: Record<
+    string,
+    { id: string; name: string; format: string | null; unit: string; packagings: { name: string; units: number }[] }[]
+  >
   contributions: { agentId: string; firstName: string; lastName: string; value: number }[]
 }
 

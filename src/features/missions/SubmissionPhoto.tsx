@@ -11,7 +11,6 @@ import { formatDateTime } from '@/lib/format'
 import { useZones } from '@/lib/queries'
 import type { PhotoMeta, Zone } from '@/lib/types'
 
-
 /** Miniature d'une photo de formulaire ; au clic, l'image, sa position et son heure de prise. */
 export function SubmissionPhoto({
   id,

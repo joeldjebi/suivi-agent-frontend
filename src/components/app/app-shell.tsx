@@ -29,6 +29,7 @@ import {
   Shapes,
   Siren,
   Store,
+  Package,
   Smartphone,
   UserCog,
   UsersRound,
@@ -129,7 +130,10 @@ const NAV: NavSection[] = [
   {
     label: 'Points de vente',
     icon: Store,
-    tabs: [{ to: '/outlets', label: 'Points de vente', icon: Store, roles: STAFF, feature: Feature.PointsOfSale }],
+    tabs: [
+      { to: '/outlets', label: 'Points de vente', icon: Store, roles: STAFF, feature: Feature.PointsOfSale },
+      { to: '/products', label: 'Produits', icon: Package, roles: STAFF, feature: Feature.ProductAudits },
+    ],
   },
   {
     label: 'Messages',

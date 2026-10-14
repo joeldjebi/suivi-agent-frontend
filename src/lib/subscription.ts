@@ -28,6 +28,7 @@ export const featureLabel: Record<Feature, string> = {
   payroll: 'Rémunération des agents et chefs',
   push_notifications: 'Notifications push et messages aux équipes',
   points_of_sale: 'Points de vente : identification, statuts, import et export',
+  product_audits: 'Relevés produits : stocks, prix, ventes, pertes et concurrence',
 }
 
 /** Inclus dans toutes les formules. */

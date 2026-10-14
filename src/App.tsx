@@ -49,6 +49,7 @@ const TeamLeadDetailPage = lazyPage(() =>
 const PlatformApp = lazyPage(() => import('@/platform/PlatformApp').then((m) => ({ default: m.PlatformApp })))
 const LandingPage = lazyPage(() => import('@/landing/LandingPage').then((m) => ({ default: m.LandingPage })))
 const ZonesPage = lazyPage(() => import('@/features/zones/ZonesPage').then((m) => ({ default: m.ZonesPage })))
+const ProductsPage = lazyPage(() => import('@/features/products/ProductsPage').then((m) => ({ default: m.ProductsPage })))
 const OutletsPage = lazyPage(() => import('@/features/outlets/OutletsPage').then((m) => ({ default: m.OutletsPage })))
 
 const queryClient = new QueryClient({
@@ -201,6 +202,14 @@ function TenantApp() {
             element={
               <FeatureGate feature={Feature.PointsOfSale}>
                 <OutletsPage />
+              </FeatureGate>
+            }
+          />
+          <Route
+            path="products"
+            element={
+              <FeatureGate feature={Feature.ProductAudits}>
+                <ProductsPage />
               </FeatureGate>
             }
           />

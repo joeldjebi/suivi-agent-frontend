@@ -40,9 +40,10 @@ import type { MissionDetail, Submission } from '@/lib/types'
 import { MissionEditDialog } from './MissionEditDialog'
 import { MissionPayCard } from './MissionPayCard'
 import { MissionVisitsPanel } from './MissionVisitsPanel'
+import { ReadingsCell } from './ReadingsCell'
 import { SubmissionPhoto } from './SubmissionPhoto'
 import { ExportButton } from '@/components/app/export-button'
-import type { MissionField } from '@suivi/shared'
+import type { MissionField, ProductReadings } from '@suivi/shared'
 
 function displayValue(field: MissionField, value: unknown): string {
   if (value === undefined || value === null || value === '') return '—'
@@ -371,7 +372,9 @@ export function MissionDetailPage() {
                               const value = s.data[f.key]
                               return (
                                 <TableCell key={f.key}>
-                                  {f.type === FieldType.Photo && typeof value === 'string' ? (
+                                  {f.type === FieldType.Products && value && typeof value === 'object' ? (
+                                    <ReadingsCell value={value as ProductReadings} products={m.products?.[f.key] ?? []} />
+                                  ) : f.type === FieldType.Photo && typeof value === 'string' ? (
                                     <SubmissionPhoto
                                       id={value}
                                       meta={s.photos?.[value]}

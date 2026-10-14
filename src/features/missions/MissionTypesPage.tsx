@@ -40,6 +40,7 @@ function TypeForm({ type, onDone }: { type?: MissionType; onDone: () => void }) 
   const [error, setError] = useState<string | null>(null)
   // Rémunération (formule Entreprise) : la grille de chaque agent par défaut.
   const payroll = useFeature(Feature.Payroll)
+  const productAudits = useFeature(Feature.ProductAudits)
   const [ownPay, setOwnPay] = useState(!!type?.pay)
   const [pay, setPay] = useState<PayDraft>(() => draftFrom(type?.pay))
   const hasNumber = fields.some((f) => f.type === FieldType.Number)
@@ -98,6 +99,7 @@ function TypeForm({ type, onDone }: { type?: MissionType; onDone: () => void }) 
           onChange={setFields}
           savedKeys={type?.fields.map((f) => f.key)}
           emptyText="Aucun champ : l'agent pourra seulement valider sa visite."
+          allowProducts={productAudits}
         />
         {payroll && (
           <div className="flex flex-col gap-3 rounded-lg border p-3">

@@ -55,6 +55,7 @@ export const fieldTypeLabel: Record<FieldType, string> = {
   [FieldType.Date]: 'Date',
   [FieldType.Select]: 'Liste de choix',
   [FieldType.Photo]: 'Photo géolocalisée',
+  [FieldType.Products]: 'Relevé par produit',
 }
 
 export const releaseReasonLabel: Record<string, string> = {
