@@ -23,6 +23,7 @@ import type {
   ZoneAccessWithoutGroups,
   ZoneExitInfo,
   ZoneRequestStatus,
+  VisitMode,
 } from '@suivi/shared'
 import type { Polygon } from 'geojson'
 
@@ -114,6 +115,8 @@ export interface Settings {
   alertMocked: boolean
   /** Formulaires acceptés seulement pendant une journée dans une zone de la mission */
   submissionRequiresDay: boolean
+  /** Visite d'un point de vente : distance maximale de l'agent, en mètres (0 = pas de contrôle) */
+  visitRadiusMeters: number
   /** Durée de travail attendue par jour pour les agents, en minutes */
   workdayMinutes: number
   /** Heure du bilan de fin de journée envoyé aux responsables ; null : pas d'envoi */
@@ -357,6 +360,8 @@ export interface Mission {
   progressMethod: ProgressMethod
   targetValue: number
   sumFieldKey: string | null
+  /** Mission de visites : liste précise de points de vente, ou objectif libre */
+  visitMode?: VisitMode | null
   dueDate: string | null
   status: MissionStatus
   isActive: boolean
@@ -390,6 +395,10 @@ export interface Submission {
   agent: User
   /** Photos du formulaire : position et heure de prise, par identifiant */
   photos?: Record<string, PhotoMeta>
+  /** Mission de visites : point de vente visité et distance mesurée (m) */
+  outletId?: string | null
+  outletName?: string | null
+  distanceM?: number | null
 }
 
 export interface PhotoMeta {

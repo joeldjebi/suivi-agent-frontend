@@ -14,6 +14,7 @@ import { approvalModeLabel, expirationActionLabel } from '@/lib/labels'
 import { useApiMutation } from '@/lib/queries'
 import type { Settings } from '@/lib/types'
 import { DurationSelect } from '@/components/app/duration-select'
+import { useFeature } from '@/lib/subscription'
 
 const TIMEZONES = ['Africa/Abidjan', 'Africa/Dakar', 'Africa/Lagos', 'Africa/Douala', 'Africa/Casablanca', 'Europe/Paris']
 
@@ -161,6 +162,7 @@ function SettingsForm({ settings }: { settings: Settings }) {
   const [draft, setDraft] = useState<Settings>(settings)
   const groupsLocked = useLocked(Feature.Groups)
   const approvalLocked = useLocked(Feature.ManualApproval)
+  const outletsEnabled = useFeature(Feature.PointsOfSale)
 
   const set = <K extends keyof Settings>(key: K, value: Settings[K]) => setDraft((d) => ({ ...d, [key]: value }))
   const dirty = JSON.stringify(draft) !== JSON.stringify(settings)
@@ -169,6 +171,7 @@ function SettingsForm({ settings }: { settings: Settings }) {
       draft.requestExpirationMinutes,
       draft.signalLostMinutes,
       draft.zoneExitToleranceMeters,
+      draft.visitRadiusMeters ?? 0,
       draft.zoneExitAlertMinutes,
       draft.positionRetentionDays,
       draft.alertLateMinutes,
@@ -360,6 +363,18 @@ function SettingsForm({ settings }: { settings: Settings }) {
           checked={draft.submissionRequiresDay}
           onChange={(v) => set('submissionRequiresDay', v)}
         />
+        {outletsEnabled && (
+          <NumberInput
+            id="visitRadius"
+            label="Distance maximale pour une visite"
+            value={draft.visitRadiusMeters}
+            min={0}
+            max={1000}
+            suffix="mètres"
+            onChange={(v) => set('visitRadiusMeters', v)}
+            description="Missions de visites : l’agent doit être à cette distance du point de vente au plus (la précision du GPS est tolérée jusqu’à 25 m). 0 désactive le contrôle."
+          />
+        )}
         <div className="grid gap-4 sm:grid-cols-2">
           <Field data-invalid={!/^([01]\d|2[0-3]):[0-5]\d$/.test(draft.dailyResetTime)}>
             <FieldLabel htmlFor="resetTime">Heure de remise à zéro des places</FieldLabel>

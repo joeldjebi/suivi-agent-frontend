@@ -33,8 +33,20 @@ export interface OutletHistory {
   user: { id: string; name: string } | null
 }
 
+export interface OutletVisit {
+  id: string
+  missionId: string
+  missionTitle: string
+  agent: string
+  submittedAt: string
+  /** Distance mesurée entre l'agent et le point de vente, en mètres */
+  distance: number | null
+  status: 'accepted' | 'rejected'
+}
+
 export interface OutletDetail extends Outlet {
   history: OutletHistory[]
+  visits: OutletVisit[]
 }
 
 export interface OutletPage {

@@ -1,28 +1,16 @@
-import { useQuery } from '@tanstack/react-query'
 import { ImageOff, MapPin } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useState } from 'react'
 import { CircleMarker, Polygon, Tooltip } from 'react-leaflet'
 import { BaseMap, FitZones } from '@/components/map/base-map'
 import { toLatLngs } from '@/components/map/geo'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
-import { api } from '@/lib/api'
+import { usePhotoUrl } from '@/lib/use-photo-url'
 import { useMe } from '@/lib/auth'
 import { formatDateTime } from '@/lib/format'
 import { useZones } from '@/lib/queries'
 import type { PhotoMeta, Zone } from '@/lib/types'
 
-/** Image protégée (jeton de session) : chargée par l'API puis affichée depuis la mémoire. */
-export function usePhotoUrl(id: string) {
-  const blob = useQuery({
-    queryKey: ['photos', id],
-    queryFn: async () => (await api.get<Blob>(`/photos/${id}`, { responseType: 'blob' })).data,
-    staleTime: Infinity,
-  })
-  const url = useMemo(() => (blob.data ? URL.createObjectURL(blob.data) : null), [blob.data])
-  useEffect(() => () => (url ? URL.revokeObjectURL(url) : undefined), [url])
-  return { url, isError: blob.isError }
-}
 
 /** Miniature d'une photo de formulaire ; au clic, l'image, sa position et son heure de prise. */
 export function SubmissionPhoto({

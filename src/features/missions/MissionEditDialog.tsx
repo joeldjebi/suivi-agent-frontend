@@ -1,4 +1,5 @@
-import { ProgressMethod } from '@suivi/shared'
+import { ProgressMethod, VisitMode } from '@suivi/shared'
+import { useQuery } from '@tanstack/react-query'
 import { Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
@@ -11,6 +12,7 @@ import { dateInput, dueFromInput } from '@/lib/format'
 import { useMe } from '@/lib/auth'
 import { useAgents, useApiMutation, useGroups, useZones } from '@/lib/queries'
 import type { MissionDetail } from '@/lib/types'
+import { OutletPicker } from '../outlets/OutletPicker'
 import { eligibleZones, ZonePicker, type Assignment } from './ZonePicker'
 
 /**
@@ -63,13 +65,23 @@ function EditForm({ mission, onDone }: { mission: MissionDetail; onDone: () => v
     ),
   ]
   const zonesChanged = zoneIds.length !== initialZones.length || zoneIds.some((id) => !initialZones.includes(id))
+  // Liste précise de points de vente : modifiable, l'objectif suit.
+  const listVisits = mission.visitMode === VisitMode.List
+  const listed = useQuery({
+    queryKey: ['missions', mission.id, 'outlets'],
+    enabled: listVisits,
+    queryFn: async () => (await api.get<{ id: string }[]>(`/missions/${mission.id}/outlets`)).data,
+  })
+  const [outletIds, setOutletIds] = useState<string[] | null>(null)
+  const currentOutlets = outletIds ?? listed.data?.map((o) => o.id) ?? []
 
   const save = useApiMutation(
     () =>
       api.patch(`/missions/${mission.id}`, {
         title: title.trim(),
         description: description.trim(),
-        ...(manual ? {} : { targetValue: Number(target.replace(',', '.')) }),
+        ...(manual || listVisits ? {} : { targetValue: Number(target.replace(',', '.')) }),
+        ...(listVisits && outletIds ? { outletIds } : {}),
         // Échéance inchangée : renvoyée telle quelle (même si elle est déjà passée).
         ...(dueDate && dueDate !== initialDue ? { dueDate: dueFromInput(dueDate) } : {}),
         ...(zonesChanged ? { zoneIds } : {}),
@@ -79,7 +91,8 @@ function EditForm({ mission, onDone }: { mission: MissionDetail; onDone: () => v
 
   const submit = () => {
     if (!title.trim()) return setError('Donnez un titre à la mission.')
-    if (!manual && !(Number(target.replace(',', '.')) > 0)) return setError('L’objectif doit être un nombre supérieur à 0.')
+    if (!manual && !listVisits && !(Number(target.replace(',', '.')) > 0)) return setError('L’objectif doit être un nombre supérieur à 0.')
+    if (listVisits && outletIds && !outletIds.length) return setError('Gardez au moins un point de vente à visiter.')
     if (dueDate !== initialDue && dueDate && dueDate < today) return setError('L’échéance ne peut pas être une date passée.')
     if (!zoneIds.length) return setError('Choisissez au moins une zone où la mission se fait.')
     setError(null)
@@ -101,10 +114,16 @@ function EditForm({ mission, onDone }: { mission: MissionDetail; onDone: () => v
           <FieldLabel htmlFor="edit-desc">Consignes (facultatif)</FieldLabel>
           <Textarea id="edit-desc" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} />
         </Field>
-        {!manual && (
+        {!manual && !listVisits && (
           <Field>
-            <FieldLabel htmlFor="edit-target">Objectif</FieldLabel>
+            <FieldLabel htmlFor="edit-target">{mission.visitMode ? 'Points de vente à visiter' : 'Objectif'}</FieldLabel>
             <Input id="edit-target" inputMode="decimal" value={target} onChange={(e) => setTarget(e.target.value)} />
+          </Field>
+        )}
+        {listVisits && (
+          <Field>
+            <FieldLabel>Points de vente à visiter</FieldLabel>
+            <OutletPicker zoneIds={zoneIds} value={currentOutlets} onChange={setOutletIds} />
           </Field>
         )}
         <Field>

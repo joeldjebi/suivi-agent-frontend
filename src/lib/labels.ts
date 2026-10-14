@@ -45,6 +45,7 @@ export const progressMethodLabel: Record<ProgressMethod, string> = {
   [ProgressMethod.Count]: 'Nombre de formulaires',
   [ProgressMethod.FieldSum]: "Somme d'un champ",
   [ProgressMethod.Manual]: 'Validation manuelle',
+  [ProgressMethod.Outlets]: 'Points de vente visités',
 }
 
 export const fieldTypeLabel: Record<FieldType, string> = {

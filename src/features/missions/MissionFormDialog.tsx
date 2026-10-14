@@ -1,4 +1,4 @@
-import { FieldType, ProgressMethod, Role } from '@suivi/shared'
+import { Feature, FieldType, ProgressMethod, Role, VisitMode } from '@suivi/shared'
 import { Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
@@ -15,6 +15,8 @@ import { dateInput, dueFromInput, fullName } from '@/lib/format'
 import { progressMethodLabel } from '@/lib/labels'
 import { useAgents, useApiMutation, useGroups, useMissionTypes, useZones } from '@/lib/queries'
 import type { Mission } from '@/lib/types'
+import { useFeature } from '@/lib/subscription'
+import { OutletPicker } from '../outlets/OutletPicker'
 import { eligibleZones, ZonePicker, type Assignment } from './ZonePicker'
 
 export function MissionFormDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
@@ -44,6 +46,12 @@ function MissionForm({ onDone }: { onDone: () => void }) {
   const [target, setTarget] = useState('')
   const [sumField, setSumField] = useState<string | null>(null)
   const [dueDate, setDueDate] = useState('')
+  // Mission de visites : liste précise de points de vente, ou objectif libre.
+  const outletsEnabled = useFeature(Feature.PointsOfSale)
+  const [visitMode, setVisitMode] = useState<VisitMode>(VisitMode.List)
+  const [outletIds, setOutletIds] = useState<string[]>([])
+  const visits = method === ProgressMethod.Outlets
+  const listVisits = visits && visitMode === VisitMode.List
   const [error, setError] = useState<string | null>(null)
 
   const type = types.data?.find((t) => t.id === typeId)
@@ -69,7 +77,9 @@ function MissionForm({ onDone }: { onDone: () => void }) {
         assigneeAgentId: assignTo === 'agent' ? assigneeId : undefined,
         assigneeGroupId: assignTo === 'group' ? assigneeId : undefined,
         progressMethod: method,
-        targetValue: method === ProgressMethod.Manual ? undefined : Number(target.replace(',', '.')),
+        targetValue: method === ProgressMethod.Manual || listVisits ? undefined : Number(target.replace(',', '.')),
+        visitMode: visits ? visitMode : undefined,
+        outletIds: listVisits ? outletIds : undefined,
         sumFieldKey: method === ProgressMethod.FieldSum ? sumField : undefined,
         dueDate: dueDate ? dueFromInput(dueDate) : undefined,
       }),
@@ -89,7 +99,8 @@ function MissionForm({ onDone }: { onDone: () => void }) {
     if (!title.trim()) return setError('Donnez un titre à la mission.')
     if (assignTo !== 'open' && !assigneeId) return setError(assignTo === 'agent' ? 'Choisissez un agent.' : 'Choisissez un groupe.')
     if (!chosenZones.length) return setError('Choisissez au moins une zone où la mission se fait.')
-    if (method !== ProgressMethod.Manual && !(value > 0)) return setError('L’objectif doit être un nombre supérieur à 0.')
+    if (listVisits && !outletIds.length) return setError('Choisissez les points de vente à visiter.')
+    if (method !== ProgressMethod.Manual && !listVisits && !(value > 0)) return setError('L’objectif doit être un nombre supérieur à 0.')
     if (method === ProgressMethod.FieldSum && !sumField) return setError('Choisissez le champ à additionner.')
     if (dueDate && dueDate < dateInput()) return setError('L’échéance ne peut pas être une date passée.')
     setError(null)
@@ -205,19 +216,44 @@ function MissionForm({ onDone }: { onDone: () => void }) {
               <SelectValue>{(v: ProgressMethod) => progressMethodLabel[v]}</SelectValue>
             </SelectTrigger>
             <SelectContent>
-              {Object.values(ProgressMethod).map((m) => (
-                <SelectItem key={m} value={m} disabled={m === ProgressMethod.FieldSum && !numberFields.length}>
-                  {progressMethodLabel[m]}
-                </SelectItem>
-              ))}
+              {Object.values(ProgressMethod)
+                .filter((m) => m !== ProgressMethod.Outlets || outletsEnabled)
+                .map((m) => (
+                  <SelectItem key={m} value={m} disabled={m === ProgressMethod.FieldSum && !numberFields.length}>
+                    {progressMethodLabel[m]}
+                  </SelectItem>
+                ))}
             </SelectContent>
           </Select>
           <FieldDescription>
             {method === ProgressMethod.Count && 'Chaque formulaire accepté compte pour 1.'}
             {method === ProgressMethod.FieldSum && 'Les valeurs d’un champ numérique sont additionnées.'}
             {method === ProgressMethod.Manual && 'Le chef d’équipe indique si l’objectif est atteint.'}
+            {visits && 'Chaque point de vente visité compte une fois, même s’il est visité plusieurs fois. L’agent doit être sur place.'}
           </FieldDescription>
         </Field>
+        {visits && (
+          <Field>
+            <FieldLabel>Points de vente à visiter</FieldLabel>
+            <Tabs value={visitMode} onValueChange={(v) => setVisitMode(v as VisitMode)}>
+              <TabsList className="w-full">
+                <TabsTrigger value={VisitMode.List}>Une liste précise</TabsTrigger>
+                <TabsTrigger value={VisitMode.Free}>Un objectif libre</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            {listVisits ? (
+              <>
+                <OutletPicker zoneIds={chosenZones} value={outletIds} onChange={setOutletIds} />
+                <FieldDescription>L’objectif est de tous les visiter ({outletIds.length}).</FieldDescription>
+              </>
+            ) : (
+              <FieldDescription>
+                Un nombre de points de vente différents à visiter parmi ceux des zones de la mission ; les agents peuvent aussi en ajouter
+                sur place.
+              </FieldDescription>
+            )}
+          </Field>
+        )}
         {method === ProgressMethod.FieldSum && (
           <Field>
             <FieldLabel>Champ à additionner</FieldLabel>
@@ -238,9 +274,9 @@ function MissionForm({ onDone }: { onDone: () => void }) {
           </Field>
         )}
         <div className="grid gap-4 sm:grid-cols-2">
-          {method !== ProgressMethod.Manual && (
+          {method !== ProgressMethod.Manual && !listVisits && (
             <Field>
-              <FieldLabel htmlFor="mission-target">Objectif</FieldLabel>
+              <FieldLabel htmlFor="mission-target">{visits ? 'Points de vente à visiter' : 'Objectif'}</FieldLabel>
               <Input
                 id="mission-target"
                 inputMode="decimal"

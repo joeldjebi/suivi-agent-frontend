@@ -75,3 +75,20 @@ export function outletIcon(category: string | null, status: OutletStatus, focus:
   cache.set(key, icon)
   return icon
 }
+
+/** Point de vente déjà visité pendant une mission : pastille verte cochée. */
+export function visitedIcon(focus: boolean): L.DivIcon {
+  const key = `visited|${focus}`
+  const cached = cache.get(key)
+  if (cached) return cached
+  const size = focus ? 30 : 24
+  const icon = L.divIcon({
+    className: 'outlet-marker',
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    tooltipAnchor: [0, -size / 2],
+    html: `<svg viewBox="0 0 24 24" width="${size}" height="${size}" style="filter:drop-shadow(0 1px 2px rgb(0 0 0 / .4))"><circle cx="12" cy="12" r="10.5" fill="#16a34a" stroke="#fff" stroke-width="2"/><path d="M7.5 12.5l3 3 6-6.5" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  })
+  cache.set(key, icon)
+  return icon
+}

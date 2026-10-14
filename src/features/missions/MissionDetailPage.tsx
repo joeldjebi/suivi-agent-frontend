@@ -1,4 +1,4 @@
-import { FieldType, MissionStatus, ProgressMethod, SubmissionStatus } from '@suivi/shared'
+import { FieldType, MissionStatus, ProgressMethod, SubmissionStatus, VisitMode } from '@suivi/shared'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import {
   ArchiveRestore,
@@ -39,6 +39,7 @@ import { useAgents, useApiMutation, useGroups } from '@/lib/queries'
 import type { MissionDetail, Submission } from '@/lib/types'
 import { MissionEditDialog } from './MissionEditDialog'
 import { MissionPayCard } from './MissionPayCard'
+import { MissionVisitsPanel } from './MissionVisitsPanel'
 import { SubmissionPhoto } from './SubmissionPhoto'
 import { ExportButton } from '@/components/app/export-button'
 import type { MissionField } from '@suivi/shared'
@@ -93,11 +94,12 @@ export function MissionDetailPage() {
   const filtered = useMemo(
     () =>
       (submissions.data ?? []).filter(
-        (s) => !needle || `${fullName(s.agent)} ${Object.values(s.data).join(' ')}`.toLowerCase().includes(needle),
+        (s) => !needle || `${fullName(s.agent)} ${s.outletName ?? ''} ${Object.values(s.data).join(' ')}`.toLowerCase().includes(needle),
       ),
     [submissions.data, needle],
   )
   const paged = usePaged(filtered, 20)
+  const visits = mission.data?.progressMethod === ProgressMethod.Outlets
   const filtersActive = agentFilter !== ALL || statusFilter !== ALL || from !== '' || to !== '' || needle !== ''
   const resetFilters = () => {
     setAgentFilter(ALL)
@@ -243,6 +245,10 @@ export function MissionDetailPage() {
               </div>
             </div>
 
+            {m.progressMethod === ProgressMethod.Outlets && (
+              <MissionVisitsPanel missionId={m.id} zoneIds={(m.zones ?? []).map((z) => z.id)} free={m.visitMode === VisitMode.Free} />
+            )}
+
             <section className="flex flex-col gap-2" aria-label="Formulaires reçus">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <h2 className="text-base font-semibold">
@@ -338,6 +344,7 @@ export function MissionDetailPage() {
                         <TableRow>
                           <TableHead>Agent</TableHead>
                           <TableHead>Saisi le</TableHead>
+                          {visits && <TableHead>Point de vente</TableHead>}
                           {m.type.fields.map((f) => (
                             <TableHead key={f.key}>{f.label}</TableHead>
                           ))}
@@ -352,6 +359,14 @@ export function MissionDetailPage() {
                           <TableRow key={s.id} className={s.status === SubmissionStatus.Rejected ? 'text-muted-foreground' : undefined}>
                             <TableCell className="font-medium">{fullName(s.agent)}</TableCell>
                             <TableCell className="tabular-nums">{formatDateTime(s.submittedAt, settings.timezone)}</TableCell>
+                            {visits && (
+                              <TableCell>
+                                <span className="flex flex-col">
+                                  <span>{s.outletName ?? '—'}</span>
+                                  {s.distanceM != null && <span className="text-xs text-muted-foreground">à {s.distanceM} m</span>}
+                                </span>
+                              </TableCell>
+                            )}
                             {m.type.fields.map((f) => {
                               const value = s.data[f.key]
                               return (

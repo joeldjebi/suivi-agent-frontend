@@ -1,7 +1,21 @@
 import { OutletStatus, Role } from '@suivi/shared'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowRight, Combine, ImageOff, Loader2, MapPin, MoreHorizontal, Move, PenLine, Phone, Trash2, UserRound } from 'lucide-react'
+import {
+  ArrowRight,
+  ClipboardCheck,
+  Combine,
+  ImageOff,
+  Loader2,
+  MapPin,
+  MoreHorizontal,
+  Move,
+  PenLine,
+  Phone,
+  Trash2,
+  UserRound,
+} from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router'
 import { QueryState } from '@/components/app/page'
 import { SearchInput } from '@/components/app/search-input'
 import { StatusPill } from '@/components/app/status'
@@ -22,7 +36,7 @@ import { useMe } from '@/lib/auth'
 import { formatDateTime, formatPhone, formatRelative } from '@/lib/format'
 import { useApiMutation } from '@/lib/queries'
 import { cn } from '@/lib/utils'
-import { usePhotoUrl } from '../missions/SubmissionPhoto'
+import { usePhotoUrl } from '@/lib/use-photo-url'
 import { OutletFormDialog } from './OutletFormDialog'
 import { fieldValue, OUTLET_STATUS, STATUSES, useOutlet, useOutletForm, type Outlet, type OutletPage } from './outlets'
 
@@ -43,8 +57,8 @@ export function OutletSheet({
 }: {
   id: string | null
   onOpenChange: (open: boolean) => void
-  /** Choisir une nouvelle position sur la carte */
-  onMove: (outlet: Outlet) => void
+  /** Choisir une nouvelle position sur la carte (page des points de vente) */
+  onMove?: (outlet: Outlet) => void
   /** Ouvrir une autre fiche (après fusion) */
   onSelect: (id: string) => void
 }) {
@@ -91,9 +105,11 @@ export function OutletSheet({
                       <DropdownMenuItem onClick={() => setEditing(true)}>
                         <PenLine aria-hidden /> Modifier
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onMove(outlet)}>
-                        <Move aria-hidden /> {outlet.lat == null ? 'Placer sur la carte' : 'Déplacer sur la carte'}
-                      </DropdownMenuItem>
+                      {onMove && (
+                        <DropdownMenuItem onClick={() => onMove(outlet)}>
+                          <Move aria-hidden /> {outlet.lat == null ? 'Placer sur la carte' : 'Déplacer sur la carte'}
+                        </DropdownMenuItem>
+                      )}
                       {isAdmin && (
                         <>
                           <DropdownMenuItem onClick={() => setMerging(true)}>
@@ -159,6 +175,30 @@ export function OutletSheet({
                   ))}
 
                 <StatusForm outlet={outlet} />
+
+                {outlet.visits.length > 0 && (
+                  <section className="flex flex-col gap-2">
+                    <h3 className="text-sm font-medium">Visites</h3>
+                    <ul className="flex flex-col divide-y rounded-lg border">
+                      {outlet.visits.map((v) => (
+                        <li key={v.id} className="flex items-start gap-2 px-3 py-2 text-sm">
+                          <ClipboardCheck className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
+                          <span className="min-w-0 flex-1">
+                            <Link to={`/missions/${v.missionId}`} className="block truncate font-medium hover:underline">
+                              {v.missionTitle}
+                            </Link>
+                            <span className="block text-xs text-muted-foreground">
+                              {[formatDateTime(v.submittedAt), v.agent, v.distance != null ? `à ${v.distance} m` : null]
+                                .filter(Boolean)
+                                .join(' · ')}
+                              {v.status === 'rejected' && ' · rejetée'}
+                            </span>
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
 
                 <section className="flex flex-col gap-2">
                   <h3 className="text-sm font-medium">Historique</h3>
