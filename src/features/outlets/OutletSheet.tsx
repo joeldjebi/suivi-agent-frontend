@@ -72,6 +72,7 @@ export function OutletSheet({
   const [editing, setEditing] = useState(false)
   const [merging, setMerging] = useState(false)
   const [removing, setRemoving] = useState(false)
+  const [rejecting, setRejecting] = useState<string | null>(null)
 
   return (
     <>
@@ -190,9 +191,15 @@ export function OutletSheet({
                         <li key={v.id} className="flex items-start gap-2 px-3 py-2 text-sm">
                           <ClipboardCheck className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
                           <span className="min-w-0 flex-1">
-                            <Link to={`/missions/${v.missionId}`} className="block truncate font-medium hover:underline">
-                              {v.missionTitle}
-                            </Link>
+                            {v.missionId ? (
+                              <Link to={`/missions/${v.missionId}`} className="block truncate font-medium hover:underline">
+                                {v.missionTitle}
+                              </Link>
+                            ) : (
+                              <span className="block truncate font-medium">
+                                Visite libre <span className="font-normal text-muted-foreground">· {v.formName}</span>
+                              </span>
+                            )}
                             <span className="block text-xs text-muted-foreground">
                               {[formatDateTime(v.submittedAt), v.agent, v.distance != null ? `à ${v.distance} m` : null]
                                 .filter(Boolean)
@@ -200,6 +207,11 @@ export function OutletSheet({
                               {v.status === 'rejected' && ' · rejetée'}
                             </span>
                           </span>
+                          {!v.missionId && v.status === 'accepted' && (
+                            <Button size="xs" variant="ghost" onClick={() => setRejecting(v.id)}>
+                              Rejeter
+                            </Button>
+                          )}
                         </li>
                       ))}
                     </ul>
@@ -254,6 +266,7 @@ export function OutletSheet({
               onSelect(into)
             }}
           />
+          <RejectVisitDialog visitId={rejecting} onOpenChange={(o) => !o && setRejecting(null)} />
           <RemoveOutletDialog open={removing} onOpenChange={setRemoving} outlet={outlet} onRemoved={() => onOpenChange(false)} />
         </>
       )}
@@ -464,6 +477,45 @@ function RemoveOutletDialog({
           <Button variant="destructive" disabled={remove.isPending} onClick={() => remove.mutate(undefined)}>
             {remove.isPending && <Loader2 className="animate-spin" aria-hidden />}
             Supprimer définitivement
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+/** Rejet d'une visite libre : elle ne compte plus (dernière visite, retards, relevés). */
+function RejectVisitDialog({ visitId, onOpenChange }: { visitId: string | null; onOpenChange: (open: boolean) => void }) {
+  const [reason, setReason] = useState('')
+  useEffect(() => setReason(''), [visitId])
+  const reject = useApiMutation(() => api.post(`/outlets/visits/${visitId}/reject`, { reason: reason.trim() }), {
+    success: 'Visite rejetée',
+    invalidate: [['outlets'], ['insights']],
+    onSuccess: () => onOpenChange(false),
+  })
+  return (
+    <Dialog open={!!visitId} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Rejeter la visite ?</DialogTitle>
+          <DialogDescription>
+            Elle ne comptera plus : dernière visite, retards, relevés et tableau de bord. L’agent est prévenu du motif.
+          </DialogDescription>
+        </DialogHeader>
+        <Textarea
+          rows={3}
+          placeholder="Motif (ex. : photo floue)"
+          aria-label="Motif du rejet"
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+        />
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Annuler
+          </Button>
+          <Button variant="destructive" disabled={!reason.trim() || reject.isPending} onClick={() => reject.mutate(undefined)}>
+            {reject.isPending && <Loader2 className="animate-spin" aria-hidden />}
+            Rejeter
           </Button>
         </DialogFooter>
       </DialogContent>

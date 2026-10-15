@@ -8,9 +8,12 @@ import { featureLabel } from '@/lib/subscription'
 import { Page } from './page'
 
 /** Page réservée à une formule : sinon, explication et accès aux formules. */
-export function FeatureGate({ feature, children }: { feature: Feature; children: ReactNode }) {
+export function FeatureGate({ feature: required, children }: { feature: Feature | Feature[]; children: ReactNode }) {
   const { user, subscription } = useMe()
-  if (subscription.features.includes(feature)) return children
+  // Page commune à plusieurs modules : l'un d'eux suffit.
+  const list = Array.isArray(required) ? required : [required]
+  if (list.some((f) => subscription.features.includes(f))) return children
+  const feature = list[0]
   const upgrade = subscription.upgrades?.[feature]
   return (
     <Page>

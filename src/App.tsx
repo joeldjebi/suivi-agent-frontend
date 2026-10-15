@@ -285,7 +285,7 @@ function TenantApp() {
             path="mission-types"
             element={
               <RoleRoute roles={admin}>
-                <FeatureGate feature={Feature.Missions}>
+                <FeatureGate feature={[Feature.Missions, Feature.PointsOfSale]}>
                   <MissionTypesPage />
                 </FeatureGate>
               </RoleRoute>

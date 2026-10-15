@@ -74,8 +74,12 @@ interface NavTab {
   /** Visible uniquement si la structure utilise les groupes. */
   groupsOnly?: boolean
   /** Fonctionnalité réservée à certaines formules : cadenas si elle n'est pas incluse. */
-  feature?: Feature
+  feature?: Feature | Feature[]
 }
+
+/** Fonctionnalité incluse (l'une suffit pour une page commune à plusieurs modules). */
+const includes = (features: Feature[], f: Feature | Feature[]) =>
+  Array.isArray(f) ? f.some((x) => features.includes(x)) : features.includes(f)
 
 interface NavSection {
   label: string
@@ -115,7 +119,8 @@ const NAV: NavSection[] = [
     icon: Target,
     tabs: [
       { to: '/missions', label: 'Missions', icon: Target, roles: STAFF, feature: Feature.Missions },
-      { to: '/mission-types', label: 'Formulaires', icon: Shapes, roles: ADMIN, feature: Feature.Missions },
+      // Socle commun : formulaires des missions et des visites de points de vente.
+      { to: '/mission-types', label: 'Formulaires', icon: Shapes, roles: ADMIN, feature: [Feature.Missions, Feature.PointsOfSale] },
     ],
   },
   {
@@ -225,7 +230,7 @@ function Navigation({ onNavigate, collapsed = false, onToggle }: { onNavigate?: 
         // Compteur de la rubrique : le plus urgent de ses pages (alertes avant demandes).
         const badge = section.tabs.map((t) => badges[t.to]).find((b) => b && b.count > 0)
         const total = section.tabs.reduce((n, t) => n + (badges[t.to]?.count ?? 0), 0)
-        const locked = section.tabs.every((t) => t.feature && !subscription.features.includes(t.feature))
+        const locked = section.tabs.every((t) => t.feature && !includes(subscription.features, t.feature))
         const link = (
           <NavLink
             key={section.label}
@@ -280,7 +285,7 @@ function Navigation({ onNavigate, collapsed = false, onToggle }: { onNavigate?: 
                         )}
                       >
                         <span className="flex-1 truncate">{t.label}</span>
-                        {t.feature && !subscription.features.includes(t.feature) && (
+                        {t.feature && !includes(subscription.features, t.feature) && (
                           <Lock className="size-3 text-muted-foreground" aria-label="Non inclus dans votre formule" />
                         )}
                         {count > 0 && <span className="text-[11px] font-semibold tabular-nums">{count}</span>}
@@ -340,7 +345,7 @@ function SectionTabs() {
               >
                 <t.icon className={cn('size-4', active ? 'text-primary' : '')} aria-hidden />
                 {t.label}
-                {t.feature && !subscription.features.includes(t.feature) && (
+                {t.feature && !includes(subscription.features, t.feature) && (
                   <Lock className="size-3 text-muted-foreground" aria-label="Non inclus dans votre formule" />
                 )}
                 {badge && badge.count > 0 && (

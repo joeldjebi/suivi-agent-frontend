@@ -1,7 +1,7 @@
 import { OutletStatus, Role } from '@suivi/shared'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import L from 'leaflet'
-import { Clock, FileUp, ListChecks, MapPin, MoreHorizontal, Plus, Store, X } from 'lucide-react'
+import { ClipboardList, Clock, FileUp, ListChecks, MapPin, MoreHorizontal, Plus, Store, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { CircleMarker, Marker, Polygon, Tooltip, useMap, useMapEvents } from 'react-leaflet'
 import { ExportButton } from '@/components/app/export-button'
@@ -19,7 +19,7 @@ import { api } from '@/lib/api'
 import { useMe } from '@/lib/auth'
 import { useZones } from '@/lib/queries'
 import { cn } from '@/lib/utils'
-import { OutletFieldsDialog, OutletImportDialog } from './OutletAdminDialogs'
+import { OutletFieldsDialog, OutletImportDialog, VisitFormsDialog } from './OutletAdminDialogs'
 import { OutletFormDialog } from './OutletFormDialog'
 import { OutletSheet, OutletStatusPill } from './OutletSheet'
 import { categoryIcon, OVERDUE_COLOR, outletIcon } from './outlet-icons'
@@ -54,6 +54,7 @@ export function OutletsPage() {
   const [form, setForm] = useState<{ outlet?: Outlet; position?: { lat: number; lng: number } } | null>(null)
   const [importing, setImporting] = useState(false)
   const [editingFields, setEditingFields] = useState(false)
+  const [visitForms, setVisitForms] = useState(false)
   const [map, setMap] = useState<L.Map | null>(null)
   const zones = (useZones().data ?? []).filter((z) => z.isActive)
 
@@ -137,6 +138,9 @@ export function OutletsPage() {
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setEditingFields(true)}>
                     <ListChecks aria-hidden /> Champs de la fiche…
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setVisitForms(true)}>
+                    <ClipboardList aria-hidden /> Formulaires de visite…
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -357,6 +361,7 @@ export function OutletsPage() {
         <>
           <OutletImportDialog open={importing} onOpenChange={setImporting} />
           <OutletFieldsDialog open={editingFields} onOpenChange={setEditingFields} />
+          <VisitFormsDialog open={visitForms} onOpenChange={setVisitForms} />
         </>
       )}
     </>

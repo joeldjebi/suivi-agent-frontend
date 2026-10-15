@@ -44,8 +44,11 @@ export interface OutletHistory {
 
 export interface OutletVisit {
   id: string
-  missionId: string
+  /** null : visite libre (sans mission) */
+  missionId: string | null
   missionTitle: string
+  /** Formulaire rempli */
+  formName: string
   agent: string
   submittedAt: string
   /** Distance mesurée entre l'agent et le point de vente, en mètres */
