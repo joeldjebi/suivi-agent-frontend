@@ -39,6 +39,7 @@ import { cn } from '@/lib/utils'
 import { usePhotoUrl } from '@/lib/use-photo-url'
 import { OutletProducts } from '../products/OutletProducts'
 import { OutletFormDialog } from './OutletFormDialog'
+import { VisitFrequency } from './VisitFrequency'
 import { fieldValue, OUTLET_STATUS, STATUSES, useOutlet, useOutletForm, type Outlet, type OutletPage } from './outlets'
 
 export function OutletStatusPill({ status, className }: { status: OutletStatus; className?: string }) {
@@ -125,6 +126,8 @@ export function OutletSheet({
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
+
+                <VisitFrequency outlet={outlet} />
 
                 <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
                   {outlet.managerName && (

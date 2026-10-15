@@ -172,6 +172,7 @@ function SettingsForm({ settings }: { settings: Settings }) {
       draft.signalLostMinutes,
       draft.zoneExitToleranceMeters,
       draft.visitRadiusMeters ?? 0,
+      draft.outletVisitFrequencyDays ?? 0,
       draft.zoneExitAlertMinutes,
       draft.positionRetentionDays,
       draft.alertLateMinutes,
@@ -373,6 +374,18 @@ function SettingsForm({ settings }: { settings: Settings }) {
             suffix="mètres"
             onChange={(v) => set('visitRadiusMeters', v)}
             description="Missions de visites : l’agent doit être à cette distance du point de vente au plus (la précision du GPS est tolérée jusqu’à 25 m). 0 désactive le contrôle."
+          />
+        )}
+        {outletsEnabled && (
+          <NumberInput
+            id="outletFrequency"
+            label="Fréquence de visite des points de vente"
+            value={draft.outletVisitFrequencyDays}
+            min={0}
+            max={365}
+            suffix="jours"
+            onChange={(v) => set('outletVisitFrequencyDays', v)}
+            description="Un point de vente non visité depuis ce délai est « en retard » : les responsables en sont prévenus chaque matin. Chaque point de vente peut avoir sa propre fréquence. 0 désactive le suivi."
           />
         )}
         <div className="grid gap-4 sm:grid-cols-2">

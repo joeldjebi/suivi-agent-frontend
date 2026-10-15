@@ -22,6 +22,15 @@ export interface Outlet {
   createdAt: string
   updatedAt: string
   distance?: number
+  /** Fréquence propre (jours) ; null : celle de la structure */
+  visitFrequencyDays: number | null
+  /** Fréquence appliquée (jours) ; 0 : pas de suivi */
+  frequencyDays: number
+  lastVisitAt: string | null
+  /** Visite attendue au plus tard */
+  dueAt: string | null
+  overdue: boolean
+  daysSinceVisit: number | null
 }
 
 export interface OutletHistory {
@@ -55,6 +64,8 @@ export interface OutletPage {
   page: number
   limit: number
   counts: Record<OutletStatus, number>
+  /** En retard de visite */
+  overdue: number
 }
 
 export interface OutletPoint {
@@ -64,6 +75,7 @@ export interface OutletPoint {
   category: string | null
   lat: number
   lng: number
+  overdue: boolean
 }
 
 export interface OutletForm {
@@ -111,4 +123,11 @@ export function fieldValue(field: MissionField, value: unknown): string | null {
   }
   if (field.type === 'number' && typeof value === 'number') return value.toLocaleString('fr-FR')
   return typeof value === 'string' ? value : JSON.stringify(value)
+}
+
+/** « Visité il y a 12 j », « Visité aujourd'hui », « Jamais visité ». */
+export function visitLabel(o: Pick<Outlet, 'daysSinceVisit' | 'lastVisitAt'>): string {
+  if (!o.lastVisitAt || o.daysSinceVisit === null) return 'Jamais visité'
+  if (o.daysSinceVisit === 0) return 'Visité aujourd’hui'
+  return `Visité il y a ${o.daysSinceVisit} j`
 }

@@ -46,9 +46,12 @@ const cache = new Map<string, L.DivIcon>()
  * Marqueur de point de vente : épingle à la couleur du statut, icône du type de commerce,
  * pastille ‖ (inactif) ou × (fermé). Les icônes sont mises en cache.
  */
-export function outletIcon(category: string | null, status: OutletStatus, focus: boolean): L.DivIcon {
+/** Couleur du repère « en retard de visite » (horloge). */
+export const OVERDUE_COLOR = '#ea580c'
+
+export function outletIcon(category: string | null, status: OutletStatus, focus: boolean, overdue = false): L.DivIcon {
   const Icon = categoryIcon(category)
-  const key = `${Icon.displayName ?? category}|${status}|${focus}`
+  const key = `${Icon.displayName ?? category}|${status}|${focus}|${overdue}`
   const cached = cache.get(key)
   if (cached) return cached
   const color = OUTLET_STATUS[status].color
@@ -68,6 +71,11 @@ export function outletIcon(category: string | null, status: OutletStatus, focus:
       ${
         badge
           ? `<svg viewBox="0 0 24 24" width="${size * 0.45}" height="${size * 0.45}" style="position:absolute;top:-3px;right:-3px;color:${color}"><circle cx="12" cy="12" r="11" fill="#fff" stroke="${color}" stroke-width="2"/>${badge}</svg>`
+          : ''
+      }
+      ${
+        overdue
+          ? `<svg viewBox="0 0 24 24" width="${size * 0.45}" height="${size * 0.45}" style="position:absolute;top:-3px;left:-3px"><circle cx="12" cy="12" r="11" fill="${OVERDUE_COLOR}" stroke="#fff" stroke-width="2"/><path d="M12 7v5l3 2" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`
           : ''
       }
     </div>`,

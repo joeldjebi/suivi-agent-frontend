@@ -1,6 +1,7 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import L from 'leaflet'
-import { AlertTriangle, PackageX, ShoppingBag, Store, TrendingDown } from 'lucide-react'
+import { AlertTriangle, ChevronRight, Clock, PackageX, ShoppingBag, Store, TrendingDown } from 'lucide-react'
+import { Link } from 'react-router'
 import { useEffect, useMemo, useState } from 'react'
 import { CircleMarker, Tooltip as MapTooltip, useMap } from 'react-leaflet'
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
@@ -199,6 +200,8 @@ export function ProductInsightsPage() {
           </div>
         )}
       </QueryState>
+
+      <OverdueBanner zoneId={params.zoneId} />
 
       <Card title="Ruptures en cours" actions={<Legend />}>
         <QueryState query={stockouts}>
@@ -510,4 +513,28 @@ function StockoutMarkers({ rows, onSelect }: { rows: Stockouts['outlets']; onSel
       </MapTooltip>
     </CircleMarker>
   ))
+}
+
+/** Points de vente en retard de visite : rappel avec un lien vers la liste filtrée. */
+function OverdueBanner({ zoneId }: { zoneId?: string }) {
+  const query = useQuery({
+    queryKey: ['outlets', 'list', 'overdue-count', zoneId],
+    queryFn: async () => (await api.get<{ total: number }>('/outlets', { params: { overdue: true, zoneId, limit: 1 } })).data.total,
+  })
+  if (!query.data) return null
+  return (
+    <Link
+      to="/outlets?overdue=1"
+      className="flex items-center gap-3 rounded-lg border border-[#ea580c]/40 bg-[#ea580c]/5 p-3 text-sm hover:bg-[#ea580c]/10"
+    >
+      <Clock className="size-5 shrink-0 text-[#ea580c]" aria-hidden />
+      <span className="flex-1">
+        <span className="font-medium">
+          {query.data} point{query.data > 1 ? 's' : ''} de vente en retard de visite
+        </span>
+        <span className="text-muted-foreground"> : leurs relevés datent. Voir la liste et organiser les tournées.</span>
+      </span>
+      <ChevronRight className="size-4 text-muted-foreground" aria-hidden />
+    </Link>
+  )
 }

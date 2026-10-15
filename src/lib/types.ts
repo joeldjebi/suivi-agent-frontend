@@ -117,6 +117,8 @@ export interface Settings {
   submissionRequiresDay: boolean
   /** Visite d'un point de vente : distance maximale de l'agent, en mètres (0 = pas de contrôle) */
   visitRadiusMeters: number
+  /** Fréquence de visite des points de vente par défaut, en jours (0 = pas de suivi) */
+  outletVisitFrequencyDays: number
   /** Durée de travail attendue par jour pour les agents, en minutes */
   workdayMinutes: number
   /** Heure du bilan de fin de journée envoyé aux responsables ; null : pas d'envoi */

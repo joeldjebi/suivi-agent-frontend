@@ -1,7 +1,7 @@
 import { OutletStatus, Role } from '@suivi/shared'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import L from 'leaflet'
-import { FileUp, ListChecks, MapPin, MoreHorizontal, Plus, Store, X } from 'lucide-react'
+import { Clock, FileUp, ListChecks, MapPin, MoreHorizontal, Plus, Store, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { CircleMarker, Marker, Polygon, Tooltip, useMap, useMapEvents } from 'react-leaflet'
 import { ExportButton } from '@/components/app/export-button'
@@ -22,7 +22,10 @@ import { cn } from '@/lib/utils'
 import { OutletFieldsDialog, OutletImportDialog } from './OutletAdminDialogs'
 import { OutletFormDialog } from './OutletFormDialog'
 import { OutletSheet, OutletStatusPill } from './OutletSheet'
-import { categoryIcon, outletIcon } from './outlet-icons'
+import { categoryIcon, OVERDUE_COLOR, outletIcon } from './outlet-icons'
+import { visitLabel } from './outlets'
+import { StatusPill } from '@/components/app/status'
+import { useSearchParams } from 'react-router'
 import { OUTLET_STATUS, STATUSES, type Outlet, type OutletPage, type OutletPoint } from './outlets'
 
 const PAGE_SIZE = 50
@@ -40,6 +43,9 @@ export function OutletsPage() {
   const [status, setStatus] = useState<OutletStatus | null>(null)
   const [zoneId, setZoneId] = useState<string>(ALL)
   const [unlocated, setUnlocated] = useState(false)
+  // Lien « points de vente en retard » (avis du matin, tableau de bord) : ?overdue=1.
+  const [params] = useSearchParams()
+  const [overdue, setOverdue] = useState(params.get('overdue') === '1')
   const [page, setPage] = useState(1)
   const [selected, setSelected] = useState<string | null>(null)
   const [hovered, setHovered] = useState<string | null>(null)
@@ -55,7 +61,7 @@ export function OutletsPage() {
     const timer = setTimeout(() => setSearch(q.trim()), 300)
     return () => clearTimeout(timer)
   }, [q])
-  useEffect(() => setPage(1), [search, status, zoneId, unlocated])
+  useEffect(() => setPage(1), [search, status, zoneId, unlocated, overdue])
 
   const filters = {
     q: search || undefined,
@@ -63,10 +69,14 @@ export function OutletsPage() {
     zoneId: zoneId === ALL ? undefined : zoneId,
   }
   const list = useQuery({
-    queryKey: ['outlets', 'list', filters, unlocated, page],
+    queryKey: ['outlets', 'list', filters, unlocated, overdue, page],
     placeholderData: keepPreviousData,
     queryFn: async () =>
-      (await api.get<OutletPage>('/outlets', { params: { ...filters, unlocated: unlocated || undefined, page, limit: PAGE_SIZE } })).data,
+      (
+        await api.get<OutletPage>('/outlets', {
+          params: { ...filters, unlocated: unlocated || undefined, overdue: overdue || undefined, page, limit: PAGE_SIZE },
+        })
+      ).data,
   })
   const points = useQuery({
     queryKey: ['outlets', 'map', filters.status, filters.zoneId],
@@ -150,9 +160,9 @@ export function OutletsPage() {
                   />
                 ))}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col gap-2">
                 <Select value={zoneId} onValueChange={(v) => v && setZoneId(v)}>
-                  <SelectTrigger size="sm" className="min-w-0 flex-1" aria-label="Zone">
+                  <SelectTrigger size="sm" className="w-full" aria-label="Zone">
                     <SelectValue>
                       {(v: string) => (v === ALL ? 'Toutes les zones' : (zones.find((z) => z.id === v)?.name ?? 'Zone'))}
                     </SelectValue>
@@ -166,15 +176,31 @@ export function OutletsPage() {
                     ))}
                   </SelectContent>
                 </Select>
-                <Button
-                  size="sm"
-                  variant={unlocated ? 'secondary' : 'ghost'}
-                  aria-pressed={unlocated}
-                  onClick={() => setUnlocated((u) => !u)}
-                >
-                  <MapPin aria-hidden /> À localiser
-                </Button>
-                <ExportButton path="/outlets/export" params={filters} size="sm" description="Points de vente affichés (filtres compris)" />
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <Button
+                    size="sm"
+                    variant={unlocated ? 'secondary' : 'ghost'}
+                    aria-pressed={unlocated}
+                    onClick={() => setUnlocated((u) => !u)}
+                  >
+                    <MapPin aria-hidden /> À localiser
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={overdue ? 'secondary' : 'ghost'}
+                    aria-pressed={overdue}
+                    onClick={() => setOverdue((o) => !o)}
+                    style={!overdue && (list.data?.overdue ?? 0) > 0 ? { color: OVERDUE_COLOR } : undefined}
+                  >
+                    <Clock aria-hidden /> En retard{list.data ? ` (${list.data.overdue})` : ''}
+                  </Button>
+                  <ExportButton
+                    path="/outlets/export"
+                    params={filters}
+                    size="sm"
+                    description="Points de vente affichés (filtres compris)"
+                  />
+                </div>
               </div>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto">
@@ -210,12 +236,16 @@ export function OutletsPage() {
                           <span className="min-w-0 flex-1">
                             <span className="block truncate text-sm font-medium">{o.name}</span>
                             <span className="block truncate text-xs text-muted-foreground">
-                              {[o.category, o.zone?.name ?? (o.lat == null ? 'À localiser' : 'Hors zone'), o.managerName]
+                              {[o.category, o.zone?.name ?? (o.lat == null ? 'À localiser' : 'Hors zone'), visitLabel(o)]
                                 .filter(Boolean)
                                 .join(' · ')}
                             </span>
                           </span>
-                          <OutletStatusPill status={o.status} className="h-5" />
+                          {o.overdue ? (
+                            <StatusPill tone="paused" icon={Clock} label="En retard" className="h-5" />
+                          ) : (
+                            <OutletStatusPill status={o.status} className="h-5" />
+                          )}
                         </button>
                       </li>
                     ))}
@@ -249,6 +279,22 @@ export function OutletsPage() {
                     }))}
                   />
                   <LegendSection
+                    title="Repère"
+                    items={[
+                      {
+                        swatch: (
+                          <span
+                            className="flex size-3.5 items-center justify-center rounded-full text-white"
+                            style={{ background: OVERDUE_COLOR }}
+                          >
+                            <Clock className="size-2.5" aria-hidden />
+                          </span>
+                        ),
+                        label: 'En retard de visite',
+                      },
+                    ]}
+                  />
+                  <LegendSection
                     title="Type de commerce (icône)"
                     items={LEGEND_CATEGORIES.map((c) => {
                       const Icon = categoryIcon(c)
@@ -271,7 +317,13 @@ export function OutletsPage() {
                 interactive={false}
               />
             ))}
-            <OutletMarkers points={points.data ?? []} selected={selected} hovered={hovered} onSelect={setSelected} placing={!!placing} />
+            <OutletMarkers
+              points={(points.data ?? []).filter((p) => !overdue || p.overdue)}
+              selected={selected}
+              hovered={hovered}
+              onSelect={setSelected}
+              placing={!!placing}
+            />
             <FitPoints points={points.data} />
             {placing && (
               <PickPosition
@@ -416,7 +468,7 @@ function OutletMarkers({
       <Marker
         key={p.id}
         position={[p.lat, p.lng]}
-        icon={outletIcon(p.category, p.status, focus)}
+        icon={outletIcon(p.category, p.status, focus, p.overdue)}
         zIndexOffset={focus ? 1000 : 0}
         interactive={!placing}
         keyboard={!placing}
