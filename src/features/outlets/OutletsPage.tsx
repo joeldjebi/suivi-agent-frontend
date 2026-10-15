@@ -149,6 +149,7 @@ export function OutletsPage() {
         }
         panel={
           <>
+            {isAdmin && <VisitFormsHint onChoose={() => setVisitForms(true)} />}
             <div className="flex flex-col gap-2 border-b px-3 py-2">
               <SearchInput value={q} onChange={setQ} placeholder="Nom, gérant, téléphone, repère" label="Rechercher un point de vente" />
               <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filtrer par statut">
@@ -502,4 +503,27 @@ function FitPoints({ points }: { points?: OutletPoint[] }) {
 function PickPosition({ onPick }: { onPick: (position: { lat: number; lng: number }) => void }) {
   useMapEvents({ click: (e) => onPick({ lat: e.latlng.lat, lng: e.latlng.lng }) })
   return null
+}
+
+/**
+ * Administrateur : tant qu'aucun formulaire de visite n'est choisi, les agents ne peuvent visiter
+ * un point de vente qu'à travers une mission. Le réglage est indispensable : on le signale ici.
+ */
+function VisitFormsHint({ onChoose }: { onChoose: () => void }) {
+  const forms = useQuery({
+    queryKey: ['outlets', 'visit-forms'],
+    queryFn: async () => (await api.get<unknown[]>('/outlets/visit-forms')).data,
+  })
+  if (!forms.data || forms.data.length > 0) return null
+  return (
+    <div className="flex items-start gap-2 border-b bg-primary/5 px-3 py-2.5 text-sm">
+      <ClipboardList className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+      <p className="flex-1">
+        Vos agents ne peuvent pas encore visiter un point de vente sans mission : choisissez les formulaires de visite.
+      </p>
+      <Button size="sm" variant="outline" onClick={onChoose}>
+        Choisir
+      </Button>
+    </div>
+  )
 }
