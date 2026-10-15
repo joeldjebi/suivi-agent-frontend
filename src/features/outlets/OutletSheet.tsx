@@ -37,6 +37,7 @@ import { formatDateTime, formatPhone, formatRelative } from '@/lib/format'
 import { useApiMutation } from '@/lib/queries'
 import { cn } from '@/lib/utils'
 import { usePhotoUrl } from '@/lib/use-photo-url'
+import { OutletOrders } from '../orders/OutletOrders'
 import { OutletProducts } from '../products/OutletProducts'
 import { OutletFormDialog } from './OutletFormDialog'
 import { VisitFrequency } from './VisitFrequency'
@@ -182,6 +183,8 @@ export function OutletSheet({
                 <StatusForm outlet={outlet} />
 
                 <OutletProducts outletId={outlet.id} />
+
+                <OutletOrders outlet={outlet} />
 
                 {outlet.visits.length > 0 && (
                   <section className="flex flex-col gap-2">

@@ -1,6 +1,8 @@
 import { Feature, FieldType } from '@suivi/shared'
-import { Coins, Loader2, PenLine, Plus, Shapes, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { Coins, Loader2, PenLine, Plus, Shapes, Store, Trash2 } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { VisitFormsDialog } from '../outlets/OutletAdminDialogs'
+import { useMemo, useState } from 'react'
 import { EmptyState, Page, PageHeader, QueryState } from '@/components/app/page'
 import { IMPACT_LABELS, RemoveDialog } from '@/components/app/remove-dialog'
 import { StatusPill } from '@/components/app/status'
@@ -23,17 +25,28 @@ import { CircleSlash } from 'lucide-react'
 import { useOpenFromQuery } from '@/lib/use-open-from-query'
 import { FieldsEditor, fieldsError, fromDrafts, toDrafts, type DraftField } from '@/components/app/fields-editor'
 
-function TypeDialog({ open, onOpenChange, type }: { open: boolean; onOpenChange: (o: boolean) => void; type?: MissionType }) {
+function TypeDialog({
+  open,
+  onOpenChange,
+  type,
+  onCreated,
+}: {
+  open: boolean
+  onOpenChange: (o: boolean) => void
+  type?: MissionType
+  /** Formulaire créé (ex. proposé aussitôt pour les visites) */
+  onCreated?: (id: string) => Promise<unknown>
+}) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl">
-        <TypeForm type={type} onDone={() => onOpenChange(false)} />
+        <TypeForm type={type} onDone={() => onOpenChange(false)} onCreated={onCreated} />
       </DialogContent>
     </Dialog>
   )
 }
 
-function TypeForm({ type, onDone }: { type?: MissionType; onDone: () => void }) {
+function TypeForm({ type, onDone, onCreated }: { type?: MissionType; onDone: () => void; onCreated?: (id: string) => Promise<unknown> }) {
   const [name, setName] = useState(type?.name ?? '')
   const [description, setDescription] = useState(type?.description ?? '')
   const [fields, setFields] = useState<DraftField[]>(() => toDrafts(type?.fields))
@@ -61,10 +74,15 @@ function TypeForm({ type, onDone }: { type?: MissionType; onDone: () => void }) 
         } else if (payroll && type?.pay) {
           await api.delete(`/mission-types/${id}/pay`)
         }
+        if (!type) await onCreated?.(id)
         return saved
       })()
     },
-    { success: type ? 'Type mis à jour' : 'Type créé', invalidate: [['mission-types'], ['missions'], ['pay']], onSuccess: onDone },
+    {
+      success: type ? 'Type mis à jour' : 'Type créé',
+      invalidate: [['mission-types'], ['missions'], ['pay'], ['outlets', 'visit-forms']],
+      onSuccess: onDone,
+    },
   )
 
   const submit = () => {
@@ -157,8 +175,33 @@ function TypeForm({ type, onDone }: { type?: MissionType; onDone: () => void }) 
   )
 }
 
-export function MissionTypesPage() {
-  const types = useMissionTypes(true)
+/**
+ * Formulaires (socle commun aux missions et aux points de vente). `visits` : la page des
+ * formulaires de visite (rubrique Points de vente) — ceux proposés aux agents pour visiter un
+ * point de vente sans mission, réglés ici d'un interrupteur.
+ */
+export function MissionTypesPage({ visits = false }: { visits?: boolean }) {
+  const all = useMissionTypes(true)
+  const outlets = useFeature(Feature.PointsOfSale)
+  const visitForms = useQuery({
+    queryKey: ['outlets', 'visit-forms'],
+    enabled: visits,
+    queryFn: async () => (await api.get<{ id: string }[]>('/outlets/visit-forms')).data,
+  })
+  const proposed = useMemo(() => new Set(visitForms.data?.map((f) => f.id) ?? []), [visitForms.data])
+  const setProposed = (ids: string[]) => api.put('/outlets/visit-forms', { typeIds: ids })
+  const toggleVisit = useApiMutation(
+    (t: MissionType) => setProposed(proposed.has(t.id) ? [...proposed].filter((id) => id !== t.id) : [...proposed, t.id]),
+    { invalidate: [['outlets', 'visit-forms']] },
+  )
+  // Visites : les formulaires actifs seulement, ceux proposés aux agents d'abord.
+  const types = useMemo(
+    () =>
+      visits && all.data
+        ? { ...all, data: all.data.filter((t) => t.isActive).sort((a, b) => Number(proposed.has(b.id)) - Number(proposed.has(a.id))) }
+        : all,
+    [visits, all, proposed],
+  ) as typeof all
   const payroll = useFeature(Feature.Payroll)
   const [dialog, setDialog] = useState<{ open: boolean; type?: MissionType }>({ open: false })
   const [removing, setRemoving] = useState<MissionType | null>(null)
@@ -170,17 +213,36 @@ export function MissionTypesPage() {
   return (
     <Page>
       <PageHeader
-        title="Formulaires"
-        description="Collecte, prospection… Chaque type définit les champs du formulaire rempli par l'agent."
+        title={visits ? 'Formulaires de visite' : 'Formulaires'}
+        description={
+          visits
+            ? 'Ce que vos agents remplissent en visitant un point de vente sans mission (relevés de stock et de prix, observations…). Activez « Proposé pour les visites » sur ceux à utiliser.'
+            : "Collecte, prospection, visite de point de vente… Chaque formulaire définit les champs remplis par l'agent, dans une mission ou pendant une visite."
+        }
         actions={
           <Button onClick={() => setDialog({ open: true })}>
-            <Plus aria-hidden /> Nouveau type
+            <Plus aria-hidden /> {visits ? 'Nouveau formulaire' : 'Nouveau type'}
           </Button>
         }
       />
+      {visits && visitForms.data && !proposed.size && !!types.data?.length && (
+        <p className="rounded-lg border border-primary/40 bg-primary/5 p-3 text-sm">
+          Aucun formulaire n’est encore proposé : vos agents voient « Aucun formulaire de visite » en touchant « Visiter ». Activez-en au
+          moins un ci-dessous.
+        </p>
+      )}
+      {!visits && outlets && <VisitFormsCard />}
       <QueryState query={types}>
         {!types.data?.length ? (
-          <EmptyState icon={Shapes} title="Aucun type de mission" description="Créez un type pour pouvoir assigner des missions." />
+          visits ? (
+            <EmptyState
+              icon={Shapes}
+              title="Aucun formulaire"
+              description="Créez votre premier formulaire de visite : il sera aussitôt proposé à vos agents."
+            />
+          ) : (
+            <EmptyState icon={Shapes} title="Aucun type de mission" description="Créez un type pour pouvoir assigner des missions." />
+          )
         ) : (
           <div className="grid gap-3 md:grid-cols-2">
             {types.data.map((t) => (
@@ -228,10 +290,21 @@ export function MissionTypesPage() {
                   </p>
                 )}
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <label className="flex items-center gap-2 text-sm">
-                    <Switch checked={t.isActive} disabled={toggleActive.isPending} onCheckedChange={() => toggleActive.mutate(t)} />
-                    Proposé pour les nouvelles missions
-                  </label>
+                  {visits ? (
+                    <label className="flex items-center gap-2 text-sm">
+                      <Switch
+                        checked={proposed.has(t.id)}
+                        disabled={toggleVisit.isPending || !visitForms.data}
+                        onCheckedChange={() => toggleVisit.mutate(t)}
+                      />
+                      Proposé pour les visites
+                    </label>
+                  ) : (
+                    <label className="flex items-center gap-2 text-sm">
+                      <Switch checked={t.isActive} disabled={toggleActive.isPending} onCheckedChange={() => toggleActive.mutate(t)} />
+                      Proposé pour les nouvelles missions
+                    </label>
+                  )}
                   <ExportButton
                     size="sm"
                     path="/exports/submissions"
@@ -244,7 +317,12 @@ export function MissionTypesPage() {
           </div>
         )}
       </QueryState>
-      <TypeDialog open={dialog.open} onOpenChange={(open) => setDialog((d) => ({ ...d, open }))} type={dialog.type} />
+      <TypeDialog
+        open={dialog.open}
+        onOpenChange={(open) => setDialog((d) => ({ ...d, open }))}
+        type={dialog.type}
+        onCreated={visits ? (id) => setProposed([...proposed, id]) : undefined}
+      />
       <RemoveDialog
         target={removing}
         onOpenChange={(o) => !o && setRemoving(null)}
@@ -259,5 +337,39 @@ export function MissionTypesPage() {
         }
       />
     </Page>
+  )
+}
+
+/** Points de vente : les formulaires proposés pour une visite sans mission, et leur réglage. */
+function VisitFormsCard() {
+  const [open, setOpen] = useState(false)
+  const forms = useQuery({
+    queryKey: ['outlets', 'visit-forms'],
+    queryFn: async () => (await api.get<{ id: string; name: string }[]>('/outlets/visit-forms')).data,
+  })
+  const names = forms.data?.map((f) => f.name) ?? []
+  return (
+    <div
+      className={cn(
+        'flex flex-wrap items-center gap-3 rounded-lg border p-4',
+        forms.data && !names.length ? 'border-primary/40 bg-primary/5' : 'bg-card',
+      )}
+    >
+      <Store className="size-5 shrink-0 text-primary" aria-hidden />
+      <div className="min-w-0 flex-1">
+        <p className="font-medium">Visites de points de vente</p>
+        <p className="text-sm text-muted-foreground">
+          {!forms.data
+            ? 'Chargement…'
+            : names.length
+              ? `Proposés aux agents pour visiter un point de vente sans mission : ${names.join(', ')}.`
+              : 'Aucun formulaire choisi : vos agents ne peuvent visiter un point de vente qu’à travers une mission.'}
+        </p>
+      </div>
+      <Button variant="outline" onClick={() => setOpen(true)}>
+        Choisir les formulaires de visite
+      </Button>
+      <VisitFormsDialog open={open} onOpenChange={setOpen} />
+    </div>
   )
 }

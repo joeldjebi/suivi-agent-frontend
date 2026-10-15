@@ -53,6 +53,8 @@ const ProductInsightsPage = lazyPage(() =>
   import('@/features/products/ProductInsightsPage').then((m) => ({ default: m.ProductInsightsPage })),
 )
 const ProductsPage = lazyPage(() => import('@/features/products/ProductsPage').then((m) => ({ default: m.ProductsPage })))
+const OrdersPage = lazyPage(() => import('@/features/orders/OrdersPage').then((m) => ({ default: m.OrdersPage })))
+const PricesPage = lazyPage(() => import('@/features/orders/PricesPage').then((m) => ({ default: m.PricesPage })))
 const OutletsPage = lazyPage(() => import('@/features/outlets/OutletsPage').then((m) => ({ default: m.OutletsPage })))
 
 const queryClient = new QueryClient({
@@ -219,9 +221,27 @@ function TenantApp() {
           <Route
             path="products"
             element={
-              <FeatureGate feature={Feature.ProductAudits}>
+              <FeatureGate feature={[Feature.ProductAudits, Feature.Orders]}>
                 <ProductsPage />
               </FeatureGate>
+            }
+          />
+          <Route
+            path="orders"
+            element={
+              <FeatureGate feature={Feature.Orders}>
+                <OrdersPage />
+              </FeatureGate>
+            }
+          />
+          <Route
+            path="prices"
+            element={
+              <RoleRoute roles={admin}>
+                <FeatureGate feature={Feature.Orders}>
+                  <PricesPage />
+                </FeatureGate>
+              </RoleRoute>
             }
           />
           <Route
@@ -287,6 +307,17 @@ function TenantApp() {
               <RoleRoute roles={admin}>
                 <FeatureGate feature={[Feature.Missions, Feature.PointsOfSale]}>
                   <MissionTypesPage />
+                </FeatureGate>
+              </RoleRoute>
+            }
+          />
+          {/* Les mêmes formulaires, depuis la rubrique Points de vente. */}
+          <Route
+            path="visit-forms"
+            element={
+              <RoleRoute roles={admin}>
+                <FeatureGate feature={Feature.PointsOfSale}>
+                  <MissionTypesPage visits />
                 </FeatureGate>
               </RoleRoute>
             }

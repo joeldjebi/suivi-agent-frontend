@@ -24,6 +24,8 @@ export interface Outlet {
   distance?: number
   /** Fréquence propre (jours) ; null : celle de la structure */
   visitFrequencyDays: number | null
+  /** Type de client (prise de commande) ; null : celui par défaut */
+  priceList: { id: string; name: string } | null
   /** Fréquence appliquée (jours) ; 0 : pas de suivi */
   frequencyDays: number
   lastVisitAt: string | null

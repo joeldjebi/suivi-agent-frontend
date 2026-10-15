@@ -29,6 +29,7 @@ export const featureLabel: Record<Feature, string> = {
   push_notifications: 'Notifications push et messages aux équipes',
   points_of_sale: 'Points de vente : identification, statuts, import et export',
   product_audits: 'Relevés produits : stocks, prix, ventes, pertes et concurrence',
+  orders: 'Prise de commande : types de client, prix et suivi des commandes',
 }
 
 /** Inclus dans toutes les formules. */

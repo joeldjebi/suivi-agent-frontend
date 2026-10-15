@@ -34,6 +34,8 @@ import {
   Smartphone,
   UserCog,
   UsersRound,
+  ShoppingCart,
+  Tags,
 } from 'lucide-react'
 import { useOpenAlerts } from '@/lib/alerts'
 import { api } from '@/lib/api'
@@ -138,7 +140,11 @@ const NAV: NavSection[] = [
     icon: Store,
     tabs: [
       { to: '/outlets', label: 'Points de vente', icon: Store, roles: STAFF, feature: Feature.PointsOfSale },
-      { to: '/products', label: 'Produits', icon: Package, roles: STAFF, feature: Feature.ProductAudits },
+      // Les formulaires des visites (les mêmes que ceux des missions), à portée de main ici aussi.
+      { to: '/visit-forms', label: 'Formulaires', icon: Shapes, roles: ADMIN, feature: Feature.PointsOfSale },
+      { to: '/orders', label: 'Commandes', icon: ShoppingCart, roles: STAFF, feature: Feature.Orders },
+      { to: '/products', label: 'Produits', icon: Package, roles: STAFF, feature: [Feature.ProductAudits, Feature.Orders] },
+      { to: '/prices', label: 'Prix', icon: Tags, roles: ADMIN, feature: Feature.Orders },
       { to: '/product-insights', label: 'Tableau de bord', icon: ChartColumn, roles: STAFF, feature: Feature.ProductAudits },
     ],
   },
