@@ -34,18 +34,34 @@ function plural(word: string, n: number) {
 }
 
 /**
- * Quantité en unités de base, avec sa décomposition dans le plus grand conditionnement :
- * « 41 bouteilles (3 casiers + 5) ».
+ * Décomposition d'une quantité entière dans les conditionnements, du plus grand au plus petit :
+ * 31 bouteilles = 2 casiers (12) + 1 pack (6) + 1. Vide si rien ne s'applique.
+ */
+export function packBreakdown(units: number, packagings: Pick<Product, 'packagings'>['packagings']) {
+  const n = Number(units)
+  if (!(n > 0) || !Number.isInteger(n)) return { packs: [], rest: n }
+  let left = n
+  const packs: { name: string; count: number }[] = []
+  for (const p of [...packagings].sort((a, b) => b.units - a.units)) {
+    if (p.units <= 1 || left < p.units) continue
+    packs.push({ name: p.name, count: Math.floor(left / p.units) })
+    left %= p.units
+  }
+  return { packs, rest: left }
+}
+
+/**
+ * Quantité en unités de base, avec sa décomposition dans les conditionnements :
+ * « 41 bouteilles (3 casiers + 5) », « 30 bouteilles (2 casiers + 1 pack) ».
  */
 export function formatQuantity(units: number, product?: Pick<Product, 'unit' | 'packagings'>) {
   const n = Number(units)
   const unit = product?.unit ?? 'unité'
   const base = `${n.toLocaleString('fr-FR')} ${plural(unit, n)}`
-  const pack = [...(product?.packagings ?? [])].sort((a, b) => b.units - a.units).find((p) => p.units <= n)
-  if (!pack || !Number.isInteger(n)) return base
-  const packs = Math.floor(n / pack.units)
-  const rest = n - packs * pack.units
-  return `${base} (${packs} ${plural(pack.name, packs)}${rest ? ` + ${rest}` : ''})`
+  const { packs, rest } = packBreakdown(n, product?.packagings ?? [])
+  if (!packs.length) return base
+  const parts = [...packs.map((p) => `${p.count} ${plural(p.name, p.count)}`), ...(rest ? [String(rest)] : [])]
+  return `${base} (${parts.join(' + ')})`
 }
 
 export const formatPrice = (v: number) => `${Number(v).toLocaleString('fr-FR')} FCFA`
