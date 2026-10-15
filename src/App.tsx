@@ -53,6 +53,7 @@ const ProductInsightsPage = lazyPage(() =>
   import('@/features/products/ProductInsightsPage').then((m) => ({ default: m.ProductInsightsPage })),
 )
 const ProductsPage = lazyPage(() => import('@/features/products/ProductsPage').then((m) => ({ default: m.ProductsPage })))
+const FormStatsPage = lazyPage(() => import('@/features/form-stats/FormStatsPage').then((m) => ({ default: m.FormStatsPage })))
 const OrdersPage = lazyPage(() => import('@/features/orders/OrdersPage').then((m) => ({ default: m.OrdersPage })))
 const PricesPage = lazyPage(() => import('@/features/orders/PricesPage').then((m) => ({ default: m.PricesPage })))
 const OutletsPage = lazyPage(() => import('@/features/outlets/OutletsPage').then((m) => ({ default: m.OutletsPage })))
@@ -224,6 +225,16 @@ function TenantApp() {
               <FeatureGate feature={[Feature.ProductAudits, Feature.Orders]}>
                 <ProductsPage />
               </FeatureGate>
+            }
+          />
+          <Route
+            path="form-stats"
+            element={
+              <RoleRoute roles={staff}>
+                <FeatureGate feature={[Feature.Missions, Feature.PointsOfSale]}>
+                  <FormStatsPage />
+                </FeatureGate>
+              </RoleRoute>
             }
           />
           <Route

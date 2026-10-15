@@ -114,6 +114,14 @@ const NAV: NavSection[] = [
       { to: '/report', label: 'Bilan du jour', icon: ClipboardList, roles: STAFF },
       { to: '/history', label: 'Historique des journées', icon: History, roles: STAFF },
       { to: '/stats', label: 'Statistiques', icon: BarChart3, roles: ADMIN, feature: Feature.Stats },
+      // Les formulaires de la structure, en chiffres (missions et visites).
+      {
+        to: '/form-stats',
+        label: 'Réponses aux formulaires',
+        icon: ClipboardList,
+        roles: STAFF,
+        feature: [Feature.Missions, Feature.PointsOfSale],
+      },
     ],
   },
   {
