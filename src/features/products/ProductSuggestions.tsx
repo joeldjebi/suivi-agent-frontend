@@ -1,6 +1,6 @@
 import { PACKAGING_NAMES, PRODUCT_UNITS, Role } from '@suivi/shared'
 import { useQuery } from '@tanstack/react-query'
-import { ImageOff, Loader2, MapPin, Megaphone } from 'lucide-react'
+import { ImageOff, Loader2, MapPin, Megaphone, TriangleAlert } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -13,7 +13,7 @@ import { useMe } from '@/lib/auth'
 import { formatRelative } from '@/lib/format'
 import { useApiMutation } from '@/lib/queries'
 import { usePhotoUrl } from '@/lib/use-photo-url'
-import { productName, useProducts } from './products'
+import { productName, similarProducts, useProducts } from './products'
 
 export interface ProductSuggestion {
   id: string
@@ -128,7 +128,11 @@ function AcceptDialog({ suggestion, onClose }: { suggestion: ProductSuggestion |
 
 function AcceptForm({ s, onClose }: { s: ProductSuggestion; onClose: () => void }) {
   const competitors = useProducts().data?.filter((p) => !p.own) ?? []
-  const [target, setTarget] = useState(NEW)
+  // Déjà au catalogue sous ce nom : rattacher plutôt que créer un doublon (présélectionné).
+  const similar = similarProducts(s, competitors)
+  const [chosen, setChosen] = useState<string | null>(null)
+  const target = chosen ?? similar[0]?.id ?? NEW
+  const setTarget = setChosen
   const [name, setName] = useState(s.name)
   const [brand, setBrand] = useState(s.brand ?? '')
   const [format, setFormat] = useState(s.format ?? '')
@@ -172,6 +176,15 @@ function AcceptForm({ s, onClose }: { s: ProductSuggestion; onClose: () => void 
         </DialogDescription>
       </DialogHeader>
       <FieldGroup>
+        {similar.length > 0 && (
+          <div className="flex gap-2 rounded-md border border-status-paused/40 bg-status-paused/10 p-3 text-sm" role="note">
+            <TriangleAlert className="mt-0.5 size-4 shrink-0 text-status-paused" aria-hidden />
+            <p>
+              Déjà au catalogue : <strong>{similar.map((p) => productName(p)).join(', ')}</strong>. Rattachez le signalement au bon produit
+              plutôt que d’en créer un nouveau ; ne choisissez « Nouveau produit » que pour un format absent du catalogue.
+            </p>
+          </div>
+        )}
         <Field>
           <FieldLabel>Produit</FieldLabel>
           <Select value={target} onValueChange={(v) => v && setTarget(v)}>

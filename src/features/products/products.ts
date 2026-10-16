@@ -68,3 +68,28 @@ export const formatPrice = (v: number) => `${Number(v).toLocaleString('fr-FR')} 
 
 /** Mesures dans l'ordre d'affichage. */
 export const MEASURE_ORDER: ProductMeasure[] = ['presence', 'stock', 'price', 'sold', 'losses', 'ordered']
+
+const plainText = (s: string) =>
+  s
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim()
+
+/**
+ * Produits du catalogue qui ressemblent à un produit signalé (l'un des noms contient l'autre,
+ * sans accents ni majuscules) ; ceux du même format d'abord.
+ */
+export function similarProducts(s: { name: string; format: string | null }, products: Product[]) {
+  const name = plainText(s.name)
+  if (!name) return []
+  const format = plainText(s.format ?? '').replace(/ /g, '')
+  const sameFormat = (p: Product) => (format && plainText(p.format ?? '').replace(/ /g, '') === format ? 1 : 0)
+  return products
+    .filter((p) => {
+      const n = plainText(p.name)
+      return p.isActive && !!n && (n.includes(name) || name.includes(n))
+    })
+    .sort((a, b) => sameFormat(b) - sameFormat(a))
+}
