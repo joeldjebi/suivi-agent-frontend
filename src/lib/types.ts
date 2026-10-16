@@ -275,7 +275,12 @@ export interface DayPause {
   id: string
   startedAt: string
   endedAt: string | null
+  /** « day_ended » : journée terminée puis reprise le même jour (non comptée comme travaillée) */
+  reason?: string | null
 }
+
+/** Interruption : journée terminée par l'agent puis reprise le même jour. */
+export const isInterruption = (p: DayPause) => p.reason === 'day_ended'
 
 export interface WorkDay {
   id: string

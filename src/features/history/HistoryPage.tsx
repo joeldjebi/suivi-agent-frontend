@@ -14,7 +14,7 @@ import { useMe } from '@/lib/auth'
 import { formatDate, formatDuration, formatTime, formatWorkday, fullName } from '@/lib/format'
 import { dayStatusLabel } from '@/lib/labels'
 import { useAgents, useGroups, useZones } from '@/lib/queries'
-import type { Page as PageOf, WorkDay } from '@/lib/types'
+import { isInterruption, type Page as PageOf, type WorkDay } from '@/lib/types'
 import { TrackDialog } from './TrackDialog'
 import { ExportButton } from '@/components/app/export-button'
 
@@ -222,7 +222,14 @@ export function HistoryPage() {
                       <TableCell className="font-medium">{fullName(d.agent)}</TableCell>
                       <TableCell>{formatDate(d.workDate)}</TableCell>
                       <TableCell>{zones.data?.find((z) => z.id === d.zoneId)?.name ?? '—'}</TableCell>
-                      <TableCell className="tabular-nums">{formatTime(d.startedAt, tz)}</TableCell>
+                      <TableCell className="tabular-nums">
+                        {formatTime(d.startedAt, tz)}
+                        {d.pauses.filter(isInterruption).map((p) => (
+                          <span key={p.id} className="block text-xs text-muted-foreground">
+                            reprise à {formatTime(p.endedAt, tz)}
+                          </span>
+                        ))}
+                      </TableCell>
                       <TableCell className="tabular-nums">
                         {formatTime(d.endedAt, tz)}
                         {d.endReason === DayEndReason.AutoReset && (
@@ -254,11 +261,18 @@ export function HistoryPage() {
                         <TableCell />
                         <TableCell colSpan={9}>
                           <ul className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
-                            {d.pauses.map((p, i) => (
-                              <li key={p.id} className="tabular-nums">
-                                Pause {i + 1} : {formatTime(p.startedAt, tz)} → {p.endedAt ? formatTime(p.endedAt, tz) : 'en cours'}
-                              </li>
-                            ))}
+                            {d.pauses.map((p) =>
+                              isInterruption(p) ? (
+                                <li key={p.id} className="tabular-nums">
+                                  Terminée à {formatTime(p.startedAt, tz)} · reprise à {formatTime(p.endedAt, tz)}
+                                </li>
+                              ) : (
+                                <li key={p.id} className="tabular-nums">
+                                  Pause {d.pauses.filter((q) => !isInterruption(q)).indexOf(p) + 1} : {formatTime(p.startedAt, tz)} →{' '}
+                                  {p.endedAt ? formatTime(p.endedAt, tz) : 'en cours'}
+                                </li>
+                              ),
+                            )}
                           </ul>
                         </TableCell>
                       </TableRow>
