@@ -23,6 +23,7 @@ import { api } from '@/lib/api'
 import { useMe } from '@/lib/auth'
 import { useApiMutation } from '@/lib/queries'
 import { cn } from '@/lib/utils'
+import { ProductSuggestions } from './ProductSuggestions'
 import { productName, useProducts, type Product } from './products'
 
 type Side = 'all' | 'own' | 'competitor'
@@ -86,6 +87,7 @@ export function ProductsPage() {
           Afficher les produits désactivés
         </label>
       </div>
+      <ProductSuggestions />
       <QueryState query={query}>
         {all.length === 0 ? (
           <EmptyState
