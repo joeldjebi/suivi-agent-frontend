@@ -6,6 +6,8 @@ export interface PlatformAdmin {
   firstName: string
   lastName: string
   isActive: boolean
+  /** Propriétaire : seul à gérer les autres comptes, jamais désactivé ni supprimé */
+  isOwner: boolean
   lastLoginAt: string | null
   createdAt: string
   mfaEnabledAt: string | null

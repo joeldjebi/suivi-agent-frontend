@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Plus } from 'lucide-react'
+import { Crown, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Page, PageHeader, QueryState } from '@/components/app/page'
 import { StatusPill } from '@/components/app/status'
@@ -20,6 +20,12 @@ export function AdminsPage() {
   const me = usePlatformAdmin()
   const [creating, setCreating] = useState(false)
   const [resetting, setResetting] = useState<PlatformAdmin | null>(null)
+  const [removing, setRemoving] = useState<PlatformAdmin | null>(null)
+  const remove = useApiMutation((id: string) => platformApi.delete(`/admins/${id}`), {
+    success: 'Compte supprimé',
+    invalidate: [['platform', 'admins']],
+    onSuccess: () => setRemoving(null),
+  })
   const reset = useApiMutation((id: string) => platformApi.post(`/admins/${id}/mfa-reset`), {
     success: 'Double authentification réinitialisée : la personne la réactivera à sa prochaine connexion',
     invalidate: [['platform', 'admins']],
@@ -37,7 +43,11 @@ export function AdminsPage() {
     <Page>
       <PageHeader
         title="Comptes éditeur"
-        description="Personnes de l’équipe PerformX qui accèdent à cette console. Désactiver un compte ferme immédiatement ses sessions."
+        description={
+          me.isOwner
+            ? 'Personnes de l’équipe PerformX qui accèdent à cette console. Désactiver un compte ferme immédiatement ses sessions.'
+            : 'Personnes de l’équipe PerformX qui accèdent à cette console. Seul le compte propriétaire peut désactiver ou supprimer un compte.'
+        }
         actions={
           <Button onClick={() => setCreating(true)}>
             <Plus aria-hidden /> Nouveau compte
@@ -63,6 +73,11 @@ export function AdminsPage() {
                     <p className="font-medium">
                       {fullName(a)}
                       {a.id === me.id && <span className="ml-2 text-xs font-normal text-muted-foreground">(vous)</span>}
+                      {a.isOwner && (
+                        <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 align-middle text-xs font-medium text-amber-700 dark:text-amber-400">
+                          <Crown className="size-3" aria-hidden /> Propriétaire
+                        </span>
+                      )}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {a.email} · créé le {formatDate(a.createdAt)}
@@ -91,12 +106,21 @@ export function AdminsPage() {
                     )}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Switch
-                      checked={a.isActive}
-                      disabled={a.id === me.id || toggle.isPending}
-                      aria-label={`${a.isActive ? 'Désactiver' : 'Réactiver'} ${fullName(a)}`}
-                      onCheckedChange={(isActive) => toggle.mutate({ id: a.id, isActive })}
-                    />
+                    {me.isOwner && !a.isOwner ? (
+                      <div className="flex items-center justify-end gap-1">
+                        <Switch
+                          checked={a.isActive}
+                          disabled={toggle.isPending}
+                          aria-label={`${a.isActive ? 'Désactiver' : 'Réactiver'} ${fullName(a)}`}
+                          onCheckedChange={(isActive) => toggle.mutate({ id: a.id, isActive })}
+                        />
+                        <Button size="icon-sm" variant="ghost" aria-label={`Supprimer ${fullName(a)}`} onClick={() => setRemoving(a)}>
+                          <Trash2 aria-hidden />
+                        </Button>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">{a.isOwner ? 'Protégé' : '—'}</span>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
@@ -105,6 +129,25 @@ export function AdminsPage() {
         </div>
       </QueryState>
       {creating && <CreateDialog onClose={() => setCreating(false)} />}
+      <Dialog open={!!removing} onOpenChange={(o) => !o && setRemoving(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Supprimer le compte de {removing && fullName(removing)} ?</DialogTitle>
+            <DialogDescription>
+              Suppression définitive : ses sessions sont fermées et le compte ne pourra plus se connecter. Le journal garde la trace de ses
+              actions. Pour une absence temporaire, désactivez plutôt le compte.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRemoving(null)}>
+              Annuler
+            </Button>
+            <Button variant="destructive" disabled={remove.isPending} onClick={() => removing && remove.mutate(removing.id)}>
+              Supprimer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <Dialog open={!!resetting} onOpenChange={(o) => !o && setResetting(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>

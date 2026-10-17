@@ -16,6 +16,7 @@ import {
   Settings,
   ShieldCheck,
   UserCog,
+  UserPen,
   type LucideIcon,
   LifeBuoy,
   BookOpen,
@@ -46,6 +47,7 @@ import { usePlatformAdmin, usePlatformAuth } from './auth'
 import { platformApi } from './api'
 import { to } from './config'
 import { MfaCard } from './mfa'
+import type { PlatformSession } from './types'
 
 const NAV: { title: string; items: { to: string; label: string; icon: LucideIcon; end?: boolean }[] }[] = [
   {
@@ -221,10 +223,107 @@ function PasswordDialog({ open, onClose }: { open: boolean; onClose: () => void 
   )
 }
 
+function ProfileDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const admin = usePlatformAdmin()
+  const { adopt } = usePlatformAuth()
+  const initial = { firstName: admin.firstName, lastName: admin.lastName, email: admin.email, currentPassword: '' }
+  const [v, setV] = useState(initial)
+  const [saving, setSaving] = useState(false)
+  const emailChanged = v.email.trim().toLowerCase() !== admin.email.toLowerCase()
+  const valid =
+    v.firstName.trim() && v.lastName.trim() && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email.trim()) && (!emailChanged || v.currentPassword)
+  const close = () => {
+    setV(initial)
+    onClose()
+  }
+  const submit = async () => {
+    setSaving(true)
+    try {
+      const { data } = await platformApi.patch<PlatformSession>('/auth/profile', {
+        firstName: v.firstName.trim(),
+        lastName: v.lastName.trim(),
+        email: v.email.trim(),
+        ...(emailChanged ? { currentPassword: v.currentPassword } : {}),
+      })
+      await adopt(data)
+      toast.success(emailChanged ? 'Profil mis à jour : connectez-vous désormais avec la nouvelle adresse' : 'Profil mis à jour')
+      onClose()
+    } catch (e) {
+      toast.error(errorMessage(e))
+    } finally {
+      setSaving(false)
+    }
+  }
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && close()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Mon profil</DialogTitle>
+          <DialogDescription>Votre nom et l’adresse e-mail qui sert à vous connecter.</DialogDescription>
+        </DialogHeader>
+        <div className="flex flex-col gap-3">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="pf-first">Prénom</Label>
+              <Input
+                id="pf-first"
+                autoComplete="given-name"
+                value={v.firstName}
+                onChange={(e) => setV({ ...v, firstName: e.target.value })}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="pf-last">Nom</Label>
+              <Input
+                id="pf-last"
+                autoComplete="family-name"
+                value={v.lastName}
+                onChange={(e) => setV({ ...v, lastName: e.target.value })}
+              />
+            </div>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="pf-email">E-mail de connexion</Label>
+            <Input
+              id="pf-email"
+              type="email"
+              autoComplete="email"
+              value={v.email}
+              onChange={(e) => setV({ ...v, email: e.target.value })}
+            />
+          </div>
+          {emailChanged && (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="pf-password">Mot de passe actuel</Label>
+              <Input
+                id="pf-password"
+                type="password"
+                autoComplete="current-password"
+                value={v.currentPassword}
+                onChange={(e) => setV({ ...v, currentPassword: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground">Demandé pour changer d’adresse. Vos autres sessions seront fermées.</p>
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={close}>
+            Annuler
+          </Button>
+          <Button disabled={!valid || saving} onClick={() => void submit()}>
+            Enregistrer
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 function AdminMenu() {
   const admin = usePlatformAdmin()
   const { logout } = usePlatformAuth()
   const [password, setPassword] = useState(false)
+  const [profile, setProfile] = useState(false)
   return (
     <>
       <DropdownMenu>
@@ -242,6 +341,9 @@ function AdminMenu() {
             </DropdownMenuLabel>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => setProfile(true)}>
+            <UserPen aria-hidden /> Mon profil
+          </DropdownMenuItem>
           <DropdownMenuItem render={<Link to={to('/account')} />}>
             <ShieldCheck aria-hidden /> Sécurité du compte
           </DropdownMenuItem>
@@ -254,6 +356,7 @@ function AdminMenu() {
         </DropdownMenuContent>
       </DropdownMenu>
       <PasswordDialog open={password} onClose={() => setPassword(false)} />
+      {profile && <ProfileDialog open onClose={() => setProfile(false)} />}
     </>
   )
 }
