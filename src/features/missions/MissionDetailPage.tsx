@@ -50,7 +50,8 @@ function displayValue(field: MissionField, value: unknown): string {
   if (field.type === FieldType.Boolean) return value ? 'Oui' : 'Non'
   if (field.type === FieldType.Number) return formatNumber(Number(value))
   if (field.type === FieldType.Date) return formatDate(String(value))
-  return String(value)
+  if (Array.isArray(value)) return value.map(String).join(', ')
+  return typeof value === 'object' ? '—' : String(value)
 }
 
 const ALL = 'all'

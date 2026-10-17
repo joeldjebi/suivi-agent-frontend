@@ -16,9 +16,64 @@ const ACTIONS: Record<string, string> = {
   'auth.login_failed': 'Échec de connexion',
 }
 
-/** « ZonesController.create » → « Zones · create » */
+/** Sujet d'une action, d'après la partie de l'application concernée. */
+const SUBJECTS: Record<string, string> = {
+  Alerts: 'Alertes',
+  Auth: 'Compte',
+  Billing: 'Facturation',
+  Branding: 'Personnalisation',
+  Broadcasts: 'Notifications aux équipes',
+  Days: 'Journées',
+  Devices: 'Téléphones',
+  Exports: 'Exports',
+  Groups: 'Groupes',
+  Me: 'Profil',
+  MissionTypes: 'Formulaires',
+  Missions: 'Missions',
+  Notifications: 'Notifications',
+  Onboarding: 'Démarrage',
+  Orders: 'Commandes',
+  Outlets: 'Points de vente',
+  Payroll: 'Rémunération',
+  Photos: 'Photos',
+  Positions: 'Positions',
+  Products: 'Produits',
+  Reports: 'Rapports',
+  Safety: 'Sécurité',
+  Settings: 'Paramètres',
+  Setup: 'Démarrage',
+  Subscriptions: 'Abonnement',
+  Suggestions: 'Produits signalés',
+  Support: 'Assistance',
+  TeamLeads: 'Chefs d’équipe',
+  Users: 'Utilisateurs',
+  ZoneRequests: 'Demandes de zone',
+  Zones: 'Zones',
+}
+
+/** Verbe d'une action, d'après son nom (create, update, remove…). */
+function verb(method: string) {
+  const m = method.toLowerCase()
+  if (/^(create|add|register|send|upload|import|start|submit)/.test(m)) return 'Ajout'
+  if (/^(remove|delete|archive|deactivate|cancel)/.test(m)) return 'Suppression'
+  if (/^(approve|accept|decide|validate)/.test(m)) return 'Décision'
+  if (/^(reject|refuse)/.test(m)) return 'Refus'
+  return 'Modification'
+}
+
+/** « ZonesController.create » → « Zones · Ajout » */
 function describe(action: string) {
-  return ACTIONS[action] ?? action.replace('Controller.', ' · ').replace(/([a-z])([A-Z])/g, '$1 $2')
+  if (ACTIONS[action]) return ACTIONS[action]
+  const [controller = '', method = ''] = action.split('.')
+  const subject = SUBJECTS[controller.replace(/Controller$/, '')] ?? 'Espace'
+  return `${subject} · ${verb(method)}`
+}
+
+/** Réussi ou refusé, sans code technique. */
+function outcome(log: AuditLog) {
+  if (log.action === 'auth.login_failed') return { label: 'Refusé', failed: true }
+  const failed = !!log.statusCode && log.statusCode >= 400
+  return { label: failed ? 'Refusé' : 'Réussi', failed }
 }
 
 export function AuditPage() {
@@ -47,7 +102,6 @@ export function AuditPage() {
                   <TableHead>Date</TableHead>
                   <TableHead>Utilisateur</TableHead>
                   <TableHead>Action</TableHead>
-                  <TableHead>Requête</TableHead>
                   <TableHead>Résultat</TableHead>
                   <TableHead>Adresse IP</TableHead>
                 </TableRow>
@@ -58,12 +112,7 @@ export function AuditPage() {
                     <TableCell className="tabular-nums">{formatDateTime(log.createdAt, settings.timezone)}</TableCell>
                     <TableCell>{log.userId ? fullName(users.data?.find((u) => u.id === log.userId)) : '—'}</TableCell>
                     <TableCell>{describe(log.action)}</TableCell>
-                    <TableCell className="max-w-64 truncate font-mono text-xs text-muted-foreground">
-                      {log.method ? `${log.method} ${log.path}` : '—'}
-                    </TableCell>
-                    <TableCell className={log.statusCode && log.statusCode >= 400 ? 'text-destructive' : undefined}>
-                      {log.statusCode ?? (log.action === 'auth.login_failed' ? 'refusé' : 'ok')}
-                    </TableCell>
+                    <TableCell className={outcome(log).failed ? 'text-destructive' : undefined}>{outcome(log).label}</TableCell>
                     <TableCell className="font-mono text-xs">{log.ip ?? '—'}</TableCell>
                   </TableRow>
                 ))}

@@ -47,7 +47,7 @@ export function useFeature(feature: Feature): boolean {
 
 /** Nom d'une formule à partir de son code (repli pour les formules créées par l'éditeur). */
 export function planName(code: string): string {
-  return planLabel[code] ?? code
+  return planLabel[code] ?? (code ? code.charAt(0).toUpperCase() + code.slice(1) : 'Formule')
 }
 
 export function formatMoney(amount: number, currency = 'XOF'): string {

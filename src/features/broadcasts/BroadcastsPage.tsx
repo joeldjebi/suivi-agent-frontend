@@ -15,7 +15,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { EmptyState, Page, PageHeader, QueryState } from '@/components/app/page'
+import { Page, PageHeader } from '@/components/app/page'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -24,15 +24,15 @@ import { Field, FieldContent, FieldDescription, FieldLabel } from '@/components/
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import { Switch } from '@/components/ui/switch'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
 import { api, errorCode, errorMessage } from '@/lib/api'
 import { useMe } from '@/lib/auth'
-import { formatDateTime, fullName } from '@/lib/format'
+import { fullName } from '@/lib/format'
 import { roleLabel } from '@/lib/labels'
 import { useAllUsers, useApiMutation, useZones } from '@/lib/queries'
 import type { Mission, Page as PageOf } from '@/lib/types'
 import { cn } from '@/lib/utils'
+import { BroadcastHistory } from './BroadcastHistory'
 
 type Target = 'all' | 'agents' | 'leads' | 'users' | 'zones' | 'missions'
 
@@ -50,17 +50,6 @@ interface Preview {
   leads: number
   reachable: number
   sample: string[]
-}
-
-interface Broadcast {
-  id: string
-  title: string
-  body: string
-  audience: Audience
-  recipients: number
-  reachable: number
-  createdAt: string
-  authorName: string | null
 }
 
 const TITLE_MAX = 65
@@ -141,11 +130,6 @@ export function BroadcastsPage() {
   })
   const emptySelection = errorCode(preview.error) === 'EMPTY_SELECTION'
   const count = preview.isError ? 0 : (preview.data?.total ?? 0)
-
-  const history = useQuery({
-    queryKey: ['broadcasts', 'history'],
-    queryFn: async () => (await api.get<Broadcast[]>('/broadcasts')).data,
-  })
 
   const send = useApiMutation(
     () => api.post<{ recipients: number; reachable: number }>('/broadcasts', { title: title.trim(), body: body.trim(), audience }),
@@ -297,45 +281,7 @@ export function BroadcastsPage() {
         </div>
       </div>
 
-      <section className="flex flex-col gap-3">
-        <h2 className="text-base font-semibold">Envois précédents</h2>
-        <QueryState query={history}>
-          {history.data?.length === 0 ? (
-            <EmptyState icon={BellRing} title="Aucune notification envoyée" description="Vos envois apparaîtront ici." />
-          ) : (
-            <div className="overflow-x-auto rounded-lg border bg-card">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Notification</TableHead>
-                    <TableHead>Destinataires</TableHead>
-                    <TableHead className="text-right">Personnes</TableHead>
-                    <TableHead>Envoyée par</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {history.data?.map((b) => (
-                    <TableRow key={b.id}>
-                      <TableCell className="align-top text-sm whitespace-nowrap">{formatDateTime(b.createdAt)}</TableCell>
-                      <TableCell className="max-w-md align-top">
-                        <div className="font-medium">{b.title}</div>
-                        <div className="line-clamp-2 text-sm whitespace-normal text-muted-foreground">{b.body}</div>
-                      </TableCell>
-                      <TableCell className="align-top text-sm">{audienceSummary(b.audience)}</TableCell>
-                      <TableCell className="text-right align-top tabular-nums">
-                        <div className="font-medium">{b.recipients}</div>
-                        <div className="text-xs whitespace-nowrap text-muted-foreground">{b.reachable} sur téléphone</div>
-                      </TableCell>
-                      <TableCell className="align-top text-sm text-muted-foreground">{b.authorName ?? '—'}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </QueryState>
-      </section>
+      <BroadcastHistory audienceSummary={audienceSummary} />
 
       <Dialog open={confirming} onOpenChange={setConfirming}>
         <DialogContent className="sm:max-w-md">

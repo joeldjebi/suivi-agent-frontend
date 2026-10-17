@@ -159,7 +159,7 @@ function RemoveContent({ target, config, onDone }: { target: RemoveTarget; confi
             {linked.map(([key, count]) => (
               <li key={key} className="flex gap-2">
                 <span className="w-12 shrink-0 text-right font-semibold tabular-nums">{count.toLocaleString('fr-FR')}</span>
-                <span>{config.impactLabels[key] ?? key}</span>
+                <span>{config.impactLabels[key] ?? 'élément(s) lié(s)'}</span>
               </li>
             ))}
           </ul>

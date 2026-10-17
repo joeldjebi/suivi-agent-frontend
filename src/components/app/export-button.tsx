@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { api, errorMessage } from '@/lib/api'
+import { api, errorMessage, readableMessage } from '@/lib/api'
 import { useMe } from '@/lib/auth'
 
 /** Nom de fichier proposé par le serveur (Content-Disposition). */
@@ -23,11 +23,11 @@ function filenameOf(header: string | undefined, fallback: string) {
 
 /** Le corps d'une erreur reçue en Blob est du JSON : on en tire le message. */
 async function blobError(error: unknown): Promise<string> {
-  const data = (error as { response?: { data?: unknown } })?.response?.data
-  if (data instanceof Blob) {
+  const response = (error as { response?: { status: number; data?: unknown } })?.response
+  if (response?.data instanceof Blob) {
     try {
-      const body = JSON.parse(await data.text()) as { message?: string }
-      if (typeof body.message === 'string') return body.message
+      const message = readableMessage(response.status, JSON.parse(await response.data.text()))
+      if (message) return message
     } catch {
       // Corps illisible : message générique ci-dessous.
     }

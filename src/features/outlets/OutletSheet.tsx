@@ -36,6 +36,7 @@ import { useMe } from '@/lib/auth'
 import { formatDateTime, formatPhone, formatRelative } from '@/lib/format'
 import { useApiMutation } from '@/lib/queries'
 import { cn } from '@/lib/utils'
+import { VisitDetailDialog } from './VisitDetailDialog'
 import { usePhotoUrl } from '@/lib/use-photo-url'
 import { OutletOrders } from '../orders/OutletOrders'
 import { OutletProducts } from '../products/OutletProducts'
@@ -74,6 +75,7 @@ export function OutletSheet({
   const [merging, setMerging] = useState(false)
   const [removing, setRemoving] = useState(false)
   const [rejecting, setRejecting] = useState<string | null>(null)
+  const [viewing, setViewing] = useState<string | null>(null)
 
   return (
     <>
@@ -199,9 +201,13 @@ export function OutletSheet({
                                 {v.missionTitle}
                               </Link>
                             ) : (
-                              <span className="block truncate font-medium">
+                              <button
+                                type="button"
+                                className="block max-w-full truncate text-left font-medium hover:underline"
+                                onClick={() => setViewing(v.id)}
+                              >
                                 Visite libre <span className="font-normal text-muted-foreground">· {v.formName}</span>
-                              </span>
+                              </button>
                             )}
                             <span className="block text-xs text-muted-foreground">
                               {[formatDateTime(v.submittedAt), v.agent, v.distance != null ? `à ${v.distance} m` : null]
@@ -270,6 +276,7 @@ export function OutletSheet({
             }}
           />
           <RejectVisitDialog visitId={rejecting} onOpenChange={(o) => !o && setRejecting(null)} />
+          <VisitDetailDialog visitId={viewing} onClose={() => setViewing(null)} />
           <RemoveOutletDialog open={removing} onOpenChange={setRemoving} outlet={outlet} onRemoved={() => onOpenChange(false)} />
         </>
       )}

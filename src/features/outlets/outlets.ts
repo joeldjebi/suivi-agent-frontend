@@ -127,7 +127,9 @@ export function fieldValue(field: MissionField, value: unknown): string | null {
     return `${d}/${m}/${y}`
   }
   if (field.type === 'number' && typeof value === 'number') return value.toLocaleString('fr-FR')
-  return typeof value === 'string' ? value : JSON.stringify(value)
+  if (typeof value === 'string') return value
+  if (Array.isArray(value)) return value.map(String).join(', ')
+  return typeof value === 'object' ? null : String(value)
 }
 
 /** « Visité il y a 12 j », « Visité aujourd'hui », « Jamais visité ». */
