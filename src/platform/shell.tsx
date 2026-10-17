@@ -108,7 +108,7 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
           <LogoMark className="size-5" />
         </span>
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-white">Suivi Agent</p>
+          <p className="truncate text-sm font-semibold text-white">PerformX</p>
           <p className="truncate text-xs text-slate-400">Console éditeur</p>
         </div>
       </div>

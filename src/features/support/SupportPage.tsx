@@ -28,7 +28,7 @@ export function SupportStatusPill({ status }: { status: SupportStatus }) {
   return <StatusPill tone={tone} icon={icon} label={supportStatusLabel[status]} />
 }
 
-/** Demandes d'aide de la structure au support de Suivi Agent. */
+/** Demandes d'aide de la structure au support de PerformX. */
 export function SupportPage() {
   const [params, setParams] = useSearchParams()
   const [creating, setCreating] = useState(params.get('new') === '1')
@@ -42,7 +42,7 @@ export function SupportPage() {
     <Page>
       <PageHeader
         title="Support"
-        description="Une question, un problème ? Écrivez à l’équipe Suivi Agent : la réponse arrive ici et dans vos notifications."
+        description="Une question, un problème ? Écrivez à l’équipe PerformX : la réponse arrive ici et dans vos notifications."
         actions={
           <Button onClick={() => setCreating(true)}>
             <Plus aria-hidden /> Nouvelle demande

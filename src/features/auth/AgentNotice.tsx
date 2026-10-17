@@ -15,7 +15,7 @@ export function AgentNotice() {
       <div className="flex flex-col items-center gap-4 text-center">
         <Smartphone className="size-10 text-primary" aria-hidden />
         <p className="text-sm text-muted-foreground">
-          Choisissez votre zone, démarrez votre journée et réalisez vos missions depuis l'application Suivi Agent sur votre téléphone.
+          Choisissez votre zone, démarrez votre journée et réalisez vos missions depuis l'application PerformX sur votre téléphone.
         </p>
         <Button variant="outline" className="w-full" onClick={() => void logout()}>
           Se déconnecter

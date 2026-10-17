@@ -38,7 +38,7 @@ function CodeInput({ id, value, onChange }: { id: string; value: string; onChang
 function RecoveryCodes({ codes, onDone }: { codes: string[]; onDone: () => void }) {
   const text = codes.join('\n')
   const download = () => {
-    const url = URL.createObjectURL(new Blob([`Codes de secours Suivi Agent (console éditeur)\n\n${text}\n`], { type: 'text/plain' }))
+    const url = URL.createObjectURL(new Blob([`Codes de secours PerformX (console éditeur)\n\n${text}\n`], { type: 'text/plain' }))
     const link = document.createElement('a')
     link.href = url
     link.download = 'codes-de-secours-suivi-agent.txt'

@@ -47,7 +47,7 @@ export function HelpPage() {
     <Page>
       <PageHeader
         title="Documentation"
-        description="Le manuel d’utilisation de Suivi Agent : prise en main, terrain, organisation, application mobile."
+        description="Le manuel d’utilisation de PerformX : prise en main, terrain, organisation, application mobile."
         actions={
           user.role === Role.Admin && (
             <Button variant="outline" nativeButton={false} render={<Link to="/start" />}>
@@ -101,7 +101,7 @@ export function HelpPage() {
                     <Markdown source={article.data.body} className="max-w-[68ch]" />
                     <footer className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t pt-4">
                       <p className="text-xs text-muted-foreground">
-                        Mis à jour le {formatDate(article.data.updatedAt)} · © Suivi Agent, documentation réservée aux clients. Reproduction
+                        Mis à jour le {formatDate(article.data.updatedAt)} · © PerformX, documentation réservée aux clients. Reproduction
                         interdite.
                       </p>
                       <Button size="sm" variant="outline" nativeButton={false} render={<Link to="/support?new=1" />}>

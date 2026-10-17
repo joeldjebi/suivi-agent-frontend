@@ -58,7 +58,7 @@ export function PlatformApp() {
     meta.content = 'noindex, nofollow'
     document.head.append(meta)
     const title = document.title
-    document.title = 'Console éditeur · Suivi Agent'
+    document.title = 'Console éditeur · PerformX'
     return () => {
       meta.remove()
       document.title = title

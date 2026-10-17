@@ -37,7 +37,7 @@ export function AdminsPage() {
     <Page>
       <PageHeader
         title="Comptes éditeur"
-        description="Personnes de l’équipe Suivi Agent qui accèdent à cette console. Désactiver un compte ferme immédiatement ses sessions."
+        description="Personnes de l’équipe PerformX qui accèdent à cette console. Désactiver un compte ferme immédiatement ses sessions."
         actions={
           <Button onClick={() => setCreating(true)}>
             <Plus aria-hidden /> Nouveau compte

@@ -229,7 +229,7 @@ function Navigation({ onNavigate, collapsed = false, onToggle }: { onNavigate?: 
         </span>
         {!collapsed && (
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold">Suivi Agent</p>
+            <p className="truncate text-sm font-semibold">PerformX</p>
             <p className="truncate text-xs text-muted-foreground">{tenant.name}</p>
           </div>
         )}

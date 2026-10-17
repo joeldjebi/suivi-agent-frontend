@@ -590,7 +590,7 @@ function Done({ result, structure }: { result: Result; structure: string }) {
   const navigate = useNavigate()
   const credentials = result.agents.created
   const text = [
-    `Bienvenue sur Suivi Agent (${structure}) !`,
+    `Bienvenue sur PerformX (${structure}) !`,
     'Installez l’application puis connectez-vous :',
     ...credentials.map((a) => `• ${a.name} : ${formatPhone(a.phone)}`),
     `Mot de passe de départ : ${result.agentPassword ?? ''}`,

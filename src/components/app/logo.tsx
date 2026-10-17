@@ -1,5 +1,5 @@
 /**
- * Symbole Suivi Agent (« le parcours ») : un trajet du départ à l'arrivée. Le trait prend la
+ * Symbole PerformX (« le parcours ») : un trajet du départ à l'arrivée. Le trait prend la
  * couleur du texte (currentColor) ; `hole` colore l'intérieur des points, de la couleur du
  * fond sur lequel il est posé.
  */

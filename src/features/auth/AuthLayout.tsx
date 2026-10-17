@@ -44,7 +44,7 @@ export function AuthLayout({
           <span className="flex size-10 items-center justify-center rounded-xl bg-white text-primary">
             <LogoMark className="size-6" hole="#ffffff" />
           </span>
-          <span className="text-lg font-semibold">Suivi Agent</span>
+          <span className="text-lg font-semibold">PerformX</span>
         </div>
         <div className="relative max-w-md">
           <h2 className="text-3xl leading-tight font-semibold text-balance">Vos équipes terrain, en temps réel, sur une seule carte.</h2>

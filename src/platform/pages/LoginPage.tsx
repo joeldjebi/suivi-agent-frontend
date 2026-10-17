@@ -41,7 +41,7 @@ export function PlatformLoginPage() {
           </span>
           <div>
             <h1 className="text-lg font-semibold text-white">Console éditeur</h1>
-            <p className="text-sm text-slate-400">Accès réservé à l’équipe Suivi Agent</p>
+            <p className="text-sm text-slate-400">Accès réservé à l’équipe PerformX</p>
           </div>
         </div>
         <div className="rounded-xl border border-white/10 bg-card p-6 shadow-2xl">

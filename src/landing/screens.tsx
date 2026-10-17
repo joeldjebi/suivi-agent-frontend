@@ -58,7 +58,7 @@ export function AppScreen({ withMap = true }: { withMap?: boolean }) {
               <MapPinned className="size-[1.5cqw]" aria-hidden />
             </span>
             <span className="leading-tight">
-              <span className="block font-semibold">Suivi Agent</span>
+              <span className="block font-semibold">PerformX</span>
               <span className="block text-[0.85cqw] text-neutral-500">Démo Abidjan</span>
             </span>
           </div>

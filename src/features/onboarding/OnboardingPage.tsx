@@ -79,7 +79,7 @@ function copyOf(key: OnboardingStep, teamLeads: boolean): StepCopy {
       return {
         title: 'Installer l’application des agents',
         description:
-          'Chaque agent installe Suivi Agent, se connecte avec son numéro et autorise la localisation « Toujours ». L’étape se valide à la première connexion.',
+          'Chaque agent installe PerformX, se connecte avec son numéro et autorise la localisation « Toujours ». L’étape se valide à la première connexion.',
         action: { to: '/users', label: 'Voir les agents' },
         help: 'application-agent',
       }
