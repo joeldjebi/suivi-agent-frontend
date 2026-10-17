@@ -5,7 +5,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { useApiMutation } from '@/lib/queries'
+import { cn } from '@/lib/utils'
 import { platformApi } from '../api'
 import { usePlans } from '../plans'
 import type { PlatformSettings } from '../types'
@@ -189,28 +191,34 @@ function Form({ settings }: { settings: PlatformSettings }) {
 const VERSION = /^\d+\.\d+\.\d+$/
 const URL_PATTERN = /^https?:\/\/\S+$/
 
-/** Versions de l'app mobile et liens de téléchargement. */
+type Importance = PlatformSettings['appUpdateImportance']
+
+const IMPORTANCE: { value: Importance; label: string; hint: string }[] = [
+  { value: 'minor', label: 'Mineure', hint: 'Petit bandeau discret sur l’écran d’accueil.' },
+  { value: 'recommended', label: 'Recommandée', hint: 'Fenêtre à l’ouverture de l’app, avec « Plus tard » (une fois par jour).' },
+  { value: 'critical', label: 'Critique', hint: 'Mise à jour obligatoire : l’app reste bloquée tant qu’elle n’est pas faite.' },
+]
+
+/** Versions de l'app mobile, importance de la mise à jour et liens de téléchargement. */
 function AppVersionForm({ settings }: { settings: PlatformSettings }) {
   const initial = () => ({
-    minAppVersion: settings.minAppVersion ?? '',
     latestAppVersion: settings.latestAppVersion ?? '',
+    appUpdateImportance: settings.appUpdateImportance,
+    appReleaseNotes: settings.appReleaseNotes ?? '',
+    minAppVersion: settings.minAppVersion ?? '',
     androidStoreUrl: settings.androidStoreUrl ?? '',
     iosStoreUrl: settings.iosStoreUrl ?? '',
   })
   const [v, setV] = useState(initial)
+  const critical = v.appUpdateImportance === 'critical'
   const fields = [
     {
       key: 'minAppVersion',
       label: 'Version minimale',
-      hint: 'En dessous, l’app est bloquée et demande la mise à jour (ex. 1.2.0). Vide : rien n’est imposé.',
+      hint: critical
+        ? 'Réglée sur la dernière version : la mise à jour est critique.'
+        : 'En dessous, l’app est bloquée et demande la mise à jour (ex. 1.2.0). Vide : rien n’est imposé.',
       placeholder: '1.2.0',
-      pattern: VERSION,
-    },
-    {
-      key: 'latestAppVersion',
-      label: 'Dernière version publiée',
-      hint: 'Les versions plus anciennes proposent la mise à jour, sans bloquer.',
-      placeholder: '1.3.0',
       pattern: VERSION,
     },
     {
@@ -228,17 +236,103 @@ function AppVersionForm({ settings }: { settings: PlatformSettings }) {
       pattern: URL_PATTERN,
     },
   ] as const
+  const latestInvalid = v.latestAppVersion !== '' && !VERSION.test(v.latestAppVersion.trim())
   const invalid = (k: (typeof fields)[number]) => v[k.key] !== '' && !k.pattern.test(v[k.key].trim())
   const changed = (Object.keys(v) as (keyof typeof v)[]).some((k) => v[k] !== initial()[k])
-  const valid = fields.every((f) => !invalid(f))
-  const missingLink = v.minAppVersion !== '' && !v.androidStoreUrl && !v.iosStoreUrl
+  const missingLatest = v.appUpdateImportance !== 'minor' && v.latestAppVersion.trim() === ''
+  const valid = !latestInvalid && fields.every((f) => !invalid(f)) && !missingLatest && v.appReleaseNotes.length <= 500
+  const missingLink = (v.minAppVersion !== '' || critical) && !v.androidStoreUrl && !v.iosStoreUrl
   const save = useApiMutation(
-    () => platformApi.patch('/settings', Object.fromEntries(Object.entries(v).map(([k, x]) => [k, x.trim() === '' ? null : x.trim()]))),
+    () =>
+      platformApi.patch(
+        '/settings',
+        Object.fromEntries(Object.entries(v).map(([k, x]) => [k, k === 'appUpdateImportance' ? x : x.trim() === '' ? null : x.trim()])),
+      ),
     { success: 'Réglages de l’app enregistrés', invalidate: [['platform']] },
   )
   return (
     <div className="max-w-2xl rounded-lg border bg-card">
       <div className="divide-y">
+        <div className="grid gap-2 p-4 sm:grid-cols-[minmax(0,1fr)_18rem] sm:items-center">
+          <div>
+            <Label htmlFor="latestAppVersion">Dernière version publiée</Label>
+            <p className="mt-0.5 text-xs text-muted-foreground">Les versions plus anciennes reçoivent l’invitation à mettre à jour.</p>
+          </div>
+          <div>
+            <Input
+              id="latestAppVersion"
+              value={v.latestAppVersion}
+              placeholder="1.3.0"
+              aria-invalid={latestInvalid || missingLatest}
+              inputMode="decimal"
+              onChange={(e) => setV({ ...v, latestAppVersion: e.target.value })}
+            />
+            {latestInvalid && <p className="mt-1 text-xs text-destructive">Format attendu : 1.2.0</p>}
+            {missingLatest && <p className="mt-1 text-xs text-destructive">Indiquez la version concernée.</p>}
+          </div>
+        </div>
+        <fieldset className="flex flex-col gap-2 p-4">
+          <legend className="sr-only">Importance de la mise à jour</legend>
+          <p className="text-sm font-medium" aria-hidden>
+            Importance de la mise à jour
+          </p>
+          <div className="grid gap-2 sm:grid-cols-3">
+            {IMPORTANCE.map((o) => (
+              <label
+                key={o.value}
+                className={cn(
+                  'flex cursor-pointer flex-col gap-1 rounded-lg border p-3 text-sm transition-colors has-focus-visible:ring-2 has-focus-visible:ring-ring',
+                  v.appUpdateImportance === o.value
+                    ? o.value === 'critical'
+                      ? 'border-destructive bg-destructive/5'
+                      : 'border-primary bg-primary/5'
+                    : 'hover:bg-muted/50',
+                )}
+              >
+                <span className="flex items-center gap-2 font-medium">
+                  <input
+                    type="radio"
+                    name="appUpdateImportance"
+                    value={o.value}
+                    checked={v.appUpdateImportance === o.value}
+                    onChange={() =>
+                      setV({
+                        ...v,
+                        appUpdateImportance: o.value,
+                        minAppVersion: o.value === 'critical' && v.latestAppVersion.trim() ? v.latestAppVersion.trim() : v.minAppVersion,
+                      })
+                    }
+                    className="accent-primary"
+                  />
+                  {o.label}
+                </span>
+                <span className="text-xs text-muted-foreground">{o.hint}</span>
+              </label>
+            ))}
+          </div>
+          {critical && (
+            <p className="rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive">
+              Ne choisissez « Critique » qu’une fois la nouvelle version validée et disponible sur l’App Store et Google Play : sinon, les
+              agents seront bloqués sans pouvoir mettre à jour.
+            </p>
+          )}
+        </fieldset>
+        <div className="flex flex-col gap-1.5 p-4">
+          <div className="flex items-baseline justify-between gap-2">
+            <Label htmlFor="appReleaseNotes">Nouveautés</Label>
+            <span className={cn('text-xs tabular-nums', v.appReleaseNotes.length > 500 ? 'text-destructive' : 'text-muted-foreground')}>
+              {v.appReleaseNotes.length}/500
+            </span>
+          </div>
+          <Textarea
+            id="appReleaseNotes"
+            rows={3}
+            value={v.appReleaseNotes}
+            placeholder="Ex. : envoi des commandes plus rapide, correction de la carte de la zone."
+            onChange={(e) => setV({ ...v, appReleaseNotes: e.target.value })}
+          />
+          <p className="text-xs text-muted-foreground">Affichées dans la fenêtre de mise à jour de l’app. Phrases courtes, sans jargon.</p>
+        </div>
         {fields.map((f) => (
           <div key={f.key} className="grid gap-2 p-4 sm:grid-cols-[minmax(0,1fr)_18rem] sm:items-center">
             <div>
@@ -251,6 +345,7 @@ function AppVersionForm({ settings }: { settings: PlatformSettings }) {
                 value={v[f.key]}
                 placeholder={f.placeholder}
                 aria-invalid={invalid(f)}
+                disabled={f.key === 'minAppVersion' && critical}
                 inputMode={f.pattern === VERSION ? 'decimal' : 'url'}
                 onChange={(e) => setV({ ...v, [f.key]: e.target.value })}
               />

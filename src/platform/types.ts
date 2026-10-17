@@ -229,6 +229,9 @@ export interface PlatformSettings {
   /** App mobile : en dessous, mise à jour obligatoire */
   minAppVersion: string | null
   latestAppVersion: string | null
+  /** mineure : bandeau ; recommandée : fenêtre à l'ouverture ; critique : obligatoire */
+  appUpdateImportance: 'minor' | 'recommended' | 'critical'
+  appReleaseNotes: string | null
   androidStoreUrl: string | null
   iosStoreUrl: string | null
 }
