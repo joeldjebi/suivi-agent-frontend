@@ -18,6 +18,7 @@ import { PLATFORM_PATH } from '@/platform/config'
 
 // Chaque écran est chargé à la demande : premier affichage plus rapide sur réseau mobile.
 const PrivacyPage = lazyPage(() => import('@/landing/LegalPages').then((m) => ({ default: m.PrivacyPage })))
+const PublicSupportPage = lazyPage(() => import('@/landing/LegalPages').then((m) => ({ default: m.SupportPage })))
 const AccountDeletionPage = lazyPage(() => import('@/landing/LegalPages').then((m) => ({ default: m.AccountDeletionPage })))
 const AuditPage = lazyPage(() => import('@/features/admin/AuditPage').then((m) => ({ default: m.AuditPage })))
 const BillingPage = lazyPage(() => import('@/features/admin/BillingPage').then((m) => ({ default: m.BillingPage })))
@@ -162,6 +163,14 @@ function TenantApp() {
           element={
             <Suspense fallback={<FullPageSpinner />}>
               <PrivacyPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/assistance"
+          element={
+            <Suspense fallback={<FullPageSpinner />}>
+              <PublicSupportPage />
             </Suspense>
           }
         />

@@ -1128,19 +1128,22 @@ function Footer({ data }: { data: PublicLanding }) {
           {footer.text && <p className="mt-2 leading-relaxed">{footer.text}</p>}
         </div>
         <address className="flex flex-col gap-1.5 not-italic">
-          {footer.email && (
-            <a href={`mailto:${footer.email}`} className="hover:text-[#1d1d1f] hover:underline">
-              {footer.email}
+          {footer.emails.map((email) => (
+            <a key={email} href={`mailto:${email}`} className="hover:text-[#1d1d1f] hover:underline">
+              {email}
             </a>
-          )}
-          {footer.phone && (
-            <a href={`tel:${footer.phone.replace(/\s/g, '')}`} className="hover:text-[#1d1d1f] hover:underline">
-              {footer.phone}
+          ))}
+          {footer.phones.map((phone) => (
+            <a key={phone} href={`tel:${phone.replace(/\s/g, '')}`} className="hover:text-[#1d1d1f] hover:underline">
+              {phone}
             </a>
-          )}
+          ))}
           {footer.address && <span>{footer.address}</span>}
         </address>
         <nav aria-label="Informations légales" className="flex flex-col gap-1.5">
+          <a href="/assistance" className="hover:text-[#1d1d1f] hover:underline">
+            Assistance
+          </a>
           <a href="/confidentialite" className="hover:text-[#1d1d1f] hover:underline">
             Politique de confidentialité
           </a>

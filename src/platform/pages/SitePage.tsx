@@ -29,7 +29,7 @@ import { Landing } from '@/landing/Landing'
 import { ScrollTrigger } from '@/landing/gsap'
 import { ScrollRootContext } from '@/landing/motion'
 import { platformApi } from '../api'
-import { AreaField, Block, CtaField, TextField, ToggleField, VisualField } from '../site/fields'
+import { AreaField, Block, CtaField, ListField, TextField, ToggleField, VisualField } from '../site/fields'
 import { SECTION_TYPES, SectionEditor, newSection, sectionTitle } from '../site/sections'
 
 interface Editor {
@@ -336,17 +336,25 @@ function SiteEditor({ initial, catalog }: { initial: Editor; catalog: PublicLand
               max={200}
               onChange={(text) => setContent({ ...content, footer: { ...content.footer, text } })}
             />
-            <TextField
-              label="Email"
-              value={content.footer.email}
-              max={120}
-              onChange={(email) => setContent({ ...content, footer: { ...content.footer, email } })}
+            <ListField
+              label="E-mails de contact"
+              items={content.footer.emails}
+              max={5}
+              create={() => ''}
+              onChange={(emails) => setContent({ ...content, footer: { ...content.footer, emails } })}
+              render={(email, update) => (
+                <TextField label="E-mail" value={email} max={120} placeholder="contact@performx.online" onChange={update} />
+              )}
             />
-            <TextField
-              label="Téléphone"
-              value={content.footer.phone}
-              max={30}
-              onChange={(phone) => setContent({ ...content, footer: { ...content.footer, phone } })}
+            <ListField
+              label="Téléphones"
+              items={content.footer.phones}
+              max={5}
+              create={() => ''}
+              onChange={(phones) => setContent({ ...content, footer: { ...content.footer, phones } })}
+              render={(phone, update) => (
+                <TextField label="Numéro" value={phone} max={30} placeholder="+225 07 00 00 00 00" onChange={update} />
+              )}
             />
             <TextField
               label="Adresse"

@@ -14,8 +14,9 @@ function useContact() {
     retry: false,
   })
   const name = query.data?.content.brand.name || 'PerformX'
-  const email = query.data?.content.footer.email || null
-  return { name, email }
+  const emails = query.data?.content.footer.emails ?? []
+  const phones = query.data?.content.footer.phones ?? []
+  return { name, emails, phones }
 }
 
 function LegalLayout({ title, children }: { title: string; children: ReactNode }) {
@@ -46,13 +47,19 @@ function LegalLayout({ title, children }: { title: string; children: ReactNode }
 }
 
 function ContactLine() {
-  const { email } = useContact()
-  return email ? (
-    <a href={`mailto:${email}`} className="font-medium text-[#1d1d1f] underline">
-      {email}
-    </a>
-  ) : (
-    <span>l'adresse indiquée en bas de la page d'accueil</span>
+  const { emails } = useContact()
+  if (emails.length === 0) return <span>l'adresse indiquée en bas de la page d'accueil</span>
+  return (
+    <>
+      {emails.map((email, i) => (
+        <span key={email}>
+          {i > 0 && (i === emails.length - 1 ? ' ou ' : ', ')}
+          <a href={`mailto:${email}`} className="font-medium text-[#1d1d1f] underline">
+            {email}
+          </a>
+        </span>
+      ))}
+    </>
   )
 }
 
@@ -184,6 +191,67 @@ export function AccountDeletionPage() {
         Les données que votre structure doit garder pour ses obligations légales ou comptables (par exemple des commandes ou des paiements)
         peuvent être conservées par elle, sans lien avec un compte actif, pour la durée imposée par la loi.
       </p>
+    </LegalLayout>
+  )
+}
+
+/** Assistance : contact et réponses aux questions fréquentes (URL d'assistance des stores). */
+export function SupportPage() {
+  const { name, phones } = useContact()
+  return (
+    <LegalLayout title="Assistance">
+      <p>Une question sur l'application {name}, un problème de connexion ou une suggestion ? Nous vous répondons du lundi au vendredi.</p>
+
+      <h2>Nous contacter</h2>
+      <ul>
+        <li>
+          E-mail : <ContactLine />
+        </li>
+        {phones.map((phone) => (
+          <li key={phone}>
+            Téléphone :{' '}
+            <a href={`tel:${phone.replace(/\s/g, '')}`} className="font-medium text-[#1d1d1f] underline">
+              {phone}
+            </a>
+          </li>
+        ))}
+        <li>Administrateurs de structure : la rubrique Assistance de votre espace web permet aussi d'ouvrir une demande.</li>
+      </ul>
+
+      <h2>Questions fréquentes</h2>
+      <p>
+        <strong>Comment obtenir un compte ?</strong> Les comptes sont créés par votre entreprise. Demandez vos identifiants à votre
+        responsable ou à l'administrateur de votre structure.
+      </p>
+      <p>
+        <strong>J'ai oublié mon mot de passe.</strong> Demandez à l'administrateur de votre structure de le réinitialiser depuis l'espace
+        web.
+      </p>
+      <p>
+        <strong>Ma position n'est pas partagée.</strong> Autorisez la localisation « Toujours » pour {name} dans les réglages du téléphone,
+        puis démarrez votre journée. La position n'est utilisée que pendant la journée de travail.
+      </p>
+      <p>
+        <strong>Je ne reçois pas les notifications.</strong> Vérifiez qu'elles sont autorisées pour {name} dans les réglages du téléphone.
+      </p>
+      <p>
+        <strong>Je n'ai pas de réseau.</strong> Continuez à travailler : visites et commandes sont gardées sur le téléphone et envoyées dès
+        le retour de la connexion.
+      </p>
+
+      <h2>Liens utiles</h2>
+      <ul>
+        <li>
+          <Link to="/confidentialite" className="font-medium text-[#1d1d1f] underline">
+            Politique de confidentialité
+          </Link>
+        </li>
+        <li>
+          <Link to="/suppression-compte" className="font-medium text-[#1d1d1f] underline">
+            Suppression de compte
+          </Link>
+        </li>
+      </ul>
     </LegalLayout>
   )
 }
