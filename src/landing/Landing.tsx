@@ -182,10 +182,7 @@ const Headline = ({ children, className }: { children: string; className?: strin
 function Nav({ data, onAction, signedIn }: { data: PublicLanding; onAction: LandingProps['onAction']; signedIn: boolean }) {
   const [open, setOpen] = useState(false)
   const links = data.content.sections.filter((s) => s.enabled && s.navLabel)
-  const login: LandingCta = {
-    label: signedIn ? 'Ouvrir mon espace' : 'Se connecter',
-    action: 'login',
-  }
+  const login: LandingCta = { label: signedIn ? 'Ouvrir mon espace' : 'Se connecter', action: 'login' }
   return (
     <header className="sticky top-0 z-[1000] bg-[rgba(251,251,253,0.72)] backdrop-blur-2xl backdrop-saturate-[1.8]">
       <nav className="mx-auto flex h-12 max-w-[980px] items-center gap-7 px-5 text-[13px]" aria-label="Navigation du site">
@@ -261,15 +258,7 @@ function Hero({ data, onAction }: { data: PublicLanding; onAction: LandingProps[
   const ref = useRef<HTMLElement>(null)
   useScrollScene(ref, ({ scroller, reduced }) => {
     if (reduced) return
-    gsap.from('[data-hero-in]', {
-      y: 30,
-      opacity: 0,
-      filter: 'blur(8px)',
-      duration: 1.2,
-      ease: EASE,
-      stagger: 0.12,
-      delay: 0.1,
-    })
+    gsap.from('[data-hero-in]', { y: 30, opacity: 0, filter: 'blur(8px)', duration: 1.2, ease: EASE, stagger: 0.12, delay: 0.1 })
     const mm = gsap.matchMedia()
     mm.add('(min-width: 768px)', () => {
       const tl = gsap.timeline({
@@ -351,13 +340,7 @@ function Statement({ section }: { section: StatementSection }) {
         opacity: 1,
         ease: 'none',
         stagger: 0.1,
-        scrollTrigger: {
-          trigger: ref.current,
-          scroller,
-          start: 'top 75%',
-          end: 'bottom 55%',
-          scrub: true,
-        },
+        scrollTrigger: { trigger: ref.current, scroller, start: 'top 75%', end: 'bottom 55%', scrub: true },
       },
     )
   })
@@ -511,12 +494,7 @@ function PayrollTile() {
   useEffect(() => {
     if (!visible || reduced) return
     const obj = { v: 0 }
-    const tween = gsap.to(obj, {
-      v: 1532125,
-      duration: 1.8,
-      ease: 'power2.out',
-      onUpdate: () => setValue(Math.round(obj.v)),
-    })
+    const tween = gsap.to(obj, { v: 1532125, duration: 1.8, ease: 'power2.out', onUpdate: () => setValue(Math.round(obj.v)) })
     return () => {
       tween.kill()
     }
@@ -574,9 +552,7 @@ function RingsTile() {
                 strokeLinecap="round"
                 strokeDasharray={c}
                 strokeDashoffset={visible ? c * (1 - ring.pct) : c}
-                style={{
-                  transition: `stroke-dashoffset 1.6s cubic-bezier(0.16,1,0.3,1) ${i * 0.15}s`,
-                }}
+                style={{ transition: `stroke-dashoffset 1.6s cubic-bezier(0.16,1,0.3,1) ${i * 0.15}s` }}
               />
             </g>
           )
@@ -615,10 +591,7 @@ function ChartTile() {
         <div
           key={i}
           className="flex-1 rounded-t-[6px] bg-gradient-to-t from-[#0071e3] to-[#5ac8fa]"
-          style={{
-            height: visible ? `${h}%` : '6%',
-            transition: `height 1.2s cubic-bezier(0.16,1,0.3,1) ${i * 0.06}s`,
-          }}
+          style={{ height: visible ? `${h}%` : '6%', transition: `height 1.2s cubic-bezier(0.16,1,0.3,1) ${i * 0.06}s` }}
         />
       ))}
     </div>
@@ -641,13 +614,7 @@ function FeatureChapter({ section }: { section: FeatureSection }) {
         scale: 1,
         rotateX: 0,
         ease: 'none',
-        scrollTrigger: {
-          trigger: ref.current,
-          scroller,
-          start: 'top bottom',
-          end: 'bottom top',
-          scrub: 1,
-        },
+        scrollTrigger: { trigger: ref.current, scroller, start: 'top bottom', end: 'bottom top', scrub: 1 },
       },
     )
   })
@@ -1122,17 +1089,7 @@ function FinalCta({ section, onAction }: { section: CtaSection; onAction: Landin
     gsap.fromTo(
       '[data-cta-card]',
       { scale: 0.88 },
-      {
-        scale: 1,
-        ease: 'none',
-        scrollTrigger: {
-          trigger: ref.current,
-          scroller,
-          start: 'top bottom',
-          end: 'center center',
-          scrub: 1,
-        },
-      },
+      { scale: 1, ease: 'none', scrollTrigger: { trigger: ref.current, scroller, start: 'top bottom', end: 'center center', scrub: 1 } },
     )
   })
   return (

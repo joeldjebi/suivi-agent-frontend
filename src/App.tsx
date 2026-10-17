@@ -18,159 +18,47 @@ import { PLATFORM_PATH } from '@/platform/config'
 
 // Chaque écran est chargé à la demande : premier affichage plus rapide sur réseau mobile.
 const PrivacyPage = lazyPage(() => import('@/landing/LegalPages').then((m) => ({ default: m.PrivacyPage })))
-const AccountDeletionPage = lazyPage(() =>
-  import('@/landing/LegalPages').then((m) => ({
-    default: m.AccountDeletionPage,
-  })),
-)
+const AccountDeletionPage = lazyPage(() => import('@/landing/LegalPages').then((m) => ({ default: m.AccountDeletionPage })))
 const AuditPage = lazyPage(() => import('@/features/admin/AuditPage').then((m) => ({ default: m.AuditPage })))
-const BillingPage = lazyPage(() =>
-  import('@/features/admin/BillingPage').then((m) => ({
-    default: m.BillingPage,
-  })),
-)
-const ApprovalsPage = lazyPage(() =>
-  import('@/features/approvals/ApprovalsPage').then((m) => ({
-    default: m.ApprovalsPage,
-  })),
-)
-const GroupsPage = lazyPage(() =>
-  import('@/features/groups/GroupsPage').then((m) => ({
-    default: m.GroupsPage,
-  })),
-)
+const BillingPage = lazyPage(() => import('@/features/admin/BillingPage').then((m) => ({ default: m.BillingPage })))
+const ApprovalsPage = lazyPage(() => import('@/features/approvals/ApprovalsPage').then((m) => ({ default: m.ApprovalsPage })))
+const GroupsPage = lazyPage(() => import('@/features/groups/GroupsPage').then((m) => ({ default: m.GroupsPage })))
 const HelpPage = lazyPage(() => import('@/features/help/HelpPage').then((m) => ({ default: m.HelpPage })))
-const SupportPage = lazyPage(() =>
-  import('@/features/support/SupportPage').then((m) => ({
-    default: m.SupportPage,
-  })),
-)
-const TicketPage = lazyPage(() =>
-  import('@/features/support/TicketPage').then((m) => ({
-    default: m.TicketPage,
-  })),
-)
-const SetupWizard = lazyPage(() =>
-  import('@/features/setup/SetupWizard').then((m) => ({
-    default: m.SetupWizard,
-  })),
-)
-const OnboardingPage = lazyPage(() =>
-  import('@/features/onboarding/OnboardingPage').then((m) => ({
-    default: m.OnboardingPage,
-  })),
-)
-const ReportPage = lazyPage(() =>
-  import('@/features/report/ReportPage').then((m) => ({
-    default: m.ReportPage,
-  })),
-)
-const AlertsPage = lazyPage(() =>
-  import('@/features/alerts/AlertsPage').then((m) => ({
-    default: m.AlertsPage,
-  })),
-)
-const HistoryPage = lazyPage(() =>
-  import('@/features/history/HistoryPage').then((m) => ({
-    default: m.HistoryPage,
-  })),
-)
-const LiveMapPage = lazyPage(() =>
-  import('@/features/map/LiveMapPage').then((m) => ({
-    default: m.LiveMapPage,
-  })),
-)
-const MissionDetailPage = lazyPage(() =>
-  import('@/features/missions/MissionDetailPage').then((m) => ({
-    default: m.MissionDetailPage,
-  })),
-)
-const MissionsPage = lazyPage(() =>
-  import('@/features/missions/MissionsPage').then((m) => ({
-    default: m.MissionsPage,
-  })),
-)
-const MissionTypesPage = lazyPage(() =>
-  import('@/features/missions/MissionTypesPage').then((m) => ({
-    default: m.MissionTypesPage,
-  })),
-)
-const SettingsPage = lazyPage(() =>
-  import('@/features/settings/SettingsPage').then((m) => ({
-    default: m.SettingsPage,
-  })),
-)
+const SupportPage = lazyPage(() => import('@/features/support/SupportPage').then((m) => ({ default: m.SupportPage })))
+const TicketPage = lazyPage(() => import('@/features/support/TicketPage').then((m) => ({ default: m.TicketPage })))
+const SetupWizard = lazyPage(() => import('@/features/setup/SetupWizard').then((m) => ({ default: m.SetupWizard })))
+const OnboardingPage = lazyPage(() => import('@/features/onboarding/OnboardingPage').then((m) => ({ default: m.OnboardingPage })))
+const ReportPage = lazyPage(() => import('@/features/report/ReportPage').then((m) => ({ default: m.ReportPage })))
+const AlertsPage = lazyPage(() => import('@/features/alerts/AlertsPage').then((m) => ({ default: m.AlertsPage })))
+const HistoryPage = lazyPage(() => import('@/features/history/HistoryPage').then((m) => ({ default: m.HistoryPage })))
+const LiveMapPage = lazyPage(() => import('@/features/map/LiveMapPage').then((m) => ({ default: m.LiveMapPage })))
+const MissionDetailPage = lazyPage(() => import('@/features/missions/MissionDetailPage').then((m) => ({ default: m.MissionDetailPage })))
+const MissionsPage = lazyPage(() => import('@/features/missions/MissionsPage').then((m) => ({ default: m.MissionsPage })))
+const MissionTypesPage = lazyPage(() => import('@/features/missions/MissionTypesPage').then((m) => ({ default: m.MissionTypesPage })))
+const SettingsPage = lazyPage(() => import('@/features/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })))
 const UsersPage = lazyPage(() => import('@/features/users/UsersPage').then((m) => ({ default: m.UsersPage })))
-const BrandingPage = lazyPage(() =>
-  import('@/features/branding/BrandingPage').then((m) => ({
-    default: m.BrandingPage,
-  })),
-)
-const PayrollPage = lazyPage(() =>
-  import('@/features/payroll/PayrollPage').then((m) => ({
-    default: m.PayrollPage,
-  })),
-)
-const PayRunPage = lazyPage(() =>
-  import('@/features/payroll/PayRunPage').then((m) => ({
-    default: m.PayRunPage,
-  })),
-)
-const BroadcastsPage = lazyPage(() =>
-  import('@/features/broadcasts/BroadcastsPage').then((m) => ({
-    default: m.BroadcastsPage,
-  })),
-)
+const BrandingPage = lazyPage(() => import('@/features/branding/BrandingPage').then((m) => ({ default: m.BrandingPage })))
+const PayrollPage = lazyPage(() => import('@/features/payroll/PayrollPage').then((m) => ({ default: m.PayrollPage })))
+const PayRunPage = lazyPage(() => import('@/features/payroll/PayRunPage').then((m) => ({ default: m.PayRunPage })))
+const BroadcastsPage = lazyPage(() => import('@/features/broadcasts/BroadcastsPage').then((m) => ({ default: m.BroadcastsPage })))
 const StatsPage = lazyPage(() => import('@/features/stats/StatsPage').then((m) => ({ default: m.StatsPage })))
-const SubscriptionPage = lazyPage(() =>
-  import('@/features/subscription/SubscriptionPage').then((m) => ({
-    default: m.SubscriptionPage,
-  })),
-)
-const TeamLeadsPage = lazyPage(() =>
-  import('@/features/team-leads/TeamLeadsPage').then((m) => ({
-    default: m.TeamLeadsPage,
-  })),
-)
+const SubscriptionPage = lazyPage(() => import('@/features/subscription/SubscriptionPage').then((m) => ({ default: m.SubscriptionPage })))
+const TeamLeadsPage = lazyPage(() => import('@/features/team-leads/TeamLeadsPage').then((m) => ({ default: m.TeamLeadsPage })))
 const TeamLeadDetailPage = lazyPage(() =>
-  import('@/features/team-leads/TeamLeadDetailPage').then((m) => ({
-    default: m.TeamLeadDetailPage,
-  })),
+  import('@/features/team-leads/TeamLeadDetailPage').then((m) => ({ default: m.TeamLeadDetailPage })),
 )
 // Console éditeur : chargée seulement sous son adresse secrète.
 const PlatformApp = lazyPage(() => import('@/platform/PlatformApp').then((m) => ({ default: m.PlatformApp })))
 const LandingPage = lazyPage(() => import('@/landing/LandingPage').then((m) => ({ default: m.LandingPage })))
 const ZonesPage = lazyPage(() => import('@/features/zones/ZonesPage').then((m) => ({ default: m.ZonesPage })))
 const ProductInsightsPage = lazyPage(() =>
-  import('@/features/products/ProductInsightsPage').then((m) => ({
-    default: m.ProductInsightsPage,
-  })),
+  import('@/features/products/ProductInsightsPage').then((m) => ({ default: m.ProductInsightsPage })),
 )
-const ProductsPage = lazyPage(() =>
-  import('@/features/products/ProductsPage').then((m) => ({
-    default: m.ProductsPage,
-  })),
-)
-const FormStatsPage = lazyPage(() =>
-  import('@/features/form-stats/FormStatsPage').then((m) => ({
-    default: m.FormStatsPage,
-  })),
-)
-const OrdersPage = lazyPage(() =>
-  import('@/features/orders/OrdersPage').then((m) => ({
-    default: m.OrdersPage,
-  })),
-)
-const PricesPage = lazyPage(() =>
-  import('@/features/orders/PricesPage').then((m) => ({
-    default: m.PricesPage,
-  })),
-)
-const OutletsPage = lazyPage(() =>
-  import('@/features/outlets/OutletsPage').then((m) => ({
-    default: m.OutletsPage,
-  })),
-)
+const ProductsPage = lazyPage(() => import('@/features/products/ProductsPage').then((m) => ({ default: m.ProductsPage })))
+const FormStatsPage = lazyPage(() => import('@/features/form-stats/FormStatsPage').then((m) => ({ default: m.FormStatsPage })))
+const OrdersPage = lazyPage(() => import('@/features/orders/OrdersPage').then((m) => ({ default: m.OrdersPage })))
+const PricesPage = lazyPage(() => import('@/features/orders/PricesPage').then((m) => ({ default: m.PricesPage })))
+const OutletsPage = lazyPage(() => import('@/features/outlets/OutletsPage').then((m) => ({ default: m.OutletsPage })))
 
 const queryClient = new QueryClient({
   defaultOptions: {
