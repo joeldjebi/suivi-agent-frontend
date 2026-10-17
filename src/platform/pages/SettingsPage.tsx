@@ -194,8 +194,8 @@ const URL_PATTERN = /^https?:\/\/\S+$/
 type Importance = PlatformSettings['appUpdateImportance']
 
 const IMPORTANCE: { value: Importance; label: string; hint: string }[] = [
-  { value: 'minor', label: 'Mineure', hint: 'Petit bandeau discret sur l’écran d’accueil.' },
-  { value: 'recommended', label: 'Recommandée', hint: 'Fenêtre à l’ouverture de l’app, avec « Plus tard » (une fois par jour).' },
+  { value: 'minor', label: 'Mineure', hint: 'Fenêtre qu’on peut fermer, proposée de nouveau une fois par jour.' },
+  { value: 'recommended', label: 'Recommandée', hint: 'Fenêtre qu’on peut fermer, proposée de nouveau toutes les heures.' },
   { value: 'critical', label: 'Critique', hint: 'Mise à jour obligatoire : l’app reste bloquée tant qu’elle n’est pas faite.' },
 ]
 
@@ -256,7 +256,9 @@ function AppVersionForm({ settings }: { settings: PlatformSettings }) {
         <div className="grid gap-2 p-4 sm:grid-cols-[minmax(0,1fr)_18rem] sm:items-center">
           <div>
             <Label htmlFor="latestAppVersion">Dernière version publiée</Label>
-            <p className="mt-0.5 text-xs text-muted-foreground">Les versions plus anciennes reçoivent l’invitation à mettre à jour.</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Dès l’enregistrement, les apps ouvertes plus anciennes affichent la fenêtre de mise à jour.
+            </p>
           </div>
           <div>
             <Input
