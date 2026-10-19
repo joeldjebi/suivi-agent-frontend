@@ -40,7 +40,7 @@ import { BASE_FEATURES, featureLabel } from '@/lib/subscription'
 import { cn } from '@/lib/utils'
 import { IPhone, MacBook } from './devices'
 import { gsap, useScrollScene } from './gsap'
-import { LiveMap } from './live-map'
+import { LiveMap } from './live-map-lazy'
 import { useInView, useReducedMotion } from './motion'
 import { AlertsScene, AppScreen, DayScreen, GainsScreen, OfflineScene, PhoneScreens, type PhoneScreen } from './screens'
 
@@ -1141,6 +1141,9 @@ function Footer({ data }: { data: PublicLanding }) {
           {footer.address && <span>{footer.address}</span>}
         </address>
         <nav aria-label="Informations légales" className="flex flex-col gap-1.5">
+          <a href="/telecharger" className="hover:text-[#1d1d1f] hover:underline">
+            Télécharger l’app
+          </a>
           <a href="/assistance" className="hover:text-[#1d1d1f] hover:underline">
             Assistance
           </a>

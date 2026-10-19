@@ -33,7 +33,9 @@ export function alertDetail(a: AgentAlertInfo, timeZone?: string): string {
     case AlertType.LowBattery:
       return `Batterie à ${String(d.percent)} %`
     case AlertType.Mocked:
-      return ALERT_META[a.type].hint
+      return d.reason === 'teleport'
+        ? `Déplacement impossible : ${(Number(d.distanceM) / 1000).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} km en ${String(d.seconds)} s`
+        : ALERT_META[a.type].hint
     case AlertType.OutOfZone:
       return `Hors de ${String(d.zoneName ?? 'sa zone')}, jusqu’à ${meters(Number(d.maxDistanceM))}`
     case AlertType.LateStart:

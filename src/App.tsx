@@ -3,22 +3,24 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Loader2 } from 'lucide-react'
 import { Suspense, type ReactNode } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router'
-import { AppShell } from '@/components/app/app-shell'
 import { FeatureGate } from '@/components/app/feature-gate'
 import { lazyPage } from '@/components/app/route-error'
 import { EmptyState, Page } from '@/components/app/page'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import { AgentNotice } from '@/features/auth/AgentNotice'
-import { LoginPage } from '@/features/auth/LoginPage'
-import { RegisterPage } from '@/features/auth/RegisterPage'
 import { AuthProvider, useAuth } from '@/lib/auth'
 import { Compass } from 'lucide-react'
 import { PLATFORM_PATH } from '@/platform/config'
 
-// Chaque écran est chargé à la demande : premier affichage plus rapide sur réseau mobile.
+// Chaque écran est chargé à la demande : premier affichage plus rapide sur réseau mobile
+// (le site vitrine ne charge ni l'espace connecté, ni la connexion).
+const AppShell = lazyPage(() => import('@/components/app/app-shell').then((m) => ({ default: m.AppShell })))
+const AgentNotice = lazyPage(() => import('@/features/auth/AgentNotice').then((m) => ({ default: m.AgentNotice })))
+const LoginPage = lazyPage(() => import('@/features/auth/LoginPage').then((m) => ({ default: m.LoginPage })))
+const RegisterPage = lazyPage(() => import('@/features/auth/RegisterPage').then((m) => ({ default: m.RegisterPage })))
 const PrivacyPage = lazyPage(() => import('@/landing/LegalPages').then((m) => ({ default: m.PrivacyPage })))
 const PublicSupportPage = lazyPage(() => import('@/landing/LegalPages').then((m) => ({ default: m.SupportPage })))
+const DownloadPage = lazyPage(() => import('@/landing/DownloadPage').then((m) => ({ default: m.DownloadPage })))
 const AccountDeletionPage = lazyPage(() => import('@/landing/LegalPages').then((m) => ({ default: m.AccountDeletionPage })))
 const AuditPage = lazyPage(() => import('@/features/admin/AuditPage').then((m) => ({ default: m.AuditPage })))
 const BillingPage = lazyPage(() => import('@/features/admin/BillingPage').then((m) => ({ default: m.BillingPage })))
@@ -147,295 +149,298 @@ export default function App() {
 function TenantApp() {
   return (
     <AuthProvider>
-      <Routes>
-        {/* Site vitrine, ouvert à tous (contenu réglé depuis la console éditeur). */}
-        <Route
-          index
-          element={
-            <Suspense fallback={<FullPageSpinner />}>
-              <LandingPage />
-            </Suspense>
-          }
-        />
-        {/* Pages légales publiques (liens déclarés sur l'App Store et Google Play). */}
-        <Route
-          path="/confidentialite"
-          element={
-            <Suspense fallback={<FullPageSpinner />}>
-              <PrivacyPage />
-            </Suspense>
-          }
-        />
-        <Route
-          path="/assistance"
-          element={
-            <Suspense fallback={<FullPageSpinner />}>
-              <PublicSupportPage />
-            </Suspense>
-          }
-        />
-        <Route
-          path="/suppression-compte"
-          element={
-            <Suspense fallback={<FullPageSpinner />}>
-              <AccountDeletionPage />
-            </Suspense>
-          }
-        />
-        <Route
-          path="/login"
-          element={
-            <PublicOnly>
-              <LoginPage />
-            </PublicOnly>
-          }
-        />
-        <Route
-          path="/register"
-          element={
-            <PublicOnly redirectTo="/start">
-              <RegisterPage />
-            </PublicOnly>
-          }
-        />
-        <Route
-          element={
-            <Protected>
-              <AppShell />
-            </Protected>
-          }
-        >
-          <Route path="map" element={<LiveMapPage />} />
-          <Route path="approvals" element={<ApprovalsPage />} />
-          <Route path="history" element={<HistoryPage />} />
-          <Route path="alerts" element={<AlertsPage />} />
-          <Route path="report" element={<ReportPage />} />
-          <Route path="help" element={<HelpPage />} />
-          <Route path="help/:slug" element={<HelpPage />} />
-          <Route path="support" element={<SupportPage />} />
-          <Route path="support/:id" element={<TicketPage />} />
+      <Suspense fallback={<FullPageSpinner />}>
+        <Routes>
+          {/* Site vitrine, ouvert à tous (contenu réglé depuis la console éditeur). */}
           <Route
-            path="missions"
+            index
             element={
-              <FeatureGate feature={Feature.Missions}>
-                <MissionsPage />
-              </FeatureGate>
+              <Suspense fallback={<FullPageSpinner />}>
+                <LandingPage />
+              </Suspense>
+            }
+          />
+          {/* Pages légales publiques (liens déclarés sur l'App Store et Google Play). */}
+          <Route
+            path="/confidentialite"
+            element={
+              <Suspense fallback={<FullPageSpinner />}>
+                <PrivacyPage />
+              </Suspense>
+            }
+          />
+          <Route path="/telecharger" element={<DownloadPage />} />
+          <Route
+            path="/assistance"
+            element={
+              <Suspense fallback={<FullPageSpinner />}>
+                <PublicSupportPage />
+              </Suspense>
             }
           />
           <Route
-            path="missions/:id"
+            path="/suppression-compte"
             element={
-              <FeatureGate feature={Feature.Missions}>
-                <MissionDetailPage />
-              </FeatureGate>
-            }
-          />
-          <Route path="zones" element={<ZonesPage />} />
-          <Route
-            path="outlets"
-            element={
-              <FeatureGate feature={Feature.PointsOfSale}>
-                <OutletsPage />
-              </FeatureGate>
+              <Suspense fallback={<FullPageSpinner />}>
+                <AccountDeletionPage />
+              </Suspense>
             }
           />
           <Route
-            path="product-insights"
+            path="/login"
             element={
-              <FeatureGate feature={Feature.ProductAudits}>
-                <ProductInsightsPage />
-              </FeatureGate>
+              <PublicOnly>
+                <LoginPage />
+              </PublicOnly>
             }
           />
           <Route
-            path="products"
+            path="/register"
             element={
-              <FeatureGate feature={[Feature.ProductAudits, Feature.Orders]}>
-                <ProductsPage />
-              </FeatureGate>
+              <PublicOnly redirectTo="/start">
+                <RegisterPage />
+              </PublicOnly>
             }
           />
           <Route
-            path="form-stats"
             element={
-              <RoleRoute roles={staff}>
-                <FeatureGate feature={[Feature.Missions, Feature.PointsOfSale]}>
-                  <FormStatsPage />
+              <Protected>
+                <AppShell />
+              </Protected>
+            }
+          >
+            <Route path="map" element={<LiveMapPage />} />
+            <Route path="approvals" element={<ApprovalsPage />} />
+            <Route path="history" element={<HistoryPage />} />
+            <Route path="alerts" element={<AlertsPage />} />
+            <Route path="report" element={<ReportPage />} />
+            <Route path="help" element={<HelpPage />} />
+            <Route path="help/:slug" element={<HelpPage />} />
+            <Route path="support" element={<SupportPage />} />
+            <Route path="support/:id" element={<TicketPage />} />
+            <Route
+              path="missions"
+              element={
+                <FeatureGate feature={Feature.Missions}>
+                  <MissionsPage />
                 </FeatureGate>
-              </RoleRoute>
-            }
-          />
-          <Route
-            path="orders"
-            element={
-              <FeatureGate feature={Feature.Orders}>
-                <OrdersPage />
-              </FeatureGate>
-            }
-          />
-          <Route
-            path="prices"
-            element={
-              <RoleRoute roles={admin}>
-                <FeatureGate feature={Feature.Orders}>
-                  <PricesPage />
+              }
+            />
+            <Route
+              path="missions/:id"
+              element={
+                <FeatureGate feature={Feature.Missions}>
+                  <MissionDetailPage />
                 </FeatureGate>
-              </RoleRoute>
-            }
-          />
-          <Route
-            path="setup"
-            element={
-              <RoleRoute roles={admin}>
-                <SetupWizard />
-              </RoleRoute>
-            }
-          />
-          <Route
-            path="groups"
-            element={
-              <FeatureGate feature={Feature.Groups}>
-                <GroupsPage />
-              </FeatureGate>
-            }
-          />
-          <Route path="users" element={<UsersPage />} />
-          <Route
-            path="stats"
-            element={
-              <RoleRoute roles={admin}>
-                <FeatureGate feature={Feature.Stats}>
-                  <StatsPage />
-                </FeatureGate>
-              </RoleRoute>
-            }
-          />
-          <Route
-            path="broadcasts"
-            element={
-              <RoleRoute roles={admin}>
-                <FeatureGate feature={Feature.PushNotifications}>
-                  <BroadcastsPage />
-                </FeatureGate>
-              </RoleRoute>
-            }
-          />
-          <Route
-            path="team-leads"
-            element={
-              <RoleRoute roles={admin}>
-                <FeatureGate feature={Feature.TeamLeads}>
-                  <TeamLeadsPage />
-                </FeatureGate>
-              </RoleRoute>
-            }
-          />
-          <Route
-            path="team-leads/:id"
-            element={
-              <RoleRoute roles={admin}>
-                <FeatureGate feature={Feature.TeamLeads}>
-                  <TeamLeadDetailPage />
-                </FeatureGate>
-              </RoleRoute>
-            }
-          />
-          <Route
-            path="mission-types"
-            element={
-              <RoleRoute roles={admin}>
-                <FeatureGate feature={[Feature.Missions, Feature.PointsOfSale]}>
-                  <MissionTypesPage />
-                </FeatureGate>
-              </RoleRoute>
-            }
-          />
-          {/* Les mêmes formulaires, depuis la rubrique Points de vente. */}
-          <Route
-            path="visit-forms"
-            element={
-              <RoleRoute roles={admin}>
+              }
+            />
+            <Route path="zones" element={<ZonesPage />} />
+            <Route
+              path="outlets"
+              element={
                 <FeatureGate feature={Feature.PointsOfSale}>
-                  <MissionTypesPage visits />
+                  <OutletsPage />
                 </FeatureGate>
-              </RoleRoute>
-            }
-          />
-          <Route
-            path="start"
-            element={
-              <RoleRoute roles={admin}>
-                <OnboardingPage />
-              </RoleRoute>
-            }
-          />
-          <Route
-            path="settings"
-            element={
-              <RoleRoute roles={admin}>
-                <SettingsPage />
-              </RoleRoute>
-            }
-          />
-          <Route
-            path="branding"
-            element={
-              <RoleRoute roles={admin}>
-                <FeatureGate feature={Feature.Branding}>
-                  <BrandingPage />
+              }
+            />
+            <Route
+              path="product-insights"
+              element={
+                <FeatureGate feature={Feature.ProductAudits}>
+                  <ProductInsightsPage />
                 </FeatureGate>
-              </RoleRoute>
-            }
-          />
-          <Route
-            path="billing"
-            element={
-              <RoleRoute roles={admin}>
-                <BillingPage />
-              </RoleRoute>
-            }
-          />
-          <Route
-            path="audit"
-            element={
-              <RoleRoute roles={admin}>
-                <FeatureGate feature={Feature.Audit}>
-                  <AuditPage />
+              }
+            />
+            <Route
+              path="products"
+              element={
+                <FeatureGate feature={[Feature.ProductAudits, Feature.Orders]}>
+                  <ProductsPage />
                 </FeatureGate>
-              </RoleRoute>
-            }
-          />
-          <Route
-            path="pay"
-            element={
-              <RoleRoute roles={staff}>
-                <FeatureGate feature={Feature.Payroll}>
-                  <PayrollPage />
+              }
+            />
+            <Route
+              path="form-stats"
+              element={
+                <RoleRoute roles={staff}>
+                  <FeatureGate feature={[Feature.Missions, Feature.PointsOfSale]}>
+                    <FormStatsPage />
+                  </FeatureGate>
+                </RoleRoute>
+              }
+            />
+            <Route
+              path="orders"
+              element={
+                <FeatureGate feature={Feature.Orders}>
+                  <OrdersPage />
                 </FeatureGate>
-              </RoleRoute>
-            }
-          />
-          <Route
-            path="pay/runs/:id"
-            element={
-              <RoleRoute roles={staff}>
-                <FeatureGate feature={Feature.Payroll}>
-                  <PayRunPage />
+              }
+            />
+            <Route
+              path="prices"
+              element={
+                <RoleRoute roles={admin}>
+                  <FeatureGate feature={Feature.Orders}>
+                    <PricesPage />
+                  </FeatureGate>
+                </RoleRoute>
+              }
+            />
+            <Route
+              path="setup"
+              element={
+                <RoleRoute roles={admin}>
+                  <SetupWizard />
+                </RoleRoute>
+              }
+            />
+            <Route
+              path="groups"
+              element={
+                <FeatureGate feature={Feature.Groups}>
+                  <GroupsPage />
                 </FeatureGate>
-              </RoleRoute>
-            }
-          />
-          <Route
-            path="subscription"
-            element={
-              <RoleRoute roles={admin}>
-                <SubscriptionPage />
-              </RoleRoute>
-            }
-          />
-          <Route path="*" element={<NotFound />} />
-        </Route>
-      </Routes>
+              }
+            />
+            <Route path="users" element={<UsersPage />} />
+            <Route
+              path="stats"
+              element={
+                <RoleRoute roles={admin}>
+                  <FeatureGate feature={Feature.Stats}>
+                    <StatsPage />
+                  </FeatureGate>
+                </RoleRoute>
+              }
+            />
+            <Route
+              path="broadcasts"
+              element={
+                <RoleRoute roles={admin}>
+                  <FeatureGate feature={Feature.PushNotifications}>
+                    <BroadcastsPage />
+                  </FeatureGate>
+                </RoleRoute>
+              }
+            />
+            <Route
+              path="team-leads"
+              element={
+                <RoleRoute roles={admin}>
+                  <FeatureGate feature={Feature.TeamLeads}>
+                    <TeamLeadsPage />
+                  </FeatureGate>
+                </RoleRoute>
+              }
+            />
+            <Route
+              path="team-leads/:id"
+              element={
+                <RoleRoute roles={admin}>
+                  <FeatureGate feature={Feature.TeamLeads}>
+                    <TeamLeadDetailPage />
+                  </FeatureGate>
+                </RoleRoute>
+              }
+            />
+            <Route
+              path="mission-types"
+              element={
+                <RoleRoute roles={admin}>
+                  <FeatureGate feature={[Feature.Missions, Feature.PointsOfSale]}>
+                    <MissionTypesPage />
+                  </FeatureGate>
+                </RoleRoute>
+              }
+            />
+            {/* Les mêmes formulaires, depuis la rubrique Points de vente. */}
+            <Route
+              path="visit-forms"
+              element={
+                <RoleRoute roles={admin}>
+                  <FeatureGate feature={Feature.PointsOfSale}>
+                    <MissionTypesPage visits />
+                  </FeatureGate>
+                </RoleRoute>
+              }
+            />
+            <Route
+              path="start"
+              element={
+                <RoleRoute roles={admin}>
+                  <OnboardingPage />
+                </RoleRoute>
+              }
+            />
+            <Route
+              path="settings"
+              element={
+                <RoleRoute roles={admin}>
+                  <SettingsPage />
+                </RoleRoute>
+              }
+            />
+            <Route
+              path="branding"
+              element={
+                <RoleRoute roles={admin}>
+                  <FeatureGate feature={Feature.Branding}>
+                    <BrandingPage />
+                  </FeatureGate>
+                </RoleRoute>
+              }
+            />
+            <Route
+              path="billing"
+              element={
+                <RoleRoute roles={admin}>
+                  <BillingPage />
+                </RoleRoute>
+              }
+            />
+            <Route
+              path="audit"
+              element={
+                <RoleRoute roles={admin}>
+                  <FeatureGate feature={Feature.Audit}>
+                    <AuditPage />
+                  </FeatureGate>
+                </RoleRoute>
+              }
+            />
+            <Route
+              path="pay"
+              element={
+                <RoleRoute roles={staff}>
+                  <FeatureGate feature={Feature.Payroll}>
+                    <PayrollPage />
+                  </FeatureGate>
+                </RoleRoute>
+              }
+            />
+            <Route
+              path="pay/runs/:id"
+              element={
+                <RoleRoute roles={staff}>
+                  <FeatureGate feature={Feature.Payroll}>
+                    <PayRunPage />
+                  </FeatureGate>
+                </RoleRoute>
+              }
+            />
+            <Route
+              path="subscription"
+              element={
+                <RoleRoute roles={admin}>
+                  <SubscriptionPage />
+                </RoleRoute>
+              }
+            />
+            <Route path="*" element={<NotFound />} />
+          </Route>
+        </Routes>
+      </Suspense>
     </AuthProvider>
   )
 }

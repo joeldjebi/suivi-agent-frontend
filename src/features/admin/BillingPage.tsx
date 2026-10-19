@@ -33,6 +33,7 @@ import { useGroups, useZones } from '@/lib/queries'
 import { useFeature } from '@/lib/subscription'
 import type { ActiveAgents, BillingAgent } from '@/lib/types'
 import { cn } from '@/lib/utils'
+import { csvCell } from '@/lib/csv'
 
 const ALL = 'all'
 const MIN_DAYS = [1, 5, 10, 15, 20] as const
@@ -95,7 +96,7 @@ function exportCsv(data: ActiveAgents, rows: BillingAgent[]) {
       a.rejectedForms,
       a.autoClosedDays,
     ]
-      .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+      .map((v) => csvCell(v))
       .join(';'),
   )
   const blob = new Blob([`﻿${[header.join(';'), ...lines].join('\r\n')}`], { type: 'text/csv;charset=utf-8' })

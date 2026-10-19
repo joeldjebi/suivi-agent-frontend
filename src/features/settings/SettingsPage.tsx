@@ -341,6 +341,13 @@ function SettingsForm({ settings }: { settings: Settings }) {
           checked={draft.zoneRequired}
           onChange={(v) => set('zoneRequired', v)}
         />
+        <Toggle
+          id="requireMobileTracking"
+          label="Suivi continu obligatoire"
+          description="La journée ne démarre que depuis l’app mobile : la version web perd la position dès que l’écran s’éteint. Les agents gardent la version web pour consulter et saisir."
+          checked={draft.requireMobileTracking}
+          onChange={(v) => set('requireMobileTracking', v)}
+        />
         {manual && (
           <Toggle
             id="startPending"

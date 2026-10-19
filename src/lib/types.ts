@@ -90,6 +90,8 @@ export interface Settings {
   useGroups: boolean
   zoneAccessWithoutGroups: ZoneAccessWithoutGroups
   zoneRequired: boolean
+  /** Journée démarrée seulement depuis l'app mobile (pas la version web) */
+  requireMobileTracking: boolean
   approvalMode: ApprovalMode
   mixedCriteria: MixedCriteria
   requestExpirationMinutes: number

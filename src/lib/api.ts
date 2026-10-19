@@ -47,24 +47,43 @@ api.interceptors.request.use((config) => {
 
 let refreshing: Promise<boolean> | null = null
 
-/** Renouvelle le jeton d'accès ; un seul appel à la fois. */
-export function refreshSession(): Promise<boolean> {
-  const refreshToken = session.refreshToken
-  if (!refreshToken) return Promise.resolve(false)
-  refreshing ??= axios
+/**
+ * Renouvelle la session avec ce jeton. Refusé alors qu'un autre onglet vient de la
+ * renouveler (jeton différent dans le stockage) : nouvel essai avec le sien, sans déconnecter.
+ */
+function refreshWith(refreshToken: string, retries = 1): Promise<boolean> {
+  return axios
     .post<Tokens>('/api/auth/refresh', { refreshToken })
     .then((res) => {
       session.store(res.data)
       return true
     })
     .catch(() => {
+      const latest = session.refreshToken
+      if (latest && latest !== refreshToken && retries > 0) return refreshWith(latest, retries - 1)
       session.clear()
       return false
     })
-    .finally(() => {
-      refreshing = null
-    })
+}
+
+/** Renouvelle le jeton d'accès ; un seul appel à la fois. */
+export function refreshSession(): Promise<boolean> {
+  const refreshToken = session.refreshToken
+  if (!refreshToken) return Promise.resolve(false)
+  refreshing ??= refreshWith(refreshToken).finally(() => {
+    refreshing = null
+  })
   return refreshing
+}
+
+// Déconnexion dans un autre onglet (session retirée du stockage) : celui-ci se ferme aussi.
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (event) => {
+    if (event.key === REFRESH_KEY && event.newValue === null && accessToken) {
+      accessToken = null
+      onSessionExpired?.()
+    }
+  })
 }
 
 api.interceptors.response.use(undefined, async (error: AxiosError) => {

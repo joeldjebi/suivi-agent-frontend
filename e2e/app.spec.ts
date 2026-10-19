@@ -3,12 +3,13 @@ import { apiAs, loginUi, trackConsoleErrors } from './helpers'
 
 test.describe('Authentification', () => {
   test('refuse un mauvais mot de passe puis connecte l’administrateur', async ({ page }) => {
-    await page.goto('/')
+    // La racine affiche le site vitrine : une page protégée renvoie vers la connexion.
+    await page.goto('/map')
     await expect(page).toHaveURL(/\/login/)
     await page.getByLabel('Email ou téléphone').fill('admin@demo.ci')
     await page.getByLabel('Mot de passe').fill('mauvais')
     await page.getByRole('button', { name: 'Se connecter' }).click()
-    await expect(page.getByRole('alert')).toContainText('Email ou mot de passe incorrect')
+    await expect(page.getByRole('alert')).toContainText('Identifiant ou mot de passe incorrect')
 
     await page.getByLabel('Mot de passe').fill('Password123!')
     await page.getByRole('button', { name: 'Se connecter' }).click()
@@ -45,8 +46,11 @@ test.describe('Authentification', () => {
     await page.getByLabel('Email professionnel').fill(`e2e.${Date.now()}@test.ci`)
     await page.getByLabel('Mot de passe').fill('Password123!')
     await page.getByRole('button', { name: 'Créer mon espace' }).click()
+    // L'inscription ouvre l'assistant de démarrage, puis les paramètres restent accessibles.
+    await expect(page.getByRole('heading', { name: 'Préparons Société E2E ensemble' })).toBeVisible()
+    await page.goto('/settings')
     await expect(page.getByRole('heading', { name: 'Paramètres de la structure' })).toBeVisible()
-    await expect(page.getByText('Société E2E')).toBeVisible()
+    await expect(page.getByRole('navigation', { name: 'Navigation principale' }).getByText('Société E2E')).toBeVisible()
   })
 })
 
@@ -55,25 +59,32 @@ test.describe('Navigation administrateur', () => {
     const errors = trackConsoleErrors(page)
     await loginUi(page, 'admin@demo.ci')
     await expect(page).toHaveURL(/\/map/)
-    const pages: [string, string][] = [
-      ['Demandes de zone', 'Demandes de zone'],
-      ['Historique des journées', 'Historique des journées'],
-      ['Missions', 'Missions'],
-      ['Zones', 'Zones'],
-      ['Groupes', 'Groupes'],
-      ['Utilisateurs', 'Utilisateurs'],
-      ['Chefs d’équipe', 'Chefs d’équipe'],
-      ['Types de missions', 'Types de missions'],
-      ['Paramètres', 'Paramètres de la structure'],
-      ['Agents actifs', 'Agents actifs'],
-      ["Journal d'accès", "Journal d'accès"],
-      ['Statistiques', 'Statistiques'],
-      ['Abonnement', 'Abonnement'],
-      ['Carte en temps réel', 'Carte en temps réel'],
+    // [rubrique du menu, onglet de la rubrique (null : page unique), titre attendu]
+    const pages: [string, string | null, string][] = [
+      ['En direct', 'Demandes de zone', 'Demandes de zone'],
+      ['En direct', 'Alertes', 'Alertes'],
+      ['Rapports', 'Bilan du jour', 'Bilan du jour'],
+      ['Rapports', 'Historique des journées', 'Historique des journées'],
+      ['Rapports', 'Statistiques', 'Statistiques'],
+      ['Missions', 'Missions', 'Missions'],
+      ['Missions', 'Formulaires', 'Formulaires'],
+      ['Zones', null, 'Zones'],
+      ['Équipe', 'Groupes', 'Groupes'],
+      ['Équipe', 'Agents et comptes', 'Agents et comptes'],
+      ['Équipe', 'Chefs d’équipe', 'Chefs d’équipe'],
+      ['Paramètres', 'Général', 'Paramètres de la structure'],
+      ['Paramètres', 'Facturation', 'Agents actifs'],
+      ['Paramètres', 'Journal d’accès', "Journal d'accès"],
+      ['Paramètres', 'Abonnement', 'Abonnement'],
+      ['En direct', 'Carte', 'Carte en temps réel'],
     ]
     const nav = page.getByRole('navigation', { name: 'Navigation principale' })
-    for (const [link, heading] of pages) {
-      await nav.getByRole('link', { name: link, exact: true }).click()
+    for (const [section, tab, heading] of pages) {
+      await nav.getByRole('link', { name: section, exact: true }).first().click()
+      if (tab) {
+        const tabs = page.getByRole('navigation', { name: `Pages de la rubrique ${section}` })
+        await tabs.getByRole('link', { name: tab, exact: true }).click()
+      }
       await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible()
     }
     await expect(page.getByRole('heading', { name: 'Zones' })).toBeHidden()
@@ -101,9 +112,10 @@ test.describe('Facturation', () => {
     await page.goto('/billing')
     await expect(page.getByRole('heading', { name: 'Agents actifs' })).toBeVisible()
     for (const label of ['Mois', 'Recherche', 'Zone travaillée', 'Compte', 'Journées minimum']) {
-      await expect(page.getByLabel(label)).toBeVisible()
+      // exact : « Compte » ne doit pas désigner le « Menu du compte ».
+      await expect(page.getByLabel(label, { exact: true })).toBeVisible()
     }
-    await expect(page.getByText('Agents facturés')).toBeVisible()
+    await expect(page.getByText('Agents actifs du mois')).toBeVisible()
 
     // Une recherche sans résultat garde le total et propose d'effacer les filtres.
     await page.getByLabel('Recherche').fill('introuvable')
@@ -172,9 +184,11 @@ test.describe('Chef d’équipe', () => {
   test('se connecte avec son numéro et ne voit que son périmètre', async ({ page }) => {
     await loginUi(page, '07 01 01 01 01')
     const nav = page.getByRole('navigation', { name: 'Navigation principale' })
-    await expect(nav.getByRole('link', { name: 'Carte en temps réel' })).toBeVisible()
+    await expect(nav.getByRole('link', { name: 'En direct' })).toBeVisible()
     await expect(nav.getByRole('link', { name: 'Paramètres' })).toHaveCount(0)
-    await expect(nav.getByRole('link', { name: 'Types de missions' })).toHaveCount(0)
+    // Les formulaires (types de missions) sont réservés à l'administrateur.
+    await page.goto('/missions')
+    await expect(page.getByRole('link', { name: 'Formulaires' })).toHaveCount(0)
 
     await page.goto('/settings')
     await expect(page).toHaveURL(/\/map/)
@@ -257,19 +271,30 @@ test.describe('Utilisateurs', () => {
     await dialog.getByLabel('Mot de passe initial').fill('Password123!')
     await dialog.getByRole('button', { name: 'Enregistrer' }).click()
     await expect(dialog.getByText("Numéro obligatoire : c'est l'identifiant de connexion à l'app mobile")).toBeVisible()
-    await dialog.getByLabel('Téléphone').fill(`07 ${String(Date.now()).slice(-8).replace(/(\d{2})(?=\d)/g, '$1 ')}`)
+    await dialog.getByLabel('Téléphone').fill(
+      `07 ${String(Date.now())
+        .slice(-8)
+        .replace(/(\d{2})(?=\d)/g, '$1 ')}`,
+    )
     await dialog.getByRole('combobox', { name: 'Groupe' }).click()
     await page.getByRole('option', { name: 'Équipe Sud' }).click()
     await dialog.getByRole('button', { name: 'Enregistrer' }).click()
     await expect(page.getByText('Utilisateur créé')).toBeVisible()
 
-    await page.getByLabel('Rechercher').fill('Essai')
+    await page.getByLabel('Recherche', { exact: true }).fill('Essai')
     const row = page.getByRole('row').filter({ hasText: 'Paul Essai' })
     await expect(row).toContainText('Équipe Sud')
   })
 })
 
 test.describe('Approbation et carte en temps réel', () => {
+  // Même en cas d'échec : mode automatique rétabli et journée close, pour ne pas bloquer les tests suivants.
+  test.afterEach(async () => {
+    const admin = await apiAs('admin@demo.ci')
+    await admin.patch('settings', { data: { approvalMode: 'automatic' } })
+    await (await apiAs('agent2@demo.ci')).post('days/end')
+  })
+
   test('le chef approuve une demande, puis voit l’agent bouger sur la carte', async ({ page }) => {
     const admin = await apiAs('admin@demo.ci')
     await admin.patch('settings', { data: { approvalMode: 'manual' } })
@@ -289,7 +314,7 @@ test.describe('Approbation et carte en temps réel', () => {
 
     // L'agent démarre sa journée depuis « l'app mobile ».
     const day = (await (await agent.post('days/start')).json()) as { id: string }
-    await page.getByRole('navigation', { name: 'Navigation principale' }).getByRole('link', { name: 'Carte en temps réel' }).click()
+    await page.getByRole('navigation', { name: 'Navigation principale' }).getByRole('link', { name: 'En direct' }).click()
     const card = page.getByRole('button', { name: /Aminata Diallo/ })
     await expect(card).toContainText('aucune position')
 
@@ -301,7 +326,7 @@ test.describe('Approbation et carte en temps réel', () => {
     await expect(card).toContainText('Hors zone')
     await card.click()
     await expect(page.getByText('Hors de sa zone')).toBeVisible()
-    await expect(page.getByText('15 %')).toBeVisible()
+    await expect(page.getByText('15 %', { exact: true })).toBeVisible()
 
     // Pause : le statut change en temps réel.
     await agent.post('days/pause')
@@ -336,6 +361,11 @@ test.describe('Missions', () => {
     await dialog.getByLabel('Titre').fill('Collecter 10 000 FCFA')
     await dialog.getByRole('combobox', { name: 'Agent' }).click()
     await page.getByRole('option', { name: 'Koffi Brou' }).click()
+    // Une mission se fait dans au moins une zone.
+    await dialog
+      .getByRole('group', { name: 'Zones de la mission' })
+      .getByRole('button', { name: /Cocody/ })
+      .click()
     await dialog.getByRole('combobox', { name: "Mesure de l'objectif" }).click()
     await page.getByRole('option', { name: "Somme d'un champ" }).click()
     await dialog.getByRole('combobox', { name: 'Champ à additionner' }).click()
@@ -346,15 +376,20 @@ test.describe('Missions', () => {
     await expect(page.getByRole('heading', { name: 'Collecter 10 000 FCFA' })).toBeVisible()
     await expect(page.getByText('Aucun formulaire')).toBeVisible()
 
-    // Deux formulaires envoyés par l'agent.
+    // Deux formulaires envoyés par l'agent, pendant sa journée dans une zone de la mission.
     const missionId = page.url().split('/').pop()!
     const agent = await apiAs('agent1@demo.ci')
+    const zones = (await (await agent.get('zones/available')).json()) as { zones: { id: string; name: string }[] }
+    const cocody = zones.zones.find((z) => z.name === 'Cocody')!
+    expect((await agent.post('zone-requests', { data: { zoneId: cocody.id } })).status()).toBe(201)
+    expect((await agent.post('days/start')).ok()).toBeTruthy()
     for (const montant of [6000, 5000]) {
       const r = await agent.post(`missions/${missionId}/submissions`, {
         data: { clientId: crypto.randomUUID(), data: { montant_collecte: montant }, submittedAt: new Date().toISOString() },
       })
-      expect(r.status()).toBe(201)
+      expect(r.status(), await r.text()).toBe(201)
     }
+    await agent.post('days/end')
     await page.reload()
     await expect(page.getByText('Atteinte')).toBeVisible()
     await expect(page.getByText('100 %')).toBeVisible()
@@ -398,8 +433,8 @@ test.describe('Affichage mobile', () => {
   test('le menu s’ouvre dans un panneau latéral, sans défilement horizontal', async ({ page }) => {
     await loginUi(page, 'admin@demo.ci')
     await page.getByRole('button', { name: 'Ouvrir le menu' }).click()
-    await page.getByRole('link', { name: 'Utilisateurs' }).click()
-    await expect(page.getByRole('heading', { name: 'Utilisateurs' })).toBeVisible()
+    await page.getByRole('link', { name: 'Équipe' }).click()
+    await expect(page.getByRole('heading', { name: 'Agents et comptes' })).toBeVisible()
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)
     expect(overflow).toBe(false)
   })
@@ -410,9 +445,21 @@ test.describe('Désactivation et suppression en cascade', () => {
     const admin = await apiAs('admin@demo.ci')
     const group = (await (await admin.post('groups', { data: { name: 'Équipe Temporaire' } })).json()) as { id: string }
     const types = (await (await admin.get('mission-types')).json()) as { id: string }[]
-    await admin.post('missions', {
-      data: { typeId: types[0].id, title: 'Mission temporaire', assigneeGroupId: group.id, progressMethod: 'count', targetValue: 3 },
+    // Une mission se fait dans au moins une zone, ouverte au groupe.
+    const zones = (await (await admin.get('zones')).json()) as { id: string; name: string }[]
+    const zone = zones.find((z) => z.name === 'Yopougon')!
+    expect((await admin.put(`groups/${group.id}/zones`, { data: { ids: [zone.id] } })).ok()).toBeTruthy()
+    const mission = await admin.post('missions', {
+      data: {
+        typeId: types[0].id,
+        title: 'Mission temporaire',
+        assigneeGroupId: group.id,
+        zoneIds: [zone.id],
+        progressMethod: 'count',
+        targetValue: 3,
+      },
     })
+    expect(mission.status()).toBe(201)
 
     await loginUi(page, 'admin@demo.ci')
     await page.goto('/groups')
@@ -432,7 +479,7 @@ test.describe('Désactivation et suppression en cascade', () => {
   test('un compte désactivé est réactivable', async ({ page }) => {
     await loginUi(page, 'admin@demo.ci')
     await page.goto('/users')
-    await page.getByLabel('Rechercher').fill('Yapi')
+    await page.getByLabel('Recherche', { exact: true }).fill('Yapi')
     const row = page.getByRole('row').filter({ hasText: 'Nadia Yapi' })
     await row.getByRole('button', { name: 'Actions pour Nadia Yapi' }).click()
     await page.getByRole('menuitem', { name: 'Désactiver ou supprimer…' }).click()
