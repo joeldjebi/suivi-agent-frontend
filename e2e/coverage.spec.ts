@@ -49,6 +49,15 @@ test.describe('Pages publiques', () => {
     await page.goto('/')
     await expect(page.getByRole('link', { name: 'Télécharger l’app' })).toHaveAttribute('href', '/telecharger')
     await expect(page.getByRole('link', { name: 'Politique de confidentialité' })).toHaveAttribute('href', '/confidentialite')
+    // Section « Téléchargez PerformX » : APK Android, app web pour l'iPhone, lien du menu.
+    const download = page.locator('#telecharger')
+    await expect(download.getByRole('heading', { name: 'Téléchargez PerformX.' })).toBeVisible()
+    await expect(download.getByRole('link', { name: 'Télécharger pour Android' })).toHaveAttribute('href', /\.apk$/)
+    await expect(download.getByRole('link', { name: 'Ouvrir l’app web' })).toHaveAttribute('href', /^https:\/\/app\./)
+    await expect(page.getByRole('navigation', { name: 'Navigation du site' }).getByRole('link', { name: 'Télécharger' })).toHaveAttribute(
+      'href',
+      '#telecharger',
+    )
     expect(errors).toEqual([])
   })
 

@@ -40,6 +40,7 @@ import { BASE_FEATURES, featureLabel } from '@/lib/subscription'
 import { cn } from '@/lib/utils'
 import { IPhone, MacBook } from './devices'
 import { gsap, useScrollScene } from './gsap'
+import { DownloadSection } from './DownloadSection'
 import { LiveMap } from './live-map-lazy'
 import { useInView, useReducedMotion } from './motion'
 import { AlertsScene, AppScreen, DayScreen, GainsScreen, OfflineScene, PhoneScreens, type PhoneScreen } from './screens'
@@ -77,6 +78,7 @@ export function Landing({ data, onAction, signedIn = false }: LandingProps) {
       {sections.map((section) => (
         <SectionView key={section.id} section={section} data={data} onAction={onAction} />
       ))}
+      <DownloadSection />
       <Footer data={data} />
     </div>
   )
@@ -198,6 +200,9 @@ function Nav({ data, onAction, signedIn }: { data: PublicLanding; onAction: Land
               {s.navLabel}
             </a>
           ))}
+          <a href="#telecharger" className="whitespace-nowrap transition-colors hover:text-[#1d1d1f]">
+            Télécharger
+          </a>
         </div>
         <div className="ml-auto hidden items-center gap-4 @4xl:flex">
           <button
@@ -233,6 +238,9 @@ function Nav({ data, onAction, signedIn }: { data: PublicLanding; onAction: Land
               {s.navLabel}
             </a>
           ))}
+          <a href="#telecharger" onClick={() => setOpen(false)} className="py-2 text-[28px] font-semibold tracking-tight">
+            Télécharger
+          </a>
           <div className="mt-6 flex flex-col gap-3">
             <Pill cta={data.content.hero.primary} onAction={onAction} size="lg" />
             <button
