@@ -188,6 +188,12 @@ export function buildPresentation(c: PresentationContent): PresentationModel {
               <b>07:45</b>
               <span>Il démarre sa journée</span>
             </div>
+            {M.missions && (
+              <div>
+                <b>08:15</b>
+                <span>Il voit ses missions</span>
+              </div>
+            )}
             {M.outlets && (
               <>
                 <div>
@@ -238,6 +244,44 @@ export function buildPresentation(c: PresentationContent): PresentationModel {
         </>
       ),
       notes: `Point important pour les agents (et souvent une crainte) : on ne les suit PAS en dehors du travail. Le suivi s'arrête quand ils terminent leur journée.`,
+    },
+    M.missions && {
+      phone: app('06-agent-missions'),
+      body: (
+        <>
+          <div className="pxp-kicker">08:15 · Les missions</div>
+          <h3>Chaque agent sait ce qu’on attend de lui</h3>
+          <ul>
+            <li>
+              Ses missions du moment : celles de <strong>son équipe</strong> et les siennes.
+            </li>
+            <li>
+              Un <strong>objectif chiffré</strong> et une échéance : « 120 visites cette semaine ».
+            </li>
+            <li>L’avancement se met à jour à chaque formulaire envoyé.</li>
+            <li>Plus besoin d’appeler le chef pour savoir quoi faire.</li>
+          </ul>
+        </>
+      ),
+      notes: `Les missions, c'est la réponse à « Qu'ont-ils fait aujourd'hui ? » : un objectif clair pour l'agent, un avancement chiffré pour vous.`,
+    },
+    M.missions && {
+      phone: app('41-agent-visite'),
+      body: (
+        <>
+          <div className="pxp-kicker">Sur place · Le formulaire</div>
+          <h3>{agent} remplit le formulaire, sur place</h3>
+          <ul>
+            <li>
+              <strong>Vos questions à vous</strong> : texte, choix, nombre, date, photo.
+            </li>
+            <li>Sa présence sur place est vérifiée par la position du téléphone.</li>
+            <li>Sans réseau, le formulaire est gardé et envoyé plus tard.</li>
+            <li>Le chef peut le refuser, avec un motif : l’agent est prévenu.</li>
+          </ul>
+        </>
+      ),
+      notes: `Insister : le formulaire est fait sur mesure pour le client (prospection, relevé de prix, audit, collecte…). On le prépare ensemble la première semaine.`,
     },
     M.outlets && {
       phone: app('02-tournee'),
@@ -398,6 +442,40 @@ export function buildPresentation(c: PresentationContent): PresentationModel {
       ),
       notes: `Ici, basculer sur l'ordinateur et faire la démonstration en direct (voir le déroulé).`,
     },
+    M.missions && {
+      screen: web('missions'),
+      body: (
+        <>
+          <div className="pxp-kicker">Les missions, côté responsable</div>
+          <h3>Vous fixez les objectifs</h3>
+          <ul>
+            <li>Pour une équipe, un agent, des quartiers.</li>
+            <li>
+              Objectif : un <strong>nombre de visites</strong>, un <strong>montant</strong> ou une validation.
+            </li>
+            <li>À faire, en cours, atteinte : d’un coup d’œil.</li>
+            {M.pay && <li>Une prime liée à l’objectif atteint.</li>}
+          </ul>
+        </>
+      ),
+      notes: `Montrer une mission en direct pendant la démo : sa barre d'avancement bouge dès qu'un agent envoie un formulaire.`,
+    },
+    M.missions && {
+      screen: web('statistiques'),
+      body: (
+        <>
+          <div className="pxp-kicker">Les formulaires en chiffres</div>
+          <h3>Vos chiffres, sans papier</h3>
+          <ul>
+            <li>Tous les formulaires reçus, validés ou refusés par les chefs.</li>
+            <li>Les réponses additionnées question par question.</li>
+            <li>Par période, équipe, quartier ou agent.</li>
+            <li>Export Excel en un clic.</li>
+          </ul>
+        </>
+      ),
+      notes: `Faire le lien avec la question 4 : des chiffres justes pour tous, pour récompenser les meilleurs.`,
+    },
     M.pay && {
       phone: app('18-agent-mes-gains'),
       body: (
@@ -442,13 +520,17 @@ export function buildPresentation(c: PresentationContent): PresentationModel {
               <tr>
                 <td>Le chef d’équipe</td>
                 <td>Téléphone</td>
-                <td>Suit ses agents, traite les alertes, valide les demandes, envoie des messages.</td>
+                <td>
+                  Suit ses agents, traite les alertes, valide les demandes{M.missions ? ', contrôle les formulaires' : ''}, envoie des
+                  messages.
+                </td>
               </tr>
               <tr>
                 <td>L’agent</td>
                 <td>Téléphone</td>
                 <td>
-                  Démarre sa journée{M.outlets ? ', visite ses clients, fait ses relevés' : ', fait ses missions'}
+                  Démarre sa journée{M.missions ? ', remplit ses formulaires de mission' : ''}
+                  {M.outlets ? ', visite ses clients, fait ses relevés' : ''}
                   {M.orders ? ', prend les commandes' : ''}.
                 </td>
               </tr>
