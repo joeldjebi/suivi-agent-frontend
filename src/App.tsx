@@ -20,6 +20,9 @@ const LoginPage = lazyPage(() => import('@/features/auth/LoginPage').then((m) =>
 const RegisterPage = lazyPage(() => import('@/features/auth/RegisterPage').then((m) => ({ default: m.RegisterPage })))
 const PrivacyPage = lazyPage(() => import('@/landing/LegalPages').then((m) => ({ default: m.PrivacyPage })))
 const PublicSupportPage = lazyPage(() => import('@/landing/LegalPages').then((m) => ({ default: m.SupportPage })))
+const SharedPresentationPage = lazyPage(() =>
+  import('@/presentation/SharedPresentationPage').then((m) => ({ default: m.SharedPresentationPage })),
+)
 const DownloadPage = lazyPage(() => import('@/landing/DownloadPage').then((m) => ({ default: m.DownloadPage })))
 const AccountDeletionPage = lazyPage(() => import('@/landing/LegalPages').then((m) => ({ default: m.AccountDeletionPage })))
 const AuditPage = lazyPage(() => import('@/features/admin/AuditPage').then((m) => ({ default: m.AuditPage })))
@@ -170,6 +173,15 @@ function TenantApp() {
             }
           />
           <Route path="/telecharger" element={<DownloadPage />} />
+          {/* Présentation client partagée par la console éditeur (lien secret). */}
+          <Route
+            path="/presentation/:token"
+            element={
+              <Suspense fallback={<FullPageSpinner />}>
+                <SharedPresentationPage />
+              </Suspense>
+            }
+          />
           <Route
             path="/assistance"
             element={

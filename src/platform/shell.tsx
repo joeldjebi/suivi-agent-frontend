@@ -21,6 +21,7 @@ import {
   LifeBuoy,
   BookOpen,
   Bug,
+  Presentation,
 } from 'lucide-react'
 import { Suspense, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router'
@@ -56,6 +57,7 @@ const NAV: { title: string; items: { to: string; label: string; icon: LucideIcon
       { to: '', label: 'Tableau de bord', icon: LayoutDashboard, end: true },
       { to: '/tenants', label: 'Structures', icon: Building2 },
       { to: '/invoices', label: 'Factures', icon: Receipt },
+      { to: '/presentations', label: 'Présentations', icon: Presentation },
     ],
   },
   {

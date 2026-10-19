@@ -21,6 +21,8 @@ const AccountPage = lazyPage(() => import('./pages/AccountPage').then((m) => ({ 
 const SupportPage = lazyPage(() => import('./pages/SupportPage').then((m) => ({ default: m.SupportPage })))
 const DocsPage = lazyPage(() => import('./pages/DocsPage').then((m) => ({ default: m.DocsPage })))
 const AppOnboardingPage = lazyPage(() => import('./pages/AppOnboardingPage').then((m) => ({ default: m.AppOnboardingPage })))
+const PresentationsPage = lazyPage(() => import('./pages/PresentationsPage').then((m) => ({ default: m.PresentationsPage })))
+const PresentationPage = lazyPage(() => import('./pages/PresentationPage').then((m) => ({ default: m.PresentationPage })))
 const AuditPage = lazyPage(() => import('./pages/AuditPage').then((m) => ({ default: m.AuditPage })))
 
 function Spinner() {
@@ -80,6 +82,8 @@ export function PlatformApp() {
           <Route path="tenants" element={<TenantsPage />} />
           <Route path="tenants/:id" element={<TenantPage />} />
           <Route path="invoices" element={<InvoicesPage />} />
+          <Route path="presentations" element={<PresentationsPage />} />
+          <Route path="presentations/:id" element={<PresentationPage />} />
           <Route path="plans" element={<PlansPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="admins" element={<AdminsPage />} />
