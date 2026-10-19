@@ -24,7 +24,10 @@ export function alertDetail(a: AgentAlertInfo, timeZone?: string): string {
   const d = a.data
   switch (a.type) {
     case AlertType.SignalLost:
-      return d.lastPositionAt ? `Dernière position à ${formatTime(String(d.lastPositionAt), timeZone)}` : 'Aucune position reçue'
+      return (
+        (d.lastPositionAt ? `Dernière position à ${formatTime(String(d.lastPositionAt), timeZone)}` : 'Aucune position reçue') +
+        (d.web ? ' · version web quittée ou écran éteint' : '')
+      )
     case AlertType.Immobile:
       return `Dans un rayon de ${String(d.radiusM)} m depuis ${formatTime(String(d.since), timeZone)}`
     case AlertType.LowBattery:
