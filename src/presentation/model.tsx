@@ -96,6 +96,10 @@ export function buildPresentation(c: PresentationContent): PresentationModel {
   /** « Votre chef d’équipe », « Vos 3 chefs d’équipe », « Vos chefs d’équipe » (nombre inconnu). */
   const yours = (n: number, one: string, many: string) => (n === 1 ? `Votre ${one}` : n > 1 ? `Vos ${n} ${many}` : `Vos ${many}`)
   /** Quartiers cités : la liste complète, ou les 5 premiers suivis de « … ». */
+  // Les deux modules ensemble : numérotés comme des chapitres ; un seul : son nom suffit.
+  const both = M.missions && M.outlets
+  const missionsTag = both ? 'Module 1 · Missions' : 'Missions'
+  const outletsTag = both ? 'Module 2 · Points de vente' : 'Points de vente'
   const areaList = areas.length > 5 ? `${areas.slice(0, 5).join(', ')}…` : joinList(areas)
 
   const slides: (Slide | false)[] = [
@@ -167,37 +171,7 @@ export function buildPresentation(c: PresentationContent): PresentationModel {
           </div>
         </>
       ),
-      notes: `Insister : chacun a SON outil, simple. Les agents n'ont rien à apprendre de compliqué : quelques boutons, toujours les mêmes.`,
-    },
-    {
-      id: 'how',
-      body: (
-        <>
-          <div className="pxp-kicker">Comment ça marche</div>
-          <h3>Trois étapes, c’est tout.</h3>
-          <div className="pxp-steps">
-            <div>
-              <span className="pxp-n">1</span>
-              <b>Vous préparez</b>
-              <span>
-                Les quartiers, {M.missions ? 'les missions, ' : ''}
-                {M.outlets ? 'les points de vente, ' : ''}les agents. Nous le faisons avec vous.
-              </span>
-            </div>
-            <div>
-              <span className="pxp-n">2</span>
-              <b>L’agent travaille</b>
-              <span>Avec son téléphone, comme d’habitude, guidé par l’app.</span>
-            </div>
-            <div>
-              <span className="pxp-n">3</span>
-              <b>Vous voyez tout</b>
-              <span>En direct, et chaque soir un bilan complet.</span>
-            </div>
-          </div>
-        </>
-      ),
-      notes: `Rassurer sur l'étape 1 : « Vous n'avez pas à tout faire seul, nous configurons tout ensemble la première semaine. »`,
+      notes: `Insister : chacun a SON outil, simple. Les agents n'ont rien à apprendre de compliqué : quelques boutons, toujours les mêmes. Demander : « Qui sera chef d'équipe chez vous ? »`,
     },
     {
       id: 'day',
@@ -274,10 +248,40 @@ export function buildPresentation(c: PresentationContent): PresentationModel {
       notes: `Point important pour les agents (et souvent une crainte) : on ne les suit PAS en dehors du travail. Le suivi s'arrête quand ils terminent leur journée.`,
     },
     M.missions && {
+      id: 'missions',
+      body: (
+        <>
+          <div className="pxp-kicker">{missionsTag}</div>
+          <h3>Une mission, c’est un objectif clair pour vos équipes</h3>
+          <div className="pxp-cards">
+            <div>
+              <span className="pxp-emoji">📝</span>
+              <b>Un formulaire</b>
+              <span>Vos propres questions, remplies sur place : visite, relevé de prix, audit, encaissement…</span>
+            </div>
+            <div>
+              <span className="pxp-emoji">🎯</span>
+              <b>Un objectif</b>
+              <span>Un nombre (120 visites), un montant (3 000 000 FCFA de commandes) ou une validation par le chef.</span>
+            </div>
+            <div>
+              <span className="pxp-emoji">📍</span>
+              <b>Pour qui, où, jusqu’à quand</b>
+              <span>
+                Une équipe ou un agent, des quartiers
+                {areas.length ? ` (${areas.slice(0, 2).join(', ')}${areas.length > 2 ? '…' : ''})` : ''}, une échéance.
+              </span>
+            </div>
+          </div>
+        </>
+      ),
+      notes: `Donner un exemple pour ${name} : « Équipe Nord : 120 visites de ${outlets} cette semaine${areas[0] ? ` à ${areas[0]}` : ''} ». L'avancement se calcule tout seul, à chaque formulaire.`,
+    },
+    M.missions && {
       phone: app('06-agent-missions'),
       body: (
         <>
-          <div className="pxp-kicker">08:15 · Les missions</div>
+          <div className="pxp-kicker">{missionsTag} · Côté agent</div>
           <h3>Chaque agent sait ce qu’on attend de lui</h3>
           <ul>
             <li>
@@ -294,11 +298,10 @@ export function buildPresentation(c: PresentationContent): PresentationModel {
       notes: `Les missions, c'est la réponse à « Qu'ont-ils fait aujourd'hui ? » : un objectif clair pour l'agent, un avancement chiffré pour vous.`,
     },
     M.missions && {
-      id: 'form',
       phone: app('41-agent-visite'),
       body: (
         <>
-          <div className="pxp-kicker">{M.outlets ? '09:15' : '10:00'} · Le formulaire</div>
+          <div className="pxp-kicker">{missionsTag} · Sur place</div>
           <h3>{agent} remplit le formulaire, sur place</h3>
           <ul>
             <li>
@@ -312,11 +315,45 @@ export function buildPresentation(c: PresentationContent): PresentationModel {
       ),
       notes: `Insister : le formulaire est fait sur mesure pour le client (prospection, relevé de prix, audit, collecte…). On le prépare ensemble la première semaine.`,
     },
+    M.missions && {
+      screen: web('missions'),
+      body: (
+        <>
+          <div className="pxp-kicker">{missionsTag} · Côté responsable</div>
+          <h3>Vous fixez les objectifs</h3>
+          <ul>
+            <li>Pour une équipe, un agent, des quartiers.</li>
+            <li>
+              Objectif : un <strong>nombre de visites</strong>, un <strong>montant</strong> ou une validation.
+            </li>
+            <li>À faire, en cours, atteinte : d’un coup d’œil.</li>
+            {M.pay && <li>Une prime liée à l’objectif atteint.</li>}
+          </ul>
+        </>
+      ),
+      notes: `Montrer une mission en direct pendant la démo : sa barre d'avancement bouge dès qu'un agent envoie un formulaire.`,
+    },
+    M.missions && {
+      screen: web('statistiques'),
+      body: (
+        <>
+          <div className="pxp-kicker">{missionsTag} · Les résultats</div>
+          <h3>Vos chiffres, sans papier</h3>
+          <ul>
+            <li>Tous les formulaires reçus, validés ou refusés par les chefs.</li>
+            <li>Les réponses additionnées question par question.</li>
+            <li>Par période, équipe, quartier ou agent.</li>
+            <li>Export Excel en un clic.</li>
+          </ul>
+        </>
+      ),
+      notes: `Faire le lien avec la question 4 : des chiffres justes pour tous, pour récompenser les meilleurs.`,
+    },
     M.outlets && {
       phone: app('02-tournee'),
       body: (
         <>
-          <div className="pxp-kicker">08:30 · Le départ</div>
+          <div className="pxp-kicker">{outletsTag} · 08:30 · Le départ</div>
           <h3>La tournée est tracée</h3>
           <ul>
             <li>La liste des {outlets} à visiter aujourd’hui.</li>
@@ -331,11 +368,10 @@ export function buildPresentation(c: PresentationContent): PresentationModel {
       notes: `Montrer que l'agent gagne du temps : plus besoin de réfléchir à son itinéraire.`,
     },
     M.outlets && {
-      id: 'visit',
       phone: app('03-fiche-point-de-vente'),
       body: (
         <>
-          <div className="pxp-kicker">09:10 · Chez le client</div>
+          <div className="pxp-kicker">{outletsTag} · 09:10 · Chez le client</div>
           <h3>Tout sur le client, avant d’entrer</h3>
           <ul>
             <li>Son nom, son gérant, son téléphone, un repère.</li>
@@ -352,7 +388,7 @@ export function buildPresentation(c: PresentationContent): PresentationModel {
       phone: app('04-releve-produits'),
       body: (
         <>
-          <div className="pxp-kicker">09:25 · Le relevé</div>
+          <div className="pxp-kicker">{outletsTag} · 09:25 · Le relevé</div>
           <h3>Stocks et prix relevés sur place</h3>
           <ul>
             <li>
@@ -379,7 +415,7 @@ export function buildPresentation(c: PresentationContent): PresentationModel {
       phone: app('05-commande'),
       body: (
         <>
-          <div className="pxp-kicker">09:35 · La commande</div>
+          <div className="pxp-kicker">{outletsTag} · 09:35 · La commande</div>
           <h3>La commande est prise</h3>
           <ul>
             <li>Les prix du client sont déjà là.</li>
@@ -472,40 +508,6 @@ export function buildPresentation(c: PresentationContent): PresentationModel {
       ),
       notes: `Ici, basculer sur l'ordinateur et faire la démonstration en direct (voir le déroulé).`,
     },
-    M.missions && {
-      screen: web('missions'),
-      body: (
-        <>
-          <div className="pxp-kicker">Les missions, côté responsable</div>
-          <h3>Vous fixez les objectifs</h3>
-          <ul>
-            <li>Pour une équipe, un agent, des quartiers.</li>
-            <li>
-              Objectif : un <strong>nombre de visites</strong>, un <strong>montant</strong> ou une validation.
-            </li>
-            <li>À faire, en cours, atteinte : d’un coup d’œil.</li>
-            {M.pay && <li>Une prime liée à l’objectif atteint.</li>}
-          </ul>
-        </>
-      ),
-      notes: `Montrer une mission en direct pendant la démo : sa barre d'avancement bouge dès qu'un agent envoie un formulaire.`,
-    },
-    M.missions && {
-      screen: web('statistiques'),
-      body: (
-        <>
-          <div className="pxp-kicker">Les formulaires en chiffres</div>
-          <h3>Vos chiffres, sans papier</h3>
-          <ul>
-            <li>Tous les formulaires reçus, validés ou refusés par les chefs.</li>
-            <li>Les réponses additionnées question par question.</li>
-            <li>Par période, équipe, quartier ou agent.</li>
-            <li>Export Excel en un clic.</li>
-          </ul>
-        </>
-      ),
-      notes: `Faire le lien avec la question 4 : des chiffres justes pour tous, pour récompenser les meilleurs.`,
-    },
     M.pay && {
       phone: app('18-agent-mes-gains'),
       body: (
@@ -525,52 +527,7 @@ export function buildPresentation(c: PresentationContent): PresentationModel {
       notes: `Argument fort pour les agents : ils voient eux-mêmes leurs gains, c'est motivant et ça évite les litiges en fin de mois.`,
     },
     {
-      id: 'roles',
-      body: (
-        <>
-          <div className="pxp-kicker">Qui fait quoi ?</div>
-          <h3>Chacun son rôle, chacun son outil</h3>
-          <table className="pxp-roles">
-            <thead>
-              <tr>
-                <th />
-                <th>Outil</th>
-                <th>Ce qu’il fait</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>Vous, le responsable</td>
-                <td>Ordinateur</td>
-                <td>
-                  Prépare (agents, quartiers{M.missions ? ', missions' : ''}), suit, consulte les rapports
-                  {M.pay ? ' et valide la paie' : ''}.
-                </td>
-              </tr>
-              <tr>
-                <td>Le chef d’équipe</td>
-                <td>Téléphone</td>
-                <td>
-                  Suit ses agents, traite les alertes, valide les demandes{M.missions ? ', contrôle les formulaires' : ''}, envoie des
-                  messages.
-                </td>
-              </tr>
-              <tr>
-                <td>L’agent</td>
-                <td>Téléphone</td>
-                <td>
-                  Démarre sa journée{M.missions ? ', remplit ses formulaires de mission' : ''}
-                  {M.outlets ? ', visite ses clients, fait ses relevés' : ''}
-                  {M.orders ? ', prend les commandes' : ''}.
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </>
-      ),
-      notes: `Laisser cette diapositive le temps que le client se projette : « Qui sera chef d'équipe chez vous ? ».`,
-    },
-    {
+      id: 'data',
       body: (
         <>
           <div className="pxp-kicker">Vos données</div>
@@ -584,40 +541,6 @@ export function buildPresentation(c: PresentationContent): PresentationModel {
         </>
       ),
       notes: `Rappeler au client qu'il doit informer ses agents du suivi pendant le travail (c'est aussi la loi). Nous fournissons un modèle de note d'information.`,
-    },
-    {
-      id: 'needs',
-      body: (
-        <>
-          <div className="pxp-kicker">Pour démarrer</div>
-          <h3>Ce dont nous avons besoin de vous</h3>
-          <ul>
-            <li>
-              <strong>La liste de vos agents et chefs</strong> : nom et numéro de téléphone.
-            </li>
-            <li>
-              <strong>Vos quartiers de travail</strong>
-              {areas.length ? ` : ${areaList}.` : '.'}
-            </li>
-            {M.outlets && (
-              <li>
-                <strong>Vos clients</strong> : nom, quartier, téléphone (un fichier Excel suffit).
-              </li>
-            )}
-            {M.orders && (
-              <li>
-                <strong>Vos produits et vos prix</strong>.
-              </li>
-            )}
-            {M.pay && (
-              <li>
-                <strong>Vos règles de rémunération</strong> : fixe, primes.
-              </li>
-            )}
-          </ul>
-        </>
-      ),
-      notes: `Fixer ensemble une date de remise des informations.`,
     },
     {
       id: 'start',
@@ -977,71 +900,40 @@ export function buildPresentation(c: PresentationContent): PresentationModel {
   ].filter((x): x is { title: string; text: string } => !!x)
 
   const list = slides.filter((s): s is Slide => !!s)
-  // Avec les points de vente, le formulaire se remplit chez le client : juste après la visite.
-  const form = list.findIndex((s) => s.id === 'form')
-  if (form > -1 && list.some((s) => s.id === 'visit')) {
-    const [moved] = list.splice(form, 1)
-    list.splice(list.findIndex((s) => s.id === 'visit') + 1, 0, moved)
-  }
 
   // Programme de la réunion (les numéros de diapositives sont posés une fois le diaporama complet).
   const agenda: [string, string, string, string, string][] = [
-    [
-      '0:00',
-      '3 min',
-      'Accueil, présentation, plan de la réunion',
-      'cover:agenda',
-      'Annoncer : 30 minutes de présentation, puis vos questions.',
-    ],
-    ['0:03', '5 min', 'Ses questions d’aujourd’hui', 'questions:how', 'Faire parler le client : quelle question lui coûte le plus ?'],
+    ['0:00', '3 min', 'Accueil, présentation, plan de la réunion', 'cover', 'Annoncer : 30 minutes de présentation, puis vos questions.'],
+    ['0:03', '5 min', 'Ses questions d’aujourd’hui', 'questions:day-1', 'Faire parler le client : quelle question lui coûte le plus ?'],
     [
       '0:08',
-      '10 min',
-      'Une journée avec PerformX',
+      '12 min',
+      both ? 'Une journée avec PerformX : les missions, puis les points de vente' : 'Une journée avec PerformX',
       'day:report',
       `Raconter la journée de « ${agent}, agent sur la zone ${area} ». Une idée par diapo.`,
     ],
     [
-      '0:18',
-      '10 min',
+      '0:20',
+      '8 min',
       'Démonstration en direct sur l’ordinateur',
-      'dashboard:roles-1',
-      'Montrer la carte en direct, un agent, une alerte, le bilan du jour.',
+      'dashboard:data-1',
+      'Montrer la carte en direct, une mission qui avance, une alerte, le bilan du jour.',
     ],
     ['0:28', '5 min', 'Démonstration sur le téléphone', '', 'Faire démarrer une journée au client lui-même, sur un téléphone de démo.'],
-    ['0:33', '4 min', 'Qui fait quoi, vos données', 'roles:needs-1', 'Lui demander qui seront ses chefs d’équipe.'],
+    ['0:33', '4 min', 'Vos données', 'data', 'Rassurer : chacun ne voit que ce qui le concerne, et rien en dehors du travail.'],
     [
       '0:37',
       '5 min',
       'Démarrage et accompagnement',
-      'needs:end-1',
+      'checklist:end-1',
       'Remettre les fiches imprimées et la liste de démarrage. Fixer une date.',
     ],
     ['0:42', '…', 'Questions', 'end', 'Noter chaque question : elles serviront pour la formation.'],
   ]
 
-  // Programme (diapo 2), liste de démarrage et fiches : aussi visibles en présentation.
+  // Liste de démarrage et fiches : aussi visibles en présentation.
   const insertAfter = (id: string, ...items: Slide[]) => list.splice(list.findIndex((s) => s.id === id) + 1, 0, ...items)
-  insertAfter('cover', {
-    id: 'agenda',
-    body: (
-      <>
-        <div className="pxp-kicker">Notre programme</div>
-        <h3>Le déroulé de la réunion</h3>
-        <div className="pxp-agenda">
-          {agenda.map(([when, duration, what]) => (
-            <div key={when}>
-              <b>{when}</b>
-              <span>{what}</span>
-              <em>{duration}</em>
-            </div>
-          ))}
-        </div>
-      </>
-    ),
-    notes: `Présenter le programme : on sait où l'on va, et le client sait quand il pourra poser ses questions.`,
-  })
-  insertAfter('needs', {
+  insertAfter('data', {
     id: 'checklist',
     body: (
       <>
@@ -1057,7 +949,7 @@ export function buildPresentation(c: PresentationContent): PresentationModel {
         </ul>
       </>
     ),
-    notes: `Parcourir la liste avec le client et noter qui, chez lui, s'occupe de chaque point.`,
+    notes: `Parcourir la liste avec le client et noter qui, chez lui, s'occupe de chaque point. Fixer ensemble une date de remise des informations.`,
   })
   insertAfter(
     'support',
