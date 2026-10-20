@@ -298,7 +298,8 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 2cqw;
-  flex: 1;
+  margin-top: 3cqw;
+  align-items: stretch;
 }
 .pxp-cards > div {
   background: var(--pxp-bg);
@@ -324,7 +325,8 @@
   grid-template-columns: repeat(3, 1fr);
   gap: 2cqw;
   flex: 1;
-  align-items: center;
+  align-content: center;
+  align-items: start;
   text-align: center;
 }
 .pxp-steps .pxp-n {
@@ -353,16 +355,17 @@
 }
 .pxp-timeline {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 1.2cqw;
-  margin-top: 2cqw;
+  /* Centrée dans la hauteur restante de la diapo. */
+  margin: auto 0;
 }
 .pxp-timeline > div {
   flex: 1 1 0;
-  min-width: 12cqw;
+  min-width: 0;
   background: var(--pxp-bg);
   border-radius: 1.6cqw;
-  padding: 1.8cqw;
+  padding: 1.6cqw 1.4cqw;
 }
 .pxp-timeline b {
   display: block;
@@ -464,7 +467,7 @@ table.pxp-roles td:first-child {
 }
 .pxp-slide-steps {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(var(--pxp-cols, 4), minmax(0, 1fr));
   gap: 2.4cqw;
   flex: 1;
   min-height: 0;

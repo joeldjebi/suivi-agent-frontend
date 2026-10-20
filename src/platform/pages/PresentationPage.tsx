@@ -21,10 +21,10 @@ import { to } from '../config'
 const COLOR = /^#[0-9A-Fa-f]{6}$/
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-/** Liste saisie en texte : une valeur par ligne (ou séparées par des virgules). */
-const toList = (text: string, max: number, length: number) =>
+/** Liste saisie en texte : une valeur par ligne (« 1,5 L » garde sa virgule ; les quartiers acceptent aussi la virgule). */
+const toList = (text: string, max: number, length: number, separators = /[\n;]/) =>
   text
-    .split(/[\n,]/)
+    .split(separators)
     .map((s) => s.trim().slice(0, length))
     .filter(Boolean)
     .slice(0, max)
@@ -77,7 +77,10 @@ function Editor({ presentation }: { presentation: Presentation }) {
   const [draft, setDraft] = useState<PresentationContent>(presentation.content)
   const [areas, setAreas] = useState(presentation.content.areas.join('\n'))
   const [products, setProducts] = useState(presentation.content.products.join('\n'))
-  const content = useMemo(() => ({ ...draft, areas: toList(areas, 12, 40), products: toList(products, 10, 60) }), [draft, areas, products])
+  const content = useMemo(
+    () => ({ ...draft, areas: toList(areas, 12, 40, /[\n,;]/), products: toList(products, 10, 60) }),
+    [draft, areas, products],
+  )
   const dirty = canonical(content) !== canonical(presentation.content)
 
   // Quitter la page avec des modifications non enregistrées.

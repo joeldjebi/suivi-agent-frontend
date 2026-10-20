@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
-import { buildPresentation, type PresentationModel, type Slide } from './model'
+import { buildPresentation, frenchSpaces, type PresentationModel, type Slide } from './model'
 import type { PresentationContent } from './types'
 import './presentation.css'
 
@@ -172,6 +172,7 @@ export function PresentationView({ content, forPresenter = true }: { content: Pr
   const [presenting, setPresenting] = useState(false)
   const [active, setActive] = useState<Part>('slides')
   const parts = useRef<Partial<Record<Part, HTMLElement | null>>>({})
+  const toolbar = useRef<HTMLDivElement>(null)
   const clicked = useRef<number>(0)
   const visible = useMemo(() => PARTS.filter((p) => showRun || p.id !== 'run'), [showRun])
   const close = useCallback(() => setPresenting(false), [])
@@ -183,7 +184,9 @@ export function PresentationView({ content, forPresenter = true }: { content: Pr
       let id: Part = 'slides'
       for (const p of visible) {
         const el = parts.current[p.id]
-        if (el && el.getBoundingClientRect().top <= 140) id = p.id
+        // Repère : le bas de la barre (page publique ou aperçu dans la console).
+        const line = (toolbar.current?.getBoundingClientRect().bottom ?? 0) + 80
+        if (el && el.getBoundingClientRect().top <= line) id = p.id
       }
       setActive(id)
     }
@@ -210,7 +213,7 @@ export function PresentationView({ content, forPresenter = true }: { content: Pr
 
   return (
     <div className="pxp" style={brand}>
-      <div className="pxp-toolbar">
+      <div className="pxp-toolbar" ref={toolbar}>
         <strong>PerformX × {model.name}</strong>
         <div className="pxp-tabs" role="navigation" aria-label="Parties de la présentation">
           {visible.map((p) => (
@@ -242,7 +245,9 @@ export function PresentationView({ content, forPresenter = true }: { content: Pr
         <section className="pxp-part" ref={(el) => void (parts.current.slides = el)}>
           <h2>1. Le diaporama</h2>
           <p className="pxp-hint">
-            « Présenter » ouvre le plein écran : flèches ou espace pour avancer{forPresenter ? ', N pour afficher les notes' : ''}, Échap
+            {frenchSpaces(
+              `« Présenter » ouvre le plein écran : flèches ou espace pour avancer${forPresenter ? ', N pour afficher les notes' : ''}, Échap`,
+            )}
             pour sortir.
           </p>
           <div className="pxp-slides">
@@ -253,8 +258,10 @@ export function PresentationView({ content, forPresenter = true }: { content: Pr
         </section>
 
         <section className="pxp-part" ref={(el) => void (parts.current.sheets = el)}>
-          <h2>2. Les fiches « pas à pas »</h2>
-          <p className="pxp-hint">Une fiche par rôle, à imprimer et à garder près de soi. « Imprimer les fiches » les sort une par page.</p>
+          <h2>{frenchSpaces('2. Les fiches « pas à pas »')}</h2>
+          <p className="pxp-hint">
+            {frenchSpaces('Une fiche par rôle, à imprimer et à garder près de soi. « Imprimer les fiches » les sort une par page.')}
+          </p>
           <Sheets sheets={model.sheets} />
         </section>
 
@@ -262,7 +269,7 @@ export function PresentationView({ content, forPresenter = true }: { content: Pr
           <section className="pxp-part" ref={(el) => void (parts.current.run = el)}>
             <h2>3. Le déroulé de la démonstration</h2>
             <p className="pxp-hint">
-              Pour le présentateur : quoi montrer, sur quel écran, et quoi dire. Environ 45 minutes, questions comprises.
+              {frenchSpaces('Pour le présentateur : quoi montrer, sur quel écran, et quoi dire. Environ 45 minutes, questions comprises.')}
             </p>
             <div className="pxp-table-scroll">
               <table className="pxp-run">

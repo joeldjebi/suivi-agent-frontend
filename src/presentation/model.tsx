@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { cloneElement, isValidElement, type CSSProperties, type ReactElement, type ReactNode } from 'react'
 import type { PresentationContent } from './types'
 
 /**
@@ -59,6 +59,25 @@ export const joinList = (items: string[]) =>
 
 const clean = (items: string[]) => items.map((s) => s.trim()).filter(Boolean)
 
+/** Espaces insécables du français : « ? », « : », « ! », « ; » et les guillemets ne passent jamais seuls à la ligne. */
+export const frenchSpaces = (text: string) => text.replace(/\s+([?!:;»])/g, '\u00a0$1').replace(/«\s+/g, '«\u00a0')
+
+/** Applique les espaces insécables à tout le texte d'un contenu (chaînes et éléments imbriqués). */
+export function typo(node: ReactNode): ReactNode {
+  if (typeof node === 'string') return frenchSpaces(node)
+  if (Array.isArray(node)) return node.map(typo)
+  if (isValidElement(node)) {
+    const element = node as ReactElement<{ children?: ReactNode }>
+    const children = element.props.children
+    if (children === undefined) return element
+    // Enfants écrits côte à côte : transmis un par un (pas comme une liste, qui demanderait des clés).
+    return Array.isArray(children)
+      ? cloneElement(element, undefined, ...children.map(typo))
+      : cloneElement(element, undefined, typo(children))
+  }
+  return node
+}
+
 /** Date de la réunion en toutes lettres, ou aujourd'hui. */
 export function meetingLabel(date: string | null) {
   const at = date ? new Date(`${date}T12:00:00`) : new Date()
@@ -74,7 +93,10 @@ export function buildPresentation(c: PresentationContent): PresentationModel {
   const agent = c.agentName.trim() || 'Koffi'
   const outlets = c.outletWord.trim() || 'points de vente'
   const support = [c.supportEmail.trim(), c.supportPhone.trim()].filter(Boolean).join(' · ')
-  const plural = (n: number, one: string, many: string) => `${n} ${n > 1 ? many : one}`
+  /** « Votre chef d’équipe », « Vos 3 chefs d’équipe », « Vos chefs d’équipe » (nombre inconnu). */
+  const yours = (n: number, one: string, many: string) => (n === 1 ? `Votre ${one}` : n > 1 ? `Vos ${n} ${many}` : `Vos ${many}`)
+  /** Quartiers cités : la liste complète, ou les 5 premiers suivis de « … ». */
+  const areaList = areas.length > 5 ? `${areas.slice(0, 5).join(', ')}…` : joinList(areas)
 
   const slides: (Slide | false)[] = [
     {
@@ -134,12 +156,12 @@ export function buildPresentation(c: PresentationContent): PresentationModel {
             </div>
             <div>
               <span className="pxp-emoji">📱</span>
-              <b>Vos {plural(c.leads, 'chef d’équipe', 'chefs d’équipe')}</b>
+              <b>{yours(c.leads, 'chef d’équipe', 'chefs d’équipe')}</b>
               <span>Sur le téléphone : ils suivent leurs agents et reçoivent les alertes.</span>
             </div>
             <div>
               <span className="pxp-emoji">📱</span>
-              <b>Vos {plural(c.agents, 'agent', 'agents')}</b>
+              <b>{yours(c.agents, 'agent', 'agents')}</b>
               <span>Sur le téléphone : l’app les guide, du matin jusqu’au soir.</span>
             </div>
           </div>
@@ -192,6 +214,12 @@ export function buildPresentation(c: PresentationContent): PresentationModel {
               <div>
                 <b>08:15</b>
                 <span>Il voit ses missions</span>
+              </div>
+            )}
+            {M.missions && !M.outlets && (
+              <div>
+                <b>10:00</b>
+                <span>Il remplit un formulaire</span>
               </div>
             )}
             {M.outlets && (
@@ -266,10 +294,11 @@ export function buildPresentation(c: PresentationContent): PresentationModel {
       notes: `Les missions, c'est la réponse à « Qu'ont-ils fait aujourd'hui ? » : un objectif clair pour l'agent, un avancement chiffré pour vous.`,
     },
     M.missions && {
+      id: 'form',
       phone: app('41-agent-visite'),
       body: (
         <>
-          <div className="pxp-kicker">Sur place · Le formulaire</div>
+          <div className="pxp-kicker">{M.outlets ? '09:15' : '10:00'} · Le formulaire</div>
           <h3>{agent} remplit le formulaire, sur place</h3>
           <ul>
             <li>
@@ -302,6 +331,7 @@ export function buildPresentation(c: PresentationContent): PresentationModel {
       notes: `Montrer que l'agent gagne du temps : plus besoin de réfléchir à son itinéraire.`,
     },
     M.outlets && {
+      id: 'visit',
       phone: app('03-fiche-point-de-vente'),
       body: (
         <>
@@ -332,8 +362,8 @@ export function buildPresentation(c: PresentationContent): PresentationModel {
                   {' '}
                   (<strong>{joinList(products.slice(0, 3))}</strong>…)
                 </>
-              ) : null}{' '}
-              : présent ou non, stock, prix.
+              ) : null}
+              {'\u00a0'}: présent ou non, stock, prix.
             </li>
             <li>
               Les <strong>ruptures</strong> sont signalées tout de suite.
@@ -393,7 +423,7 @@ export function buildPresentation(c: PresentationContent): PresentationModel {
               <span className="pxp-tag pxp-bad">Position suspecte</span> une fausse position est utilisée.
             </li>
             <li>
-              <span className="pxp-tag pxp-warn">Pas commencé</span> la journée n’a pas démarré à l’heure.
+              <span className="pxp-tag pxp-warn">Pas démarrée</span> la journée n’a pas commencé à l’heure.
             </li>
             <li>
               <span className="pxp-tag pxp-warn">Immobile</span> l’agent ne bouge plus depuis longtemps.
@@ -567,7 +597,7 @@ export function buildPresentation(c: PresentationContent): PresentationModel {
             </li>
             <li>
               <strong>Vos quartiers de travail</strong>
-              {areas.length ? ` : ${joinList(areas.slice(0, 5))}…` : '.'}
+              {areas.length ? ` : ${areaList}.` : '.'}
             </li>
             {M.outlets && (
               <li>
@@ -933,10 +963,10 @@ export function buildPresentation(c: PresentationContent): PresentationModel {
   ]
 
   const start = [
-    { title: 'Liste des agents et chefs', text: 'Nom, prénom, numéro de téléphone, équipe. Un tableau Excel suffit.' },
+    { title: 'La liste des agents et chefs', text: 'Nom, prénom, numéro de téléphone, équipe. Un tableau Excel suffit.' },
     {
       title: 'Les quartiers de travail',
-      text: `${areas.length ? `${joinList(areas.slice(0, 5))}… : n` : 'N'}ous les dessinons ensemble sur la carte.`,
+      text: `${areas.length ? `${areaList} : n` : 'N'}ous les dessinons ensemble sur la carte.`,
     },
     M.outlets && { title: 'La liste des clients', text: 'Nom, quartier, téléphone, catégorie. Fichier Excel.' },
     M.orders && { title: 'Les produits et les prix', text: 'Par type de client si les prix diffèrent.' },
@@ -947,6 +977,12 @@ export function buildPresentation(c: PresentationContent): PresentationModel {
   ].filter((x): x is { title: string; text: string } => !!x)
 
   const list = slides.filter((s): s is Slide => !!s)
+  // Avec les points de vente, le formulaire se remplit chez le client : juste après la visite.
+  const form = list.findIndex((s) => s.id === 'form')
+  if (form > -1 && list.some((s) => s.id === 'visit')) {
+    const [moved] = list.splice(form, 1)
+    list.splice(list.findIndex((s) => s.id === 'visit') + 1, 0, moved)
+  }
 
   // Programme de la réunion (les numéros de diapositives sont posés une fois le diaporama complet).
   const agenda: [string, string, string, string, string][] = [
@@ -969,7 +1005,7 @@ export function buildPresentation(c: PresentationContent): PresentationModel {
       '0:18',
       '10 min',
       'Démonstration en direct sur l’ordinateur',
-      'dashboard',
+      'dashboard:roles-1',
       'Montrer la carte en direct, un agent, une alerte, le bilan du jour.',
     ],
     ['0:28', '5 min', 'Démonstration sur le téléphone', '', 'Faire démarrer une journée au client lui-même, sur un téléphone de démo.'],
@@ -1027,7 +1063,9 @@ export function buildPresentation(c: PresentationContent): PresentationModel {
     'support',
     ...sheets.flatMap((sheet) => {
       const steps = sheet.steps.map((step, i) => ({ ...step, n: i + 1 }))
-      const parts = Array.from({ length: Math.ceil(steps.length / 4) }, (_, i) => steps.slice(i * 4, i * 4 + 4))
+      const count = Math.ceil(steps.length / 5)
+      const size = Math.ceil(steps.length / count)
+      const parts = Array.from({ length: count }, (_, i) => steps.slice(i * size, i * size + size))
       return parts.map((part, k): Slide => ({
         body: (
           <>
@@ -1036,7 +1074,7 @@ export function buildPresentation(c: PresentationContent): PresentationModel {
               {parts.length > 1 ? ` · ${k + 1}/${parts.length}` : ''}
             </div>
             <h3>{sheet.title}</h3>
-            <div className="pxp-slide-steps">
+            <div className="pxp-slide-steps" style={{ '--pxp-cols': size } as CSSProperties}>
               {part.map((step) => (
                 <div key={step.n}>
                   <div className={`pxp-shot ${step.image ? (step.tall ? 'pxp-tall' : '') : 'pxp-empty'}`}>
@@ -1064,10 +1102,22 @@ export function buildPresentation(c: PresentationContent): PresentationModel {
   const screen = (ref: string) => {
     if (!ref) return 'App PerformX'
     const [a, b] = ref.split(':')
-    if (!b) return a === 'dashboard' ? `Diapo ${at(a)}, puis performx.online` : `Diapo ${at(a)}`
-    return `Diapos ${at(a)} à ${at(b)}`
+    if (!b) return `Diapo ${at(a)}`
+    const range = at(a) === at(b) ? `Diapo ${at(a)}` : `Diapos ${at(a)} à ${at(b)}`
+    return a === 'dashboard' ? `${range}, puis performx.online` : range
   }
   const run = agenda.map(([when, duration, what, ref, tip]) => ({ when, duration, what, screen: screen(ref), tip }))
 
-  return { name, slides: list, sheets, run, start }
+  return {
+    name,
+    slides: list.map((slide) => ({ ...slide, body: typo(slide.body), notes: frenchSpaces(slide.notes) })),
+    sheets: sheets.map((sheet) => ({
+      ...sheet,
+      subtitle: frenchSpaces(sheet.subtitle),
+      steps: sheet.steps.map((step) => ({ ...step, text: typo(step.text) })),
+      help: sheet.help.map(frenchSpaces),
+    })),
+    run: run.map((r) => ({ ...r, what: frenchSpaces(r.what), tip: frenchSpaces(r.tip) })),
+    start: start.map((item) => ({ title: frenchSpaces(item.title), text: frenchSpaces(item.text) })),
+  }
 }
