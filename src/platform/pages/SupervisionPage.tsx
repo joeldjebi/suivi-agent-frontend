@@ -19,6 +19,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
+import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { Link } from 'react-router'
 import { Page, PageHeader, QueryState } from '@/components/app/page'
 import { Button } from '@/components/ui/button'
@@ -38,6 +39,7 @@ interface Sonde {
   uptime: { day: number | null; week: number | null; month: number | null }
   responseMs: number | null
   incidents: { at: string; durationS: number }[]
+  history?: { at: string; ms: number }[]
 }
 
 interface Supervision {
@@ -52,6 +54,7 @@ interface Supervision {
     activeDays: number | null
     positionsLastHour: number | null
     errorLog: { open: number; lastDay: number }
+    activity?: { at: string; positions: number; agents: number }[] | null
   }
   availability: Bloc<{ monitors: Sonde[] }>
   errors: Bloc<{
@@ -68,6 +71,7 @@ interface Supervision {
     load: { one: number; five: number; fifteen: number } | null
     uptimeS: number | null
     cores?: number | null
+    history?: { at: string; cpu: number; ram: number | null }[]
   }>
 }
 
@@ -106,6 +110,14 @@ function loadLevel(load: number, cores: number) {
 }
 
 const GUIDE_KEY = 'px-supervision-guide'
+
+/** Couleurs validées (contraste et daltonisme) pour deux séries, comme le tableau de bord. */
+const SERIES = { cpu: '#2563eb', ram: '#0d9488' }
+
+/** « 14 h » : heure locale d'un point d'historique. */
+const hourLabel = (at: string) => `${new Date(at).getHours()} h`
+
+const tooltipStyle = { borderRadius: 8, border: '1px solid var(--border)', fontSize: 12 }
 
 /**
  * Supervision de la plateforme : état interne de PerformX et synthèse des outils de suivi
@@ -214,7 +226,8 @@ function Guide() {
             La machine qui héberge PerformX. <strong>Processeur</strong> : l’effort de calcul. <strong>Mémoire</strong> : l’espace de
             travail des programmes. <strong>Disque</strong> : l’espace de stockage (base, photos, sauvegardes). Les jauges sont vertes sous
             75 %, orange jusqu’à 90 %, rouges au-delà. La <strong>charge</strong> compte les tâches en cours : tant qu’elle reste sous le
-            nombre de cœurs du processeur, tout va bien.
+            nombre de cœurs du processeur, tout va bien. Les courbes montrent les 24 dernières heures : un pic bref est normal, une courbe
+            qui reste haute est à surveiller.
           </GuideItem>
           <GuideItem title="Erreurs signalées (Sentry)">
             Quand un bug survient sur le serveur, le site ou l’app mobile, Sentry en garde le détail technique : combien de fois, pour
@@ -314,6 +327,36 @@ function Content({ d }: { d: Supervision }) {
         />
       </div>
 
+      {p.activity && (
+        <Card title="Activité des dernières 24 heures">
+          <Intro inset>
+            Ce que les téléphones des agents ont envoyé, heure par heure, toutes structures confondues. Les heures creuses (nuit, week-end)
+            sont normales ; un trou en pleine journée de travail mérite un coup d’œil.
+          </Intro>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <div>
+              <h3 className="mb-1 text-sm font-medium">Positions GPS reçues par heure</h3>
+              <Chart
+                data={p.activity.map((x) => ({ label: hourLabel(x.at), positions: x.positions }))}
+                dataKey="positions"
+                name="Positions reçues"
+                height={180}
+              />
+            </div>
+            <div>
+              <h3 className="mb-1 text-sm font-medium">Agents qui ont envoyé leur position, par heure</h3>
+              <Chart
+                data={p.activity.map((x) => ({ label: hourLabel(x.at), agents: x.agents }))}
+                dataKey="agents"
+                name="Agents actifs"
+                height={180}
+                color={SERIES.ram}
+              />
+            </div>
+          </div>
+        </Card>
+      )}
+
       <div className="grid gap-4 xl:grid-cols-2">
         <Card title="Disponibilité" actions={<Source name="UptimeRobot" />} flush>
           <Intro>
@@ -361,6 +404,7 @@ function Content({ d }: { d: Supervision }) {
                   }
                 />
                 {s.load && <Load load={s.load} cores={s.cores ?? null} />}
+                {!!s.history?.length && <ServerHistory history={s.history} />}
                 {s.uptimeS !== null && (
                   <p className="text-xs text-muted-foreground">Serveur allumé sans interruption depuis {longDuration(s.uptimeS)}.</p>
                 )}
@@ -592,6 +636,7 @@ function Monitor({ m }: { m: Sonde }) {
           {m.responseMs !== null && `Répond en ${formatNumber(m.responseMs)} ms${m.responseMs < 1000 ? ' (rapide)' : ' (lent)'} · `}
           {last ? `Dernière coupure le ${formatDateTime(last.at)}, pendant ${longDuration(last.durationS)}` : 'Aucune coupure récente'}
         </p>
+        {m.history && m.history.length > 1 && <ResponseSparkline name={m.name} history={m.history} />}
       </div>
       <dl className="flex gap-4 text-right text-xs" aria-label="Part du temps en ligne">
         {(
@@ -629,6 +674,58 @@ function Load({ load, cores }: { load: { one: number; five: number; fifteen: num
         Tâches en cours en même temps{level && <span className={level.tone}> : {level.label}</span>}. Moyenne sur 1, 5 et 15 min :{' '}
         {formatNumber(load.one)} · {formatNumber(load.five)} · {formatNumber(load.fifteen)}.
       </p>
+    </div>
+  )
+}
+
+/** Temps de réponse d'une adresse, moyenne par heure sur 24 h. */
+function ResponseSparkline({ name, history }: { name: string; history: { at: string; ms: number }[] }) {
+  return (
+    <div className="mt-2">
+      <div style={{ height: 40 }} role="img" aria-label={`Graphique : temps de réponse de ${name} sur 24 heures`}>
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={history.map((h) => ({ label: hourLabel(h.at), ms: h.ms }))} margin={{ top: 4, right: 4, bottom: 0, left: 4 }}>
+            <XAxis dataKey="label" hide />
+            <YAxis hide domain={[0, 'auto']} />
+            <Tooltip contentStyle={tooltipStyle} formatter={(v) => [`${formatNumber(Number(v))} ms`, 'Temps de réponse']} />
+            <Line type="monotone" dataKey="ms" stroke="var(--primary)" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+      <p className="mt-0.5 text-[11px] text-muted-foreground">
+        Temps de réponse sur 24 h : de {formatNumber(Math.min(...history.map((h) => h.ms)))} à{' '}
+        {formatNumber(Math.max(...history.map((h) => h.ms)))} ms
+      </p>
+    </div>
+  )
+}
+
+/** Processeur et mémoire sur 24 h : deux courbes, une seule échelle en %. */
+function ServerHistory({ history }: { history: { at: string; cpu: number; ram: number | null }[] }) {
+  return (
+    <div>
+      <h3 className="mb-1 text-sm font-medium">Dernières 24 heures</h3>
+      <div style={{ height: 170 }} role="img" aria-label="Graphique : processeur et mémoire du serveur sur 24 heures">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={history.map((h) => ({ ...h, label: hourLabel(h.at) }))} margin={{ top: 4, right: 4, bottom: 0, left: -16 }}>
+            <CartesianGrid vertical={false} stroke="var(--border)" />
+            <XAxis dataKey="label" tickLine={false} axisLine={false} fontSize={11} stroke="var(--muted-foreground)" minTickGap={24} />
+            <YAxis
+              domain={[0, 100]}
+              ticks={[0, 25, 50, 75, 100]}
+              tickLine={false}
+              axisLine={false}
+              fontSize={11}
+              stroke="var(--muted-foreground)"
+              tickFormatter={(v: number) => `${v} %`}
+            />
+            <Tooltip contentStyle={tooltipStyle} formatter={(v, n) => [`${formatNumber(Number(v))} %`, n]} />
+            <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
+            <Line type="monotone" dataKey="cpu" name="Processeur" stroke={SERIES.cpu} strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+            <Line type="monotone" dataKey="ram" name="Mémoire" stroke={SERIES.ram} strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   )
 }
