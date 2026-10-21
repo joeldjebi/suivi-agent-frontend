@@ -51,10 +51,16 @@ test('sans outil relié : état interne et marche à suivre pour chaque outil', 
   const errors = trackConsoleErrors(page)
   await open(page)
   await expect(page.getByText('En service')).toBeVisible()
+  // Le mode d'emploi s'ouvre à la première visite et se replie.
+  const guide = page.getByRole('button', { name: /Comment lire cette page/ })
+  await expect(guide).toHaveAttribute('aria-expanded', 'true')
+  await expect(page.getByRole('heading', { name: 'Journal interne ou Sentry ?' })).toBeVisible()
+  await guide.click()
+  await expect(page.getByRole('heading', { name: 'Journal interne ou Sentry ?' })).toBeHidden()
   await expect(page.getByText('UptimeRobot n’est pas relié.', { exact: false })).toBeVisible()
   await expect(page.getByText('Sentry n’est pas relié.', { exact: false })).toBeVisible()
   await expect(page.getByText('Netdata n’est pas relié.', { exact: false })).toBeVisible()
-  await expect(page.getByText('Base de données')).toBeVisible()
+  await expect(page.getByText('Base de données', { exact: true })).toBeVisible()
 
   // « Actualiser » relit tout sans erreur.
   const refresh = page.waitForResponse((r) => r.url().includes('/platform/supervision?refresh=1'))
