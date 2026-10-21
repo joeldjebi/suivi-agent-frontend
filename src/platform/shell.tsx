@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { LogoMark } from '@/components/app/logo'
 import {
+  Activity,
   Building2,
   Globe,
   Smartphone,
@@ -85,6 +86,7 @@ const NAV: { title: string; items: { to: string; label: string; icon: LucideIcon
   {
     title: 'Santé et sécurité',
     items: [
+      { to: '/supervision', label: 'Supervision', icon: Activity },
       { to: '/errors', label: 'Erreurs', icon: Bug },
       { to: '/admins', label: 'Comptes éditeur', icon: UserCog },
       { to: '/audit', label: 'Journal', icon: FileClock },
