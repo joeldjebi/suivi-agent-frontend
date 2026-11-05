@@ -1,4 +1,4 @@
-import { Feature, PLAN_CODE_PATTERN } from '@suivi/shared'
+import { dependentsOf, Feature, FEATURE_REQUIRES, PLAN_CODE_PATTERN, withRequirements } from '@suivi/shared'
 import { Check, Hourglass, Pencil, Plus, Sparkles, Trash2, X } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -108,6 +108,17 @@ function PlanCard({ plan, onEdit, onRemove }: { plan: Plan; onEdit: () => void; 
               <span className="font-normal text-muted-foreground"> dont {plan.paying ?? 0} payantes</span>
             </dd>
           </div>
+          {plan.features.includes(Feature.PhotoAi) && (
+            <div>
+              <dt className="text-xs text-muted-foreground">IA photo</dt>
+              <dd className="font-medium tabular-nums">
+                {plan.photoAiMonthlyQuota} photos / mois
+                {plan.photoAiExtraPrice > 0 && (
+                  <span className="font-normal text-muted-foreground"> · {formatMoney(plan.photoAiExtraPrice)} les 100 en plus</span>
+                )}
+              </dd>
+            </div>
+          )}
         </dl>
       </div>
       <ul className="flex flex-col gap-1.5 border-t p-4 text-sm">
@@ -148,16 +159,27 @@ function PlanDialog({ plan, onClose }: { plan: Plan | null; onClose: () => void 
     includedAgents: plan ? String(plan.includedAgents) : '',
     includedLeads: plan ? String(plan.includedLeads) : '',
     extraAgentPrice: plan ? String(plan.extraAgentPrice) : '',
+    photoAiMonthlyQuota: String(plan?.photoAiMonthlyQuota ?? 0),
+    photoAiExtraPrice: String(plan?.photoAiExtraPrice ?? 0),
     isActive: plan?.isActive ?? true,
     features: plan?.features ?? ([] as Feature[]),
   })
-  const number = (key: 'monthlyPrice' | 'includedAgents' | 'includedLeads' | 'extraAgentPrice') => ({
+  const number = (
+    key: 'monthlyPrice' | 'includedAgents' | 'includedLeads' | 'extraAgentPrice' | 'photoAiMonthlyQuota' | 'photoAiExtraPrice',
+  ) => ({
     inputMode: 'numeric' as const,
     value: v[key],
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => setV({ ...v, [key]: e.target.value.replace(/\D/g, '') }),
   })
-  const toggle = (feature: Feature, on: boolean) =>
-    setV({ ...v, features: on ? [...v.features, feature] : v.features.filter((f) => f !== feature) })
+  // Cocher ajoute les prérequis ; décocher retire ce qui en dépend (règle partagée avec l'API).
+  const toggle = (feature: Feature, on: boolean) => {
+    const off = [feature, ...dependentsOf(feature)]
+    setV({
+      ...v,
+      features: on ? [...new Set([...v.features, ...withRequirements(feature)])] : v.features.filter((f) => !off.includes(f)),
+    })
+  }
+  const photoAi = v.features.includes(Feature.PhotoAi)
   const body = {
     name: v.name.trim(),
     description: v.description.trim(),
@@ -165,6 +187,8 @@ function PlanDialog({ plan, onClose }: { plan: Plan | null; onClose: () => void 
     includedAgents: Number(v.includedAgents),
     includedLeads: Number(v.includedLeads),
     extraAgentPrice: Number(v.extraAgentPrice),
+    photoAiMonthlyQuota: Number(v.photoAiMonthlyQuota || 0),
+    photoAiExtraPrice: Number(v.photoAiExtraPrice || 0),
     isActive: v.isActive,
     // Ordre de l'application, quel que soit l'ordre des clics.
     features: FEATURES.filter((f) => v.features.includes(f)),
@@ -252,7 +276,14 @@ function PlanDialog({ plan, onClose }: { plan: Plan | null; onClose: () => void 
             {FEATURES.map((f) => (
               <label key={f} className="flex items-start gap-2 text-sm">
                 <Checkbox className="mt-0.5" checked={v.features.includes(f)} onCheckedChange={(on) => toggle(f, on === true)} />
-                {featureLabel[f]}
+                <span>
+                  {featureLabel[f]}
+                  {FEATURE_REQUIRES[f] && (
+                    <span className="block text-xs text-muted-foreground">
+                      Demande : {FEATURE_REQUIRES[f]!.map((r) => featureLabel[r].split(' :')[0].toLowerCase()).join(', ')}
+                    </span>
+                  )}
+                </span>
               </label>
             ))}
           </div>
@@ -265,6 +296,24 @@ function PlanDialog({ plan, onClose }: { plan: Plan | null; onClose: () => void 
             </Button>
           </div>
         </fieldset>
+        {photoAi && (
+          <fieldset className="grid gap-3 rounded-lg border p-3 sm:grid-cols-2">
+            <legend className="px-1 text-sm font-medium">IA photo</legend>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="plan-ai-quota">Photos analysées incluses par mois</Label>
+              <Input id="plan-ai-quota" {...number('photoAiMonthlyQuota')} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="plan-ai-extra">Prix de 100 photos en plus (FCFA)</Label>
+              <Input id="plan-ai-extra" {...number('photoAiExtraPrice')} />
+            </div>
+            <p className="text-xs text-muted-foreground sm:col-span-2">
+              {Number(v.photoAiMonthlyQuota || 0) === 0
+                ? 'Avec 0, aucune photo n’est analysée : les photos de rayon sont seulement enregistrées.'
+                : 'Au-delà du quota, les photos sont analysées seulement si vous accordez un supplément à la structure.'}
+            </p>
+          </fieldset>
+        )}
         {removed.length > 0 && affected > 0 && (
           <p role="alert" className="rounded-md border border-status-paused/30 bg-status-paused/5 p-3 text-sm">
             Les structures de cette formule (hors essai) perdront aussitôt : {removed.map((f) => featureLabel[f].toLowerCase()).join(', ')}.

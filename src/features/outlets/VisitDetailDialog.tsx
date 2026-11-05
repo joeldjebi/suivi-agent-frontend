@@ -1,13 +1,16 @@
-import type { MissionField, Packaging } from '@suivi/shared'
+import { Feature, Role, type MissionField, type Packaging } from '@suivi/shared'
 import { useQuery } from '@tanstack/react-query'
 import { QueryState } from '@/components/app/page'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { api } from '@/lib/api'
+import { useMe } from '@/lib/auth'
 import { formatDateTime } from '@/lib/format'
-import { formatMoney } from '@/lib/subscription'
+import { formatMoney, useFeature } from '@/lib/subscription'
 import type { PhotoMeta } from '@/lib/types'
 import { SubmissionPhoto } from '../missions/SubmissionPhoto'
+import { PhotoAnalysisPanel } from '../photo-ai/PhotoAnalysisPanel'
 import { formatQuantity, productName } from '../products/products'
+import { useState } from 'react'
 import { fieldValue } from './outlets'
 
 interface Reading {
@@ -54,6 +57,15 @@ function VisitBody({ id }: { id: string }) {
   const v = visit.data
   const answers = v?.fields.filter((f) => f.type !== 'photo' && f.type !== 'products') ?? []
   const photos = v?.fields.filter((f) => f.type === 'photo' && typeof v.data[f.key] === 'string') ?? []
+  const { user } = useMe()
+  const photoAi = useFeature(Feature.PhotoAi)
+  const canRequest = photoAi && user.role !== Role.Agent
+  // Photos de rayon (ou déjà analysées) : leur analyse par l'IA, sous les photos.
+  const shelves = photos.filter((f) => {
+    const meta = v?.photos[v.data[f.key] as string]
+    return photoAi && (meta?.kind === 'shelf' || !!meta?.analysis)
+  })
+  const [analyzing, setAnalyzing] = useState<string | null>(null)
 
   return (
     <>
@@ -126,12 +138,38 @@ function VisitBody({ id }: { id: string }) {
                       <div key={f.key} className="flex flex-col gap-1">
                         <SubmissionPhoto id={photoId} meta={v.photos[photoId]} label={f.label} agentName={v.agent} zoneIds={[]} />
                         <span className="max-w-32 text-xs text-muted-foreground">{f.label}</span>
+                        {v.photos[photoId]?.shelfScore != null && (
+                          <span className="text-xs font-medium">Rayon : {v.photos[photoId].shelfScore} / 100</span>
+                        )}
+                        {canRequest && !shelves.includes(f) && analyzing !== photoId && (
+                          <button
+                            type="button"
+                            className="w-fit text-xs text-primary underline-offset-2 hover:underline"
+                            onClick={() => setAnalyzing(photoId)}
+                          >
+                            Analyser avec l’IA
+                          </button>
+                        )}
                       </div>
                     )
                   })}
                 </div>
               )}
             </section>
+            {(shelves.length > 0 || analyzing) && (
+              <section className="flex flex-col gap-2">
+                <h3 className="font-medium">Analyse des rayons par l’IA</h3>
+                {shelves.map((f) => (
+                  <div key={f.key} className="flex flex-col gap-1">
+                    {shelves.length > 1 && <span className="text-xs text-muted-foreground">{f.label}</span>}
+                    <PhotoAnalysisPanel photoId={v.data[f.key] as string} canRequest={canRequest} />
+                  </div>
+                ))}
+                {analyzing && !shelves.some((f) => v.data[f.key] === analyzing) && (
+                  <PhotoAnalysisPanel photoId={analyzing} canRequest={canRequest} />
+                )}
+              </section>
+            )}
           </div>
         )}
       </QueryState>

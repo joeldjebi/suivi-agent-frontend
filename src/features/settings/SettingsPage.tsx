@@ -15,6 +15,8 @@ import { useApiMutation } from '@/lib/queries'
 import type { Settings } from '@/lib/types'
 import { DurationSelect } from '@/components/app/duration-select'
 import { useFeature } from '@/lib/subscription'
+import { Progress } from '@/components/ui/progress'
+import { usePhotoAiUsage } from '../photo-ai/photo-ai'
 
 const TIMEZONES = ['Africa/Abidjan', 'Africa/Dakar', 'Africa/Lagos', 'Africa/Douala', 'Africa/Casablanca', 'Europe/Paris']
 
@@ -163,6 +165,7 @@ function SettingsForm({ settings }: { settings: Settings }) {
   const groupsLocked = useLocked(Feature.Groups)
   const approvalLocked = useLocked(Feature.ManualApproval)
   const outletsEnabled = useFeature(Feature.PointsOfSale)
+  const photoAi = useFeature(Feature.PhotoAi)
 
   const set = <K extends keyof Settings>(key: K, value: Settings[K]) => setDraft((d) => ({ ...d, [key]: value }))
   const dirty = JSON.stringify(draft) !== JSON.stringify(settings)
@@ -467,6 +470,21 @@ function SettingsForm({ settings }: { settings: Settings }) {
         />
       </Section>
 
+      {photoAi && (
+        <Section title="IA photo" description="Analyse des photos de rayon : produits présents, faces, prix lus et score du rayon.">
+          <div id="photo-ai" className="flex flex-col gap-4">
+            <Toggle
+              id="photoAiAuto"
+              label="Analyser automatiquement les photos de rayon"
+              description="Chaque photo « rayon » envoyée par un agent est analysée dans la minute. Désactivé : seules les photos que vous choisissez sont analysées (bouton « Analyser » dans le détail d’une visite)."
+              checked={draft.photoAiAuto ?? true}
+              onChange={(v) => set('photoAiAuto', v)}
+            />
+            <PhotoAiQuota />
+          </div>
+        </Section>
+      )}
+
       <Section
         title="Alertes des responsables"
         description="Le chef de l’agent est prévenu, et l’alerte apparaît dans « Alertes ». Elle se referme d’elle-même quand la situation se règle."
@@ -612,5 +630,28 @@ function SettingsForm({ settings }: { settings: Settings }) {
         )}
       </Section>
     </Page>
+  )
+}
+
+/** Photos analysées ce mois-ci sur le quota de la formule (et le supplément accordé). */
+function PhotoAiQuota() {
+  const usage = usePhotoAiUsage()
+  const u = usage.data
+  if (!u) return null
+  const total = u.quota + u.bonus
+  return (
+    <div className="flex flex-col gap-1.5 rounded-lg border p-3 text-sm">
+      <div className="flex justify-between gap-2">
+        <span>Photos analysées ce mois-ci</span>
+        <span className="font-medium tabular-nums">
+          {u.used} / {total}
+        </span>
+      </div>
+      <Progress value={total ? Math.min(100, (100 * u.used) / total) : 100} aria-label="Quota de photos analysées" />
+      <p className="text-xs text-muted-foreground">
+        {u.bonus > 0 ? `Dont ${u.bonus} photos offertes ce mois-ci. ` : ''}
+        Au-delà du quota, les photos sont gardées sans analyse ; le compteur repart à zéro le 1er du mois.
+      </p>
+    </div>
   )
 }

@@ -111,7 +111,7 @@ const outils = () => ({
 test('sans outil relié : état interne et marche à suivre pour chaque outil', async ({ page }) => {
   const errors = trackConsoleErrors(page)
   await open(page)
-  await expect(page.getByText('En service')).toBeVisible()
+  await expect(page.getByText('En service', { exact: true })).toBeVisible()
   // Le mode d'emploi s'ouvre à la première visite et se replie.
   const guide = page.getByRole('button', { name: /Comment lire cette page/ })
   await expect(guide).toHaveAttribute('aria-expanded', 'true')

@@ -10,6 +10,7 @@ import type { ApprovalMode } from '@suivi/shared'
 import { platformApi } from '../api'
 import { Row } from '../components'
 import type { TenantConfig } from '../types'
+import { PhotoAiBonus } from './PhotoAiBonus'
 
 const yes = (v: boolean) => (v ? 'Oui' : 'Non')
 const periodLabel: Record<string, string> = { weekly: 'Hebdomadaire', biweekly: 'Quinzaine', monthly: 'Mensuelle' }
@@ -50,6 +51,9 @@ export function ConfigTab({ tenantId }: { tenantId: string }) {
                 </li>
               ))}
             </ul>
+            {c.photoAi && c.features.some((f) => f.feature === 'photo_ai' && f.included) && (
+              <PhotoAiBonus tenantId={tenantId} usage={c.photoAi} />
+            )}
           </Card>
 
           <Card title="Réglages">

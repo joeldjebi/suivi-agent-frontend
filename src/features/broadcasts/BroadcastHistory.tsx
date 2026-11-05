@@ -262,7 +262,9 @@ const RECIPIENT_FILTERS: { value: RecipientFilter; label: string }[] = [
 function BroadcastSheet({ id, onClose }: { id: string | null; onClose: () => void }) {
   return (
     <Sheet open={!!id} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent className="flex w-full flex-col gap-0 data-[side=right]:sm:max-w-2xl">{id && <BroadcastDetailView key={id} id={id} />}</SheetContent>
+      <SheetContent className="flex w-full flex-col gap-0 data-[side=right]:sm:max-w-2xl">
+        {id && <BroadcastDetailView key={id} id={id} />}
+      </SheetContent>
     </Sheet>
   )
 }

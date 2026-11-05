@@ -121,6 +121,8 @@ export interface Settings {
   visitRadiusMeters: number
   /** Fréquence de visite des points de vente par défaut, en jours (0 = pas de suivi) */
   outletVisitFrequencyDays: number
+  /** IA photo : photos de rayon analysées automatiquement à l'envoi */
+  photoAiAuto?: boolean
   /** Durée de travail attendue par jour pour les agents, en minutes */
   workdayMinutes: number
   /** Heure du bilan de fin de journée envoyé aux responsables ; null : pas d'envoi */
@@ -421,6 +423,11 @@ export interface PhotoMeta {
   lng: number | null
   accuracy: number | null
   takenAt: string
+  /** « shelf » : photo de rayon (IA photo) */
+  kind?: string | null
+  /** État de l'analyse par l'IA, s'il y en a une */
+  analysis?: string | null
+  shelfScore?: number | null
 }
 
 export interface Notification {

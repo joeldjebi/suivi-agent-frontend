@@ -64,6 +64,11 @@ const ProductsPage = lazyPage(() => import('@/features/products/ProductsPage').t
 const FormStatsPage = lazyPage(() => import('@/features/form-stats/FormStatsPage').then((m) => ({ default: m.FormStatsPage })))
 const OrdersPage = lazyPage(() => import('@/features/orders/OrdersPage').then((m) => ({ default: m.OrdersPage })))
 const PricesPage = lazyPage(() => import('@/features/orders/PricesPage').then((m) => ({ default: m.PricesPage })))
+const ShelvesPage = lazyPage(() => import('@/features/photo-ai/ShelvesPage').then((m) => ({ default: m.ShelvesPage })))
+const StockPage = lazyPage(() => import('@/features/van-sales/StockPage').then((m) => ({ default: m.StockPage })))
+const MovementsPage = lazyPage(() => import('@/features/van-sales/MovementsPage').then((m) => ({ default: m.MovementsPage })))
+const LocationsPage = lazyPage(() => import('@/features/van-sales/LocationsPage').then((m) => ({ default: m.LocationsPage })))
+const CashPage = lazyPage(() => import('@/features/van-sales/CashPage').then((m) => ({ default: m.CashPage })))
 const OutletsPage = lazyPage(() => import('@/features/outlets/OutletsPage').then((m) => ({ default: m.OutletsPage })))
 
 const queryClient = new QueryClient({
@@ -256,6 +261,14 @@ function TenantApp() {
               }
             />
             <Route
+              path="shelves"
+              element={
+                <FeatureGate feature={Feature.PhotoAi}>
+                  <ShelvesPage />
+                </FeatureGate>
+              }
+            />
+            <Route
               path="product-insights"
               element={
                 <FeatureGate feature={Feature.ProductAudits}>
@@ -297,6 +310,40 @@ function TenantApp() {
                     <PricesPage />
                   </FeatureGate>
                 </RoleRoute>
+              }
+            />
+            <Route
+              path="stock"
+              element={
+                <FeatureGate feature={Feature.VanSales}>
+                  <StockPage />
+                </FeatureGate>
+              }
+            />
+            <Route
+              path="stock/movements"
+              element={
+                <FeatureGate feature={Feature.VanSales}>
+                  <MovementsPage />
+                </FeatureGate>
+              }
+            />
+            <Route
+              path="stock/locations"
+              element={
+                <RoleRoute roles={admin}>
+                  <FeatureGate feature={Feature.VanSales}>
+                    <LocationsPage />
+                  </FeatureGate>
+                </RoleRoute>
+              }
+            />
+            <Route
+              path="cash"
+              element={
+                <FeatureGate feature={Feature.VanSales}>
+                  <CashPage />
+                </FeatureGate>
               }
             />
             <Route

@@ -1,4 +1,4 @@
-import { ORDER_STATUS_LABELS, OrderStatus, type Packaging } from '@suivi/shared'
+import { ORDER_STATUS_LABELS, OrderStatus, type OrderKind, type Packaging, type SaleFlag } from '@suivi/shared'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { Banknote, CircleSlash, ClipboardList, Truck, type LucideIcon } from 'lucide-react'
 import { api } from '@/lib/api'
@@ -16,6 +16,8 @@ export interface Order {
   id: string
   /** CMD-000042 */
   reference: string
+  /** Commande, ou vente directe depuis un camion */
+  kind: OrderKind
   outletId: string
   outletName: string
   agentId: string
@@ -23,7 +25,15 @@ export interface Order {
   priceListName: string | null
   status: OrderStatus
   total: number
+  /** Déjà payé (paiements partiels compris) */
+  paidAmount: number
+  /** Reste à payer */
+  due: number
   currency: string
+  /** Camion de la vente directe */
+  locationName: string | null
+  /** Signalements d'une vente enregistrée sans réseau */
+  flags: SaleFlag[]
   note: string | null
   /** Distance au point de vente à la prise, en mètres */
   distance: number | null
@@ -53,6 +63,8 @@ export interface OrdersSummary {
   currency: string
   count: number
   amount: number
+  /** Réellement encaissé (paiements partiels compris) */
+  collected: number
   /** Livrées, pas encore payées */
   toCollect: number
   byStatus: Record<OrderStatus, { count: number; amount: number }>
@@ -86,6 +98,7 @@ export function usePriceLists(enabled = true) {
 
 export interface OrdersParams {
   status?: OrderStatus
+  kind?: OrderKind
   outletId?: string
   agentId?: string
   from?: string

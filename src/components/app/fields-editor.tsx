@@ -1,4 +1,12 @@
-import { FieldType, type MissionField, PRODUCT_MEASURE_LABELS, type ProductFieldConfig, ProductMeasure, ProductScope } from '@suivi/shared'
+import {
+  Feature,
+  FieldType,
+  type MissionField,
+  PRODUCT_MEASURE_LABELS,
+  type ProductFieldConfig,
+  ProductMeasure,
+  ProductScope,
+} from '@suivi/shared'
 import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
 import { productName, useProducts } from '@/features/products/products'
@@ -10,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { fieldTypeLabel } from '@/lib/labels'
+import { useFeature } from '@/lib/subscription'
 
 export interface DraftField extends MissionField {
   /** Texte saisi pour les options d'une liste (une par ligne). */
@@ -35,6 +44,7 @@ export const fromDrafts = (drafts: DraftField[]): MissionField[] =>
   drafts.map(({ optionsText, ...f }) => ({
     ...f,
     label: f.label.trim(),
+    shelf: f.type === FieldType.Photo && f.shelf ? true : undefined,
     options:
       f.type === FieldType.Select
         ? optionsText
@@ -81,6 +91,7 @@ export function FieldsEditor({
   /** Relevé par produit (formulaires de mission, formule qui l'inclut) */
   allowProducts?: boolean
 }) {
+  const photoAi = useFeature(Feature.PhotoAi)
   const update = (index: number, patch: Partial<DraftField>) => onChange(fields.map((f, i) => (i === index ? { ...f, ...patch } : f)))
   const move = (index: number, delta: number) => {
     const next = [...fields]
@@ -149,6 +160,18 @@ export function FieldsEditor({
           </div>
           {f.type === FieldType.Products && f.products && (
             <ProductFieldEditor config={f.products} onChange={(products) => update(i, { products })} />
+          )}
+          {f.type === FieldType.Photo && allowProducts && photoAi && (
+            <label className="flex items-start gap-2 rounded-md border p-3 text-sm">
+              <Checkbox className="mt-0.5" checked={!!f.shelf} onCheckedChange={(c) => update(i, { shelf: c === true })} />
+              <span>
+                Photo de rayon, analysée par l’IA
+                <span className="block text-xs text-muted-foreground">
+                  L’IA y repère nos produits et ceux de la concurrence, compte les faces et lit les prix ; dans l’app, le relevé des
+                  produits est pré-rempli.
+                </span>
+              </span>
+            </label>
           )}
           {f.type === FieldType.Select && (
             <Field>

@@ -1,4 +1,4 @@
-import { PACKAGING_NAMES, PRODUCT_UNITS, Role } from '@suivi/shared'
+import { Feature, PACKAGING_NAMES, PRODUCT_UNITS, Role } from '@suivi/shared'
 import { CircleSlash, FileUp, Loader2, MoreHorizontal, Package, PenLine, Plus, RotateCcw, Swords, Trash2, X } from 'lucide-react'
 import { useEffect, useId, useState } from 'react'
 import { ImportDialog } from '@/components/app/import-dialog'
@@ -22,7 +22,9 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { api } from '@/lib/api'
 import { useMe } from '@/lib/auth'
 import { useApiMutation } from '@/lib/queries'
+import { useFeature } from '@/lib/subscription'
 import { cn } from '@/lib/utils'
+import { ReferencePhoto } from '../photo-ai/ReferencePhoto'
 import { ProductSuggestions } from './ProductSuggestions'
 import { productName, useProducts, type Product } from './products'
 
@@ -213,6 +215,7 @@ function ProductDialog({
   categories: string[]
 }) {
   const id = useId()
+  const photoAi = useFeature(Feature.PhotoAi)
   const [name, setName] = useState('')
   const [brand, setBrand] = useState('')
   const [category, setCategory] = useState('')
@@ -378,6 +381,7 @@ function ProductDialog({
               ))}
             </datalist>
           </div>
+          {product && photoAi && <ReferencePhoto productId={product.id} photoId={product.referencePhotoId ?? null} />}
           {error && (
             <p role="alert" className="text-sm text-destructive">
               {error}

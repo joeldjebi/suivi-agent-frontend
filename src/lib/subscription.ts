@@ -30,6 +30,8 @@ export const featureLabel: Record<Feature, string> = {
   points_of_sale: 'Points de vente : identification, statuts, import et export',
   product_audits: 'Relevés produits : stocks, prix, ventes, pertes et concurrence',
   orders: 'Prise de commande : types de client, prix et suivi des commandes',
+  van_sales: 'Vente en camionnette : stock des camions, vente directe, reçus et caisse',
+  photo_ai: 'IA photo : analyse des rayons (présence, faces, prix), avec un quota mensuel',
 }
 
 /** Inclus dans toutes les formules. */

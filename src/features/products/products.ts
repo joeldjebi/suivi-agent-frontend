@@ -14,6 +14,8 @@ export interface Product {
   unit: string
   packagings: Packaging[]
   isActive: boolean
+  /** Photo de référence pour l'IA photo */
+  referencePhotoId?: string | null
 }
 
 export function useProducts(includeInactive = false) {
@@ -27,7 +29,7 @@ export function useProducts(includeInactive = false) {
 export const productName = (p: Pick<Product, 'name' | 'format'>) => (p.format ? `${p.name} ${p.format}` : p.name)
 
 /** Pluriel simple d'une unité ou d'un conditionnement : « bouteille » → « bouteilles ». */
-function plural(word: string, n: number) {
+export function plural(word: string, n: number) {
   const w = word.toLowerCase()
   if (n <= 1 || /[sxz]$/.test(w) || w === 'kg') return w
   return `${w}s`

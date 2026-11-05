@@ -1,17 +1,19 @@
-import { OrderStatus, Role } from '@suivi/shared'
-import { Banknote, CircleSlash, HandCoins, ShoppingCart, Tags, type LucideIcon } from 'lucide-react'
+import { Feature, OrderKind, OrderStatus, Role } from '@suivi/shared'
+import { AlertTriangle, Banknote, CircleSlash, HandCoins, ShoppingCart, Tags, Truck, type LucideIcon } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { EmptyState, Page, PageHeader, QueryState } from '@/components/app/page'
 import { Pagination } from '@/components/app/pagination'
 import { PeriodPicker } from '@/components/app/period-picker'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useMe } from '@/lib/auth'
 import { formatDateTime } from '@/lib/format'
 import { usePeriod } from '@/lib/period'
-import { formatMoney } from '@/lib/subscription'
+import { formatMoney, useFeature } from '@/lib/subscription'
 import { OrderSheet, OrderStatusPill } from './OrderSheet'
 import { ORDER_STATUS, useOrders, useOrdersSummary } from './orders'
 
@@ -25,12 +27,20 @@ const PAGE_SIZE = 25
 export function OrdersPage() {
   const { user } = useMe()
   const period = usePeriod()
+  const vanSales = useFeature(Feature.VanSales)
   const [status, setStatus] = useState<OrderStatus | typeof ALL>(ALL)
+  const [kind, setKind] = useState<OrderKind | typeof ALL>(ALL)
   const [page, setPage] = useState(1)
   const [open, setOpen] = useState<string | null>(null)
   const range = { from: period.from, to: period.to }
   const summary = useOrdersSummary(range)
-  const orders = useOrders({ ...range, status: status === ALL ? undefined : status, page, limit: PAGE_SIZE })
+  const orders = useOrders({
+    ...range,
+    status: status === ALL ? undefined : status,
+    kind: kind === ALL ? undefined : kind,
+    page,
+    limit: PAGE_SIZE,
+  })
   const s = summary.data
   const money = (n: number) => formatMoney(n, s?.currency)
 
@@ -52,7 +62,7 @@ export function OrdersPage() {
         {s && (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <Kpi icon={ShoppingCart} label="Commandes" value={String(s.count)} hint="Hors annulées" />
-            <Kpi icon={Banknote} label="Montant" value={money(s.amount)} hint={`Dont ${money(s.byStatus.paid.amount)} encaissés`} />
+            <Kpi icon={Banknote} label="Montant" value={money(s.amount)} hint={`Dont ${money(s.collected)} encaissés`} />
             <Kpi
               icon={HandCoins}
               label="À encaisser"
@@ -68,6 +78,28 @@ export function OrdersPage() {
           </div>
         )}
       </QueryState>
+      {vanSales && (
+        <Select
+          value={kind}
+          onValueChange={(v) => {
+            setKind((v ?? ALL) as OrderKind | typeof ALL)
+            setPage(1)
+          }}
+        >
+          <SelectTrigger className="w-56" aria-label="Commandes ou ventes directes">
+            <SelectValue>
+              {(v: string) =>
+                v === OrderKind.Sale ? 'Ventes directes (camions)' : v === OrderKind.Order ? 'Commandes à livrer' : 'Commandes et ventes'
+              }
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>Commandes et ventes</SelectItem>
+            <SelectItem value={OrderKind.Order}>Commandes à livrer</SelectItem>
+            <SelectItem value={OrderKind.Sale}>Ventes directes (camions)</SelectItem>
+          </SelectContent>
+        </Select>
+      )}
       <Tabs
         value={status}
         onValueChange={(v) => {
@@ -112,6 +144,14 @@ export function OrdersPage() {
                         <button type="button" className="font-medium hover:underline" onClick={() => setOpen(o.id)}>
                           {o.reference}
                         </button>
+                        {o.kind === OrderKind.Sale && (
+                          <Badge variant="outline" className="ml-2 gap-1">
+                            <Truck className="size-3" aria-hidden /> Vente
+                          </Badge>
+                        )}
+                        {o.flags.length > 0 && (
+                          <AlertTriangle className="ml-1 inline size-4 text-status-alert" aria-label="Vente à vérifier" />
+                        )}
                         <span className="block text-xs text-muted-foreground">{formatDateTime(o.takenAt)}</span>
                       </TableCell>
                       <TableCell>
@@ -125,7 +165,9 @@ export function OrdersPage() {
                       <TableCell className="text-right tabular-nums">
                         {formatMoney(o.total, o.currency)}
                         <span className="block text-xs text-muted-foreground">
-                          {o.lines} produit{o.lines > 1 ? 's' : ''}
+                          {o.status === OrderStatus.Delivered && o.due > 0 && o.due < o.total
+                            ? `reste ${formatMoney(o.due, o.currency)}`
+                            : `${o.lines} produit${o.lines > 1 ? 's' : ''}`}
                         </span>
                       </TableCell>
                     </TableRow>

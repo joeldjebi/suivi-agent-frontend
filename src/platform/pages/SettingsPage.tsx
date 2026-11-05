@@ -10,6 +10,7 @@ import { useApiMutation } from '@/lib/queries'
 import { cn } from '@/lib/utils'
 import { platformApi } from '../api'
 import { usePlans } from '../plans'
+import { PhotoAiProviderForm } from './PhotoAiProviderForm'
 import type { PlatformSettings } from '../types'
 
 const FIELDS = [
@@ -64,6 +65,8 @@ export function SettingsPage() {
             <Form settings={query.data} />
             <h2 className="mt-4 text-base font-semibold">Application mobile</h2>
             <AppVersionForm settings={query.data} />
+            <h2 className="mt-4 text-base font-semibold">IA photo</h2>
+            <PhotoAiProviderForm />
           </>
         )}
       </QueryState>

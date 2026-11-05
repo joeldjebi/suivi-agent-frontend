@@ -39,6 +39,7 @@ import { cn } from '@/lib/utils'
 import { VisitDetailDialog } from './VisitDetailDialog'
 import { usePhotoUrl } from '@/lib/use-photo-url'
 import { OutletOrders } from '../orders/OutletOrders'
+import { OutletCredit } from '../van-sales/OutletCredit'
 import { OutletProducts } from '../products/OutletProducts'
 import { OutletFormDialog } from './OutletFormDialog'
 import { VisitFrequency } from './VisitFrequency'
@@ -187,6 +188,8 @@ export function OutletSheet({
                 <OutletProducts outletId={outlet.id} />
 
                 <OutletOrders outlet={outlet} />
+
+                <OutletCredit outletId={outlet.id} />
 
                 {outlet.visits.length > 0 && (
                   <section className="flex flex-col gap-2">

@@ -1,4 +1,12 @@
-import type { BillingCycle, Feature, InvoiceStatus, PlanCode, SubscriptionStatus } from '@suivi/shared'
+import type {
+  BillingCycle,
+  Feature,
+  InvoiceStatus,
+  PhotoAiProviderChoice,
+  PhotoAiProviderId,
+  PlanCode,
+  SubscriptionStatus,
+} from '@suivi/shared'
 
 export interface PlatformAdmin {
   id: string
@@ -98,6 +106,10 @@ export interface Plan {
   includedAgents: number
   includedLeads: number
   extraAgentPrice: number
+  /** IA photo : photos analysées incluses par mois */
+  photoAiMonthlyQuota: number
+  /** IA photo : prix d'un lot de 100 photos au-delà du quota */
+  photoAiExtraPrice: number
   sort: number
   isActive: boolean
   features: Feature[]
@@ -219,6 +231,7 @@ export interface TenantDetail {
 }
 
 export interface PlatformSettings {
+  photoAiProvider?: PhotoAiProviderChoice
   currency: string
   trialDays: number
   annualDiscountPercent: number
@@ -302,7 +315,26 @@ export interface TenantField {
   }[]
 }
 
+export interface PhotoAiUsageInfo {
+  month: string
+  quota: number
+  bonus: number
+  used: number
+  remaining: number
+  auto: boolean
+  configured: boolean
+}
+
+/** IA photo côté éditeur : fournisseurs branchés, choix actif, analyses et coût du mois. */
+export interface PhotoAiOverview {
+  choice: PhotoAiProviderChoice
+  providers: { id: PhotoAiProviderId; label: string; configured: boolean; model: string | null }[]
+  month: string
+  usage: { provider: string; analyses: number; costUsd: number }[]
+}
+
 export interface TenantConfig {
+  photoAi?: PhotoAiUsageInfo
   settings: Record<string, unknown> & {
     useGroups: boolean
     approvalMode: string
