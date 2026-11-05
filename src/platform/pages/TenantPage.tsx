@@ -1,6 +1,19 @@
 import { BillingCycle, SubscriptionStatus, type PlanCode } from '@suivi/shared'
 import { useQuery } from '@tanstack/react-query'
-import { AlertTriangle, ArrowLeft, Ban, CircleCheck, Info, Pencil, PlayCircle, Settings2, ShieldAlert, Sparkles, X } from 'lucide-react'
+import {
+  AlertTriangle,
+  ArrowLeft,
+  Ban,
+  CircleCheck,
+  Info,
+  Pencil,
+  PlayCircle,
+  Settings2,
+  ShieldAlert,
+  Sparkles,
+  Trash2,
+  X,
+} from 'lucide-react'
 import { useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import { toast } from 'sonner'
@@ -25,7 +38,9 @@ import { to } from '../config'
 import { PaymentDialog, VoidDialog } from '../invoice-dialogs'
 import { formatMoney, monthLabel, paymentMethodLabel } from '../labels'
 import { usePlanName } from '../plans'
+import { usePlatformAdmin } from '../auth'
 import { ConfigTab } from '../tenant/ConfigTab'
+import { DeleteTenantDialog } from '../tenant/DeleteTenantDialog'
 import { FieldTab } from '../tenant/FieldTab'
 import { JournalTab } from '../tenant/JournalTab'
 import { TeamsTab } from '../tenant/TeamsTab'
@@ -101,7 +116,8 @@ export function TenantPage() {
 }
 
 function Content({ d }: { d: TenantDetail }) {
-  const [editing, setEditing] = useState<'subscription' | 'info' | 'suspend' | 'reactivate' | null>(null)
+  const [editing, setEditing] = useState<'subscription' | 'info' | 'suspend' | 'reactivate' | 'delete' | null>(null)
+  const me = usePlatformAdmin()
   const [paying, setPaying] = useState<Invoice | null>(null)
   const [voiding, setVoiding] = useState<Invoice | null>(null)
   const sub = d.subscription
@@ -146,6 +162,15 @@ function Content({ d }: { d: TenantDetail }) {
                 <Ban aria-hidden /> Suspendre
               </Button>
             ))}
+          {me.isOwner && (
+            <Button
+              variant="outline"
+              className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              onClick={() => setEditing('delete')}
+            >
+              <Trash2 aria-hidden /> Supprimer définitivement
+            </Button>
+          )}
         </div>
       </div>
 
@@ -283,6 +308,7 @@ function Content({ d }: { d: TenantDetail }) {
       {sub && editing === 'subscription' && <SubscriptionDialog open d={d} sub={sub} onClose={() => setEditing(null)} />}
       {editing === 'info' && <InfoDialog open d={d} onClose={() => setEditing(null)} />}
       <SuspendDialog open={editing === 'suspend'} d={d} onClose={() => setEditing(null)} />
+      {me.isOwner && <DeleteTenantDialog open={editing === 'delete'} d={d} onClose={() => setEditing(null)} />}
       <ReactivateDialog open={editing === 'reactivate'} d={d} onClose={() => setEditing(null)} />
       <PaymentDialog invoice={paying} tenantName={d.tenant.name} onClose={() => setPaying(null)} />
       <VoidDialog invoice={voiding} onClose={() => setVoiding(null)} />
