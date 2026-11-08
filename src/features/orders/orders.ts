@@ -34,6 +34,8 @@ export interface Order {
   locationName: string | null
   /** Signalements d'une vente enregistrée sans réseau */
   flags: SaleFlag[]
+  /** Vente d'urgence hors zone : motif donné par l'agent */
+  outOfZoneReason?: string | null
   note: string | null
   /** Distance au point de vente à la prise, en mètres */
   distance: number | null

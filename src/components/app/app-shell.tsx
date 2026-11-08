@@ -35,6 +35,7 @@ import {
   Store,
   Package,
   ChartColumn,
+  Handshake,
   ScanEye,
   Smartphone,
   UserCog,
@@ -168,6 +169,7 @@ const NAV: NavSection[] = [
     tabs: [
       { to: '/stock', label: 'Stock', icon: Warehouse, roles: STAFF, feature: Feature.VanSales },
       { to: '/cash', label: 'Caisse', icon: Banknote, roles: STAFF, feature: Feature.VanSales },
+      { to: '/stock/transfers', label: 'Dépannages', icon: Handshake, roles: STAFF, feature: Feature.VanSales },
       { to: '/stock/movements', label: 'Mouvements', icon: ArrowLeftRight, roles: STAFF, feature: Feature.VanSales },
       { to: '/stock/locations', label: 'Dépôts et camions', icon: Truck, roles: ADMIN, feature: Feature.VanSales },
     ],

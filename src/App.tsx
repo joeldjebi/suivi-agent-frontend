@@ -66,6 +66,7 @@ const OrdersPage = lazyPage(() => import('@/features/orders/OrdersPage').then((m
 const PricesPage = lazyPage(() => import('@/features/orders/PricesPage').then((m) => ({ default: m.PricesPage })))
 const ShelvesPage = lazyPage(() => import('@/features/photo-ai/ShelvesPage').then((m) => ({ default: m.ShelvesPage })))
 const StockPage = lazyPage(() => import('@/features/van-sales/StockPage').then((m) => ({ default: m.StockPage })))
+const TransfersPage = lazyPage(() => import('@/features/van-sales/TransfersPage').then((m) => ({ default: m.TransfersPage })))
 const MovementsPage = lazyPage(() => import('@/features/van-sales/MovementsPage').then((m) => ({ default: m.MovementsPage })))
 const LocationsPage = lazyPage(() => import('@/features/van-sales/LocationsPage').then((m) => ({ default: m.LocationsPage })))
 const CashPage = lazyPage(() => import('@/features/van-sales/CashPage').then((m) => ({ default: m.CashPage })))
@@ -317,6 +318,14 @@ function TenantApp() {
               element={
                 <FeatureGate feature={Feature.VanSales}>
                   <StockPage />
+                </FeatureGate>
+              }
+            />
+            <Route
+              path="stock/transfers"
+              element={
+                <FeatureGate feature={Feature.VanSales}>
+                  <TransfersPage />
                 </FeatureGate>
               }
             />

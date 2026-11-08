@@ -367,6 +367,9 @@ export function LiveMapPage() {
             {selected.zoneExit.alertedAt
               ? `Responsable prévenu à ${formatTime(selected.zoneExit.alertedAt, settings.timezone)}.`
               : `Responsable prévenu au-delà de ${settings.zoneExitAlertMinutes} min.`}
+            {selected.zoneExit.justification && (
+              <span className="mt-1 block font-medium">Justifiée : {selected.zoneExit.justification}</span>
+            )}
           </span>
         </p>
       )}

@@ -102,6 +102,7 @@ export function TrackDialog({ day, onClose }: { day: WorkDay | null; onClose: ()
                     {e.endReason === ZoneExitEndReason.DayEnded && ' · fin de journée'}
                     {e.endReason === ZoneExitEndReason.ZoneChanged && ' · changement de zone'}
                   </span>
+                  {e.justification && <span className="w-full text-xs text-status-paused">Justifiée : {e.justification}</span>}
                   {e.alertedAt && <span className="ml-auto text-xs font-medium text-status-alert">Responsable prévenu</span>}
                 </li>
               ))}

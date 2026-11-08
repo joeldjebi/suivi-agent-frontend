@@ -7,6 +7,7 @@ import {
   PaymentMethod,
   Role,
   SALE_FLAG_LABELS,
+  SaleFlag,
 } from '@suivi/shared'
 import { AlertTriangle, FileDown, Loader2, MapPin, StickyNote, Truck } from 'lucide-react'
 import { useState } from 'react'
@@ -99,12 +100,28 @@ function Detail({ order, onCancel }: { order: OrderDetail; onCancel: () => void 
           <Truck className="size-4" aria-hidden /> Vente directe depuis {order.locationName ?? 'un camion'} : livrée sur place.
         </p>
       )}
-      {order.flags.length > 0 && (
+      {order.flags.includes(SaleFlag.OutOfZone) && (
+        <div className="flex items-start gap-2 rounded-lg border border-status-paused/30 bg-status-paused/5 p-3 text-sm">
+          <MapPin className="mt-0.5 size-4 shrink-0 text-status-paused" aria-hidden />
+          <span>
+            <span className="font-medium">Vente hors zone</span> : client hors du secteur de l’agent, vendu sur place en urgence
+            {order.outOfZoneReason ? ` (« ${order.outOfZoneReason} »)` : ''}.
+          </span>
+        </div>
+      )}
+      {order.flags.some((f) => f !== SaleFlag.OutOfZone) && (
         <div role="alert" className="flex items-start gap-2 rounded-lg border border-status-alert/30 bg-status-alert/5 p-3 text-sm">
           <AlertTriangle className="mt-0.5 size-4 shrink-0 text-status-alert" aria-hidden />
           <span>
-            <span className="font-medium">À vérifier : {order.flags.map((f) => SALE_FLAG_LABELS[f].toLowerCase()).join(', ')}.</span> Vente
-            enregistrée sans réseau : le téléphone ne pouvait pas le savoir. Vérifiez avec l’agent.
+            <span className="font-medium">
+              À vérifier :{' '}
+              {order.flags
+                .filter((f) => f !== SaleFlag.OutOfZone)
+                .map((f) => SALE_FLAG_LABELS[f].toLowerCase())
+                .join(', ')}
+              .
+            </span>{' '}
+            Vente enregistrée sans réseau : le téléphone ne pouvait pas le savoir. Vérifiez avec l’agent.
           </span>
         </div>
       )}

@@ -1,5 +1,5 @@
-import { Feature, OrderKind, OrderStatus, Role } from '@suivi/shared'
-import { AlertTriangle, Banknote, CircleSlash, HandCoins, ShoppingCart, Tags, Truck, type LucideIcon } from 'lucide-react'
+import { Feature, OrderKind, OrderStatus, Role, SaleFlag } from '@suivi/shared'
+import { AlertTriangle, Banknote, CircleSlash, HandCoins, MapPin, ShoppingCart, Tags, Truck, type LucideIcon } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { EmptyState, Page, PageHeader, QueryState } from '@/components/app/page'
@@ -149,7 +149,12 @@ export function OrdersPage() {
                             <Truck className="size-3" aria-hidden /> Vente
                           </Badge>
                         )}
-                        {o.flags.length > 0 && (
+                        {o.flags.includes(SaleFlag.OutOfZone) && (
+                          <Badge variant="outline" className="ml-1 gap-1 text-status-paused">
+                            <MapPin className="size-3" aria-hidden /> Hors zone
+                          </Badge>
+                        )}
+                        {o.flags.some((f) => f !== SaleFlag.OutOfZone) && (
                           <AlertTriangle className="ml-1 inline size-4 text-status-alert" aria-label="Vente à vérifier" />
                         )}
                         <span className="block text-xs text-muted-foreground">{formatDateTime(o.takenAt)}</span>

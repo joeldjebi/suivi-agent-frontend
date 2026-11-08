@@ -1,4 +1,12 @@
-import type { Packaging, PaymentMethod, StockLocationKind, StockMovementKind, StockMovementStatus } from '@suivi/shared'
+import type {
+  Packaging,
+  PaymentMethod,
+  StockLocationKind,
+  StockMovementKind,
+  StockMovementStatus,
+  TransferLegStatus,
+  TransferStatus,
+} from '@suivi/shared'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 
@@ -159,4 +167,43 @@ export async function downloadReceipt(orderId: string, reference: string) {
   link.click()
   link.remove()
   setTimeout(() => URL.revokeObjectURL(url), 30_000)
+}
+
+/** Dépannage partagé entre camions : la demande, ses quantités, les parts des collègues. */
+export interface Transfer {
+  id: string
+  status: TransferStatus
+  statusLabel: string
+  requesterId: string
+  requesterName: string
+  requesterVanId: string
+  note: string | null
+  widenedAt: string | null
+  closedAt: string | null
+  createdAt: string
+  lines: { productId: string; name: string; requested: number; reserved: number; given: number; remaining: number }[]
+  legs: {
+    id: string
+    giverId: string
+    giverName: string
+    status: TransferLegStatus
+    statusLabel: string
+    crossTeam: boolean
+    lines: { productId: string; name: string; quantity: number }[]
+    given: { productId: string; quantity: number }[]
+    acceptedAt: string | null
+    /** Fin de la réservation (1 h) */
+    expiresAt: string | null
+    doneAt: string | null
+    decisionNote: string | null
+    releaseReason: string | null
+  }[]
+}
+
+export function useTransfers(state: 'open' | 'all') {
+  return useQuery({
+    queryKey: ['stock', 'transfers', state],
+    queryFn: async () => (await api.get<Transfer[]>('/van-sales/transfers', { params: { state } })).data,
+    refetchInterval: 30_000,
+  })
 }
