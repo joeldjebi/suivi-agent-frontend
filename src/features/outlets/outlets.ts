@@ -19,6 +19,8 @@ export interface Outlet {
   data: Record<string, unknown>
   zone: { id: string; name: string } | null
   createdBy: { id: string; name: string } | null
+  /** Agent responsable ; null : visible des agents de la zone */
+  agent: { id: string; name: string } | null
   createdAt: string
   updatedAt: string
   distance?: number
@@ -58,9 +60,20 @@ export interface OutletVisit {
   status: 'accepted' | 'rejected'
 }
 
+/** Changement d'agent responsable (transfert), du plus récent au plus ancien. */
+export interface OutletAgentChange {
+  id: string
+  from: { id: string; name: string } | null
+  to: { id: string; name: string } | null
+  by: { id: string; name: string } | null
+  reason: string | null
+  createdAt: string
+}
+
 export interface OutletDetail extends Outlet {
   history: OutletHistory[]
   visits: OutletVisit[]
+  agentChanges: OutletAgentChange[]
 }
 
 export interface OutletPage {

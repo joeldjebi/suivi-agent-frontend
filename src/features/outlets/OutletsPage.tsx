@@ -1,7 +1,7 @@
 import { OutletStatus, Role } from '@suivi/shared'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import L from 'leaflet'
-import { ClipboardList, Clock, FileUp, ListChecks, MapPin, MoreHorizontal, Plus, Store, X } from 'lucide-react'
+import { ClipboardList, Clock, FileUp, ListChecks, MapPin, MoreHorizontal, Plus, Store, UserRoundCheck, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { CircleMarker, Marker, Polygon, Tooltip, useMap, useMapEvents } from 'react-leaflet'
 import { ExportButton } from '@/components/app/export-button'
@@ -17,9 +17,10 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { api } from '@/lib/api'
 import { useMe } from '@/lib/auth'
-import { useZones } from '@/lib/queries'
+import { useAgents, useZones } from '@/lib/queries'
 import { cn } from '@/lib/utils'
 import { OutletFieldsDialog, OutletImportDialog, VisitFormsDialog } from './OutletAdminDialogs'
+import { type TransferTarget, TransferOutletsDialog } from './OutletAgent'
 import { OutletFormDialog } from './OutletFormDialog'
 import { OutletSheet, OutletStatusPill } from './OutletSheet'
 import { categoryIcon, OVERDUE_COLOR, outletIcon } from './outlet-icons'
@@ -38,10 +39,15 @@ const ALL = 'all'
 export function OutletsPage() {
   const { user } = useMe()
   const isAdmin = user.role === Role.Admin
+  const canTransfer = isAdmin || user.role === Role.TeamLead
   const [q, setQ] = useState('')
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState<OutletStatus | null>(null)
   const [zoneId, setZoneId] = useState<string>(ALL)
+  // Agent responsable : un agent, « none » (sans responsable) ou tous.
+  const [agentId, setAgentId] = useState<string>(ALL)
+  const [transfer, setTransfer] = useState<TransferTarget | null>(null)
+  const agents = (useAgents().data ?? []).filter((a) => a.isActive)
   const [unlocated, setUnlocated] = useState(false)
   // Lien « points de vente en retard » (avis du matin, tableau de bord) : ?overdue=1.
   const [params] = useSearchParams()
@@ -62,12 +68,13 @@ export function OutletsPage() {
     const timer = setTimeout(() => setSearch(q.trim()), 300)
     return () => clearTimeout(timer)
   }, [q])
-  useEffect(() => setPage(1), [search, status, zoneId, unlocated, overdue])
+  useEffect(() => setPage(1), [search, status, zoneId, agentId, unlocated, overdue])
 
   const filters = {
     q: search || undefined,
     status: status ?? undefined,
     zoneId: zoneId === ALL ? undefined : zoneId,
+    agentId: agentId === ALL ? undefined : agentId,
   }
   const list = useQuery({
     queryKey: ['outlets', 'list', filters, unlocated, overdue, page],
@@ -80,10 +87,14 @@ export function OutletsPage() {
       ).data,
   })
   const points = useQuery({
-    queryKey: ['outlets', 'map', filters.status, filters.zoneId],
+    queryKey: ['outlets', 'map', filters.status, filters.zoneId, filters.agentId],
     placeholderData: keepPreviousData,
     queryFn: async () =>
-      (await api.get<OutletPoint[]>('/outlets/map', { params: { status: filters.status, zoneId: filters.zoneId } })).data,
+      (
+        await api.get<OutletPoint[]>('/outlets/map', {
+          params: { status: filters.status, zoneId: filters.zoneId, agentId: filters.agentId },
+        })
+      ).data,
   })
   const counts = list.data?.counts
   const total = counts ? Object.values(counts).reduce((a, b) => a + b, 0) : 0
@@ -181,6 +192,57 @@ export function OutletsPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                {user.role !== Role.Agent && (
+                  <div className="flex items-center gap-1.5">
+                    <Select value={agentId} onValueChange={(v) => v && setAgentId(v)}>
+                      <SelectTrigger size="sm" className="min-w-0 flex-1" aria-label="Agent responsable">
+                        <SelectValue>
+                          {(v: string) =>
+                            v === ALL
+                              ? 'Tous les agents'
+                              : v === 'none'
+                                ? 'Sans responsable'
+                                : (() => {
+                                    const a = agents.find((x) => x.id === v)
+                                    return a ? `${a.firstName} ${a.lastName}` : 'Agent'
+                                  })()
+                          }
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={ALL}>Tous les agents</SelectItem>
+                        <SelectItem value="none">Sans responsable</SelectItem>
+                        {agents.map((a) => (
+                          <SelectItem key={a.id} value={a.id}>
+                            {a.firstName} {a.lastName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {canTransfer &&
+                      agentId !== ALL &&
+                      agentId !== 'none' &&
+                      // Sans autre filtre : le nombre affiché est bien celui de tous ses points de vente.
+                      !search && !status && zoneId === ALL && !unlocated && !overdue &&
+                      (list.data?.total ?? 0) > 0 && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          const a = agents.find((x) => x.id === agentId)
+                          if (a)
+                            setTransfer({
+                              kind: 'agent',
+                              agent: { id: a.id, name: `${a.firstName} ${a.lastName}` },
+                              count: list.data?.total ?? 0,
+                            })
+                        }}
+                      >
+                        <UserRoundCheck aria-hidden /> Tout transférer
+                      </Button>
+                    )}
+                  </div>
+                )}
                 <div className="flex flex-wrap items-center gap-1.5">
                   <Button
                     size="sm"
@@ -241,7 +303,12 @@ export function OutletsPage() {
                           <span className="min-w-0 flex-1">
                             <span className="block truncate text-sm font-medium">{o.name}</span>
                             <span className="block truncate text-xs text-muted-foreground">
-                              {[o.category, o.zone?.name ?? (o.lat == null ? 'À localiser' : 'Hors zone'), visitLabel(o)]
+                              {[
+                                o.category,
+                                o.zone?.name ?? (o.lat == null ? 'À localiser' : 'Hors zone'),
+                                user.role !== Role.Agent && (o.agent?.name ?? 'Sans responsable'),
+                                visitLabel(o),
+                              ]
                                 .filter(Boolean)
                                 .join(' · ')}
                             </span>
@@ -358,6 +425,7 @@ export function OutletsPage() {
         position={form?.position}
         onSaved={(o) => setSelected(o.id)}
       />
+      <TransferOutletsDialog target={transfer} onClose={() => setTransfer(null)} />
       {isAdmin && (
         <>
           <OutletImportDialog open={importing} onOpenChange={setImporting} />

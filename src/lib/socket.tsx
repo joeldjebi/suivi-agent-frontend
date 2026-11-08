@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useState, useSyncExt
 import { io, type Socket } from 'socket.io-client'
 import { toast } from 'sonner'
 import { refreshSession, session } from './api'
+import { queryRootsFor } from './sync-topics'
 import type { Notification } from './types'
 
 const SocketContext = createContext<Socket | null>(null)
@@ -48,6 +49,27 @@ export function SocketProvider({ children }: { children: ReactNode }) {
       void queryClient.invalidateQueries({ queryKey: ['alerts'] })
       void queryClient.invalidateQueries({ queryKey: ['live'] })
     }
+    // « Ces données ont changé » (geste d'un agent, d'un chef, d'une tâche automatique) : les
+    // pages affichées se relisent. Les annonces rapprochées sont regroupées (une demi-seconde).
+    const pending = new Set<string>()
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const onSync = ({ topic }: { topic: string }) => {
+      for (const root of queryRootsFor(topic)) pending.add(root)
+      clearTimeout(timer)
+      timer = setTimeout(() => {
+        const roots = [...pending]
+        pending.clear()
+        for (const root of roots) void queryClient.invalidateQueries({ queryKey: [root] })
+      }, 500)
+    }
+    // Reconnexion (veille, réseau coupé) : des annonces ont pu être manquées, tout se relit.
+    let connectedOnce = false
+    const onConnect = () => {
+      if (connectedOnce) void queryClient.invalidateQueries()
+      connectedOnce = true
+    }
+    socket.on('connect', onConnect)
+    socket.on('sync', onSync)
     socket.on('disconnect', onDisconnect)
     socket.on(SocketEvent.AgentAlert, onAlert)
     socket.on(SocketEvent.Notification, onNotification)
@@ -55,6 +77,9 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     socket.connect()
     return () => {
       // Seuls les écouteurs du fournisseur : ceux des pages sont gérés par useSocketEvent.
+      clearTimeout(timer)
+      socket.off('connect', onConnect)
+      socket.off('sync', onSync)
       socket.off('disconnect', onDisconnect)
       socket.off(SocketEvent.Notification, onNotification)
       socket.off(SocketEvent.ZoneRequestCreated, onZoneRequest)

@@ -41,6 +41,7 @@ import { usePhotoUrl } from '@/lib/use-photo-url'
 import { OutletOrders } from '../orders/OutletOrders'
 import { OutletCredit } from '../van-sales/OutletCredit'
 import { OutletProducts } from '../products/OutletProducts'
+import { OutletAgentSection } from './OutletAgent'
 import { OutletFormDialog } from './OutletFormDialog'
 import { VisitFrequency } from './VisitFrequency'
 import { fieldValue, OUTLET_STATUS, STATUSES, useOutlet, useOutletForm, type Outlet, type OutletPage } from './outlets'
@@ -182,6 +183,8 @@ export function OutletSheet({
                       <Photo id={outlet.data[f.key] as string} name={f.label} />
                     </div>
                   ))}
+
+                <OutletAgentSection outlet={outlet} />
 
                 <StatusForm outlet={outlet} />
 
