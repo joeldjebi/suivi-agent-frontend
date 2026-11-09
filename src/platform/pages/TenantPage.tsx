@@ -43,11 +43,19 @@ import { formatMoney, monthLabel, paymentMethodLabel } from '../labels'
 import { usePlanName } from '../plans'
 import { usePlatformAdmin } from '../auth'
 import { ConfigTab } from '../tenant/ConfigTab'
+import { DecideOnboardingDialog, OnboardingStatusPill } from '../onboarding'
 import { DeleteTenantDialog } from '../tenant/DeleteTenantDialog'
 import { FieldTab } from '../tenant/FieldTab'
 import { JournalTab } from '../tenant/JournalTab'
 import { TeamsTab } from '../tenant/TeamsTab'
-import type { Invoice, OneTimeCharge, Subscription, TenantAlert, TenantDetail } from '../types'
+import type {
+  Invoice,
+  OneTimeCharge,
+  PlatformOnboardingRequest,
+  Subscription,
+  TenantAlert,
+  TenantDetail,
+} from '../types'
 
 /** Ancien tarif encore garanti (changement de grille). */
 const legacyActive = (sub: Subscription) => !!sub.legacyUntil && Date.parse(sub.legacyUntil) > Date.now()
@@ -304,6 +312,7 @@ function Content({ d }: { d: TenantDetail }) {
           </Card>
           <div className="flex min-w-0 flex-col gap-4">
             {sub && <SubscriptionCard d={d} sub={sub} />}
+            <OnboardingRequestsCard d={d} />
             <ChargesCard d={d} onAdd={() => setCharging(true)} />
             <Card title="Totaux">
               <div className="divide-y">
@@ -463,6 +472,48 @@ function SubscriptionCard({ d, sub }: { d: TenantDetail; sub: Subscription }) {
           )}
         </div>
       )}
+    </Card>
+  )
+}
+
+/** Demandes de mise en place de la structure : celle en attente se traite ici. */
+function OnboardingRequestsCard({ d }: { d: TenantDetail }) {
+  const [deciding, setDeciding] = useState<{ request: PlatformOnboardingRequest; decision: 'accept' | 'reject' } | null>(null)
+  if (d.onboardingRequests.length === 0) return null
+  return (
+    <Card title="Demandes de mise en place" flush>
+      <ul className="divide-y">
+        {d.onboardingRequests.map((r) => (
+          <li key={r.id} className="flex flex-col gap-1.5 px-4 py-2.5 text-sm">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="font-medium">
+                {r.packageName} · {formatMoney(r.status === 'accepted' && r.amount !== null ? r.amount : r.packagePrice, d.currency)}
+              </p>
+              <OnboardingStatusPill status={r.status} />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Demandée le {formatDate(r.createdAt)}
+              {r.message && ` · « ${r.message} »`}
+              {r.decisionNote && ` · ${r.decisionNote}`}
+            </p>
+            {r.status === 'pending' && (
+              <div className="flex gap-1">
+                <Button size="sm" onClick={() => setDeciding({ request: { ...r, tenantName: d.tenant.name }, decision: 'accept' })}>
+                  Accepter
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setDeciding({ request: { ...r, tenantName: d.tenant.name }, decision: 'reject' })}
+                >
+                  Refuser
+                </Button>
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+      {deciding && <DecideOnboardingDialog {...deciding} onClose={() => setDeciding(null)} />}
     </Card>
   )
 }

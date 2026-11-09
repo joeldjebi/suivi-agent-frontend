@@ -13,6 +13,7 @@ import type {
   MissionPay,
   MissionStatus,
   OnboardingPackage,
+  OnboardingRequestStatus,
   PayGridComponents,
   PayGridTargets,
   PayPeriod,
@@ -204,6 +205,22 @@ export interface Invoice {
   oneTimeAmount: number
   /** Détail ligne par ligne (vide pour les factures d'avant novembre 2026) */
   lines: InvoiceLine[]
+}
+
+/** Demande de mise en place faite par la structure, et la réponse de l'éditeur. */
+export interface OnboardingRequest {
+  id: string
+  packageCode: string
+  packageName: string
+  packagePrice: number
+  message: string | null
+  status: OnboardingRequestStatus
+  createdAt: string
+  decidedAt: string | null
+  /** Motif du refus, ou mot de l'éditeur à l'acceptation */
+  decisionNote: string | null
+  /** Montant facturé (acceptée) */
+  amount: number | null
 }
 
 /** Conditions en vigueur : sur mesure, ancien tarif garanti, ou formule. */

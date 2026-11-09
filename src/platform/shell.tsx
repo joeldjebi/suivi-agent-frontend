@@ -4,6 +4,7 @@ import {
   Activity,
   Building2,
   Globe,
+  GraduationCap,
   Smartphone,
   Inbox,
   FileClock,
@@ -58,6 +59,7 @@ const NAV: { title: string; items: { to: string; label: string; icon: LucideIcon
       { to: '', label: 'Tableau de bord', icon: LayoutDashboard, end: true },
       { to: '/tenants', label: 'Structures', icon: Building2 },
       { to: '/invoices', label: 'Factures', icon: Receipt },
+      { to: '/onboarding', label: 'Mise en place', icon: GraduationCap },
       { to: '/presentations', label: 'Présentations', icon: Presentation },
     ],
   },
@@ -101,6 +103,12 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
     queryFn: async () => (await platformApi.get<{ open: number }>('/support', { params: { status: 'open' } })).data.open,
     refetchInterval: 60_000,
   })
+  // Demandes de mise en place à traiter (pastille du menu).
+  const onboarding = useQuery({
+    queryKey: ['platform', 'onboarding-requests', 'pending-count'],
+    queryFn: async () => (await platformApi.get<{ pending: number }>('/onboarding-requests')).data.pending,
+    refetchInterval: 60_000,
+  })
   // Erreurs à traiter (pastille du menu).
   const errors = useQuery({
     queryKey: ['platform', 'errors', 'summary'],
@@ -139,6 +147,11 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
               {item.to === '/support' && !!support.data && (
                 <span className="rounded-full bg-amber-500 px-1.5 text-[11px] leading-5 font-semibold text-white tabular-nums">
                   {support.data}
+                </span>
+              )}
+              {item.to === '/onboarding' && !!onboarding.data && (
+                <span className="rounded-full bg-amber-500 px-1.5 text-[11px] leading-5 font-semibold text-white tabular-nums">
+                  {onboarding.data}
                 </span>
               )}
               {item.to === '/errors' && !!errors.data && (

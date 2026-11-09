@@ -102,3 +102,45 @@ test('site : options des formules et mise en place', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Mise en place, en option' })).toBeVisible()
   await expect(page.getByText('Accompagné')).toBeVisible()
 })
+
+test('mise en place : la structure demande, la console accepte, la structure voit la réponse', async ({ page, browser }) => {
+  const base = consolePath()
+  test.skip(!base, 'Console éditeur désactivée (VITE_PLATFORM_PATH vide)')
+  const errors = trackConsoleErrors(page)
+  // La structure de démo demande « Démarrage », avec un message.
+  await loginUi(page, 'admin@demo.ci')
+  await page.goto('/subscription')
+  const section = page.getByRole('region', { name: 'Mise en place (en option)' })
+  await section.getByRole('button', { name: 'Demander' }).first().click()
+  await page.getByLabel('Message (facultatif)').fill('Formation sur place la semaine du 20')
+  await page.getByRole('button', { name: 'Envoyer la demande' }).click()
+  await expect(page.getByText('Demande envoyée')).toBeVisible()
+  const requests = page.getByRole('list', { name: 'Vos demandes de mise en place' })
+  await expect(requests.getByText('En attente')).toBeVisible()
+  // Une seule demande en attente : les boutons sont désactivés.
+  await expect(section.getByRole('button', { name: 'Demander' }).first()).toBeDisabled()
+
+  // La console : le compteur du menu, puis l'acceptation à un prix négocié.
+  const sa = await browser.newPage()
+  await loginConsole(sa, base!)
+  await expect(sa.getByRole('link', { name: /Mise en place\s*\d+/ })).toBeVisible()
+  await sa.getByRole('link', { name: /Mise en place/ }).click()
+  const row = sa.getByRole('row', { name: /Démo Abidjan/ }).first()
+  await expect(row.getByText('Formation sur place la semaine du 20')).toBeVisible()
+  await row.getByRole('button', { name: 'Accepter' }).click()
+  await sa.getByLabel('Montant facturé (FCFA)').fill('40000')
+  await sa.getByRole('dialog').getByRole('button', { name: 'Accepter' }).click()
+  await expect(sa.getByText('Demande acceptée : frais ajoutés à la prochaine facture')).toBeVisible()
+  await sa.close()
+
+  // La structure voit la réponse ; une nouvelle demande peut être retirée.
+  await page.reload()
+  await expect(requests.getByText('Acceptée')).toBeVisible()
+  await expect(requests.getByText(/40\s000\sF\sCFA sur votre prochaine facture/)).toBeVisible()
+  await section.getByRole('button', { name: 'Demander' }).last().click()
+  await page.getByRole('button', { name: 'Envoyer la demande' }).click()
+  await requests.getByRole('button', { name: 'Retirer' }).click()
+  await expect(page.getByText('Demande retirée')).toBeVisible()
+  await expect(requests.getByText('Annulée')).toBeVisible()
+  expect(errors).toEqual([])
+})

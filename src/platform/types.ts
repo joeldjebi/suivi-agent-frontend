@@ -4,6 +4,7 @@ import type {
   InvoiceLine,
   InvoiceStatus,
   OnboardingPackage,
+  OnboardingRequestStatus,
   PhotoAiProviderChoice,
   PhotoAiProviderId,
   PlanCode,
@@ -169,6 +170,28 @@ export interface OneTimeCharge {
   invoiceId: string | null
 }
 
+/** Demande de mise en place d'une structure. */
+export interface PlatformOnboardingRequest {
+  id: string
+  tenantId: string
+  /** Liste de la console seulement (pas dans la fiche d'une structure) */
+  tenantName?: string
+  packageCode: string
+  packageName: string
+  packagePrice: number
+  message: string | null
+  status: OnboardingRequestStatus
+  createdAt: string
+  decidedAt: string | null
+  decisionNote: string | null
+  /** Montant facturé (acceptée) */
+  amount: number | null
+  chargeId: string | null
+  requestedByName?: string | null
+  requestedByEmail?: string | null
+  requestedByPhone?: string | null
+}
+
 /** Mois en cours, ligne par ligne (camions et photos comptés jusqu'à maintenant). */
 export interface BillEstimate {
   month: string
@@ -248,6 +271,7 @@ export interface TenantDetail {
   usage: Usage | null
   estimate: BillEstimate | null
   charges: OneTimeCharge[]
+  onboardingRequests: PlatformOnboardingRequest[]
   onboardingPackages: OnboardingPackage[]
   admins: {
     id: string
