@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Page, PageHeader, QueryState } from '@/components/app/page'
 import { Button } from '@/components/ui/button'
@@ -6,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { formatMoney } from '../labels'
 import { useApiMutation } from '@/lib/queries'
 import { cn } from '@/lib/utils'
 import { platformApi } from '../api'
@@ -63,6 +65,8 @@ export function SettingsPage() {
           <>
             <h2 className="text-base font-semibold">Facturation</h2>
             <Form settings={query.data} />
+            <h2 className="mt-4 text-base font-semibold">Mise en place</h2>
+            <OnboardingPackagesForm settings={query.data} />
             <h2 className="mt-4 text-base font-semibold">Application mobile</h2>
             <AppVersionForm settings={query.data} />
             <h2 className="mt-4 text-base font-semibold">IA photo</h2>
@@ -186,6 +190,127 @@ function Form({ settings }: { settings: PlatformSettings }) {
         <Button disabled={!changed || !valid || save.isPending} onClick={() => save.mutate(undefined)}>
           Enregistrer
         </Button>
+      </div>
+    </div>
+  )
+}
+
+/** Code d'un forfait tiré de son nom : minuscules, chiffres, tirets (unique dans la liste). */
+const packageCode = (name: string, taken: string[]) => {
+  const base =
+    name
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 24) || 'forfait'
+  let code = base.length >= 2 ? base : `${base}-1`
+  for (let i = 2; taken.includes(code); i++) code = `${base}-${i}`
+  return code
+}
+
+interface PackageRow {
+  /** Vide pour un forfait pas encore enregistré : tiré du nom à l'enregistrement */
+  code: string
+  name: string
+  description: string
+  price: string
+}
+
+/**
+ * Forfaits de mise en place (formation, import, configuration) : affichés sur le site et dans la
+ * page Abonnement des structures ; vous les ajoutez à la facture d'une structure depuis sa fiche.
+ */
+function OnboardingPackagesForm({ settings }: { settings: PlatformSettings }) {
+  const initial = (): PackageRow[] =>
+    settings.onboardingPackages.map((p) => ({ ...p, price: String(p.price) }))
+  const [rows, setRows] = useState(initial)
+  const changed = JSON.stringify(rows) !== JSON.stringify(initial())
+  const valid = rows.every((r) => r.name.trim() && r.price !== '')
+  const set = (i: number, patch: Partial<PackageRow>) => setRows(rows.map((r, j) => (j === i ? { ...r, ...patch } : r)))
+  const save = useApiMutation(
+    () => {
+      const taken: string[] = rows.filter((r) => r.code).map((r) => r.code)
+      return platformApi.patch('/settings', {
+        onboardingPackages: rows.map((r) => {
+          const code = r.code || packageCode(r.name, taken)
+          taken.push(code)
+          return { code, name: r.name.trim(), description: r.description.trim(), price: Number(r.price) }
+        }),
+      })
+    },
+    { success: 'Forfaits de mise en place enregistrés', invalidate: [['platform']] },
+  )
+  return (
+    <div className="max-w-2xl rounded-lg border bg-card">
+      <p className="border-b p-4 text-xs text-muted-foreground">
+        Proposés sur le site et dans la page Abonnement des structures. Pour en facturer un, ouvrez la fiche de la structure :
+        il s’ajoute à sa prochaine facture. Un changement de prix ne touche pas les frais déjà ajoutés.
+      </p>
+      <ul className="divide-y">
+        {rows.map((r, i) => (
+          <li key={i} className="grid gap-3 p-4 sm:grid-cols-[minmax(0,1fr)_10rem_auto] sm:items-start">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor={`pkg-name-${i}`}>Nom</Label>
+              <Input
+                id={`pkg-name-${i}`}
+                value={r.name}
+                maxLength={60}
+                aria-invalid={!r.name.trim()}
+                onChange={(e) => set(i, { name: e.target.value })}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor={`pkg-price-${i}`}>Prix (FCFA)</Label>
+              <Input
+                id={`pkg-price-${i}`}
+                inputMode="numeric"
+                value={r.price}
+                aria-invalid={r.price === ''}
+                onChange={(e) => set(i, { price: e.target.value.replace(/\D/g, '') })}
+              />
+              {r.price !== '' && <p className="text-xs text-muted-foreground">{formatMoney(Number(r.price))}</p>}
+            </div>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="sm:mt-6"
+              aria-label={`Retirer le forfait ${r.name || i + 1}`}
+              onClick={() => setRows(rows.filter((_, j) => j !== i))}
+            >
+              <Trash2 aria-hidden />
+            </Button>
+            <div className="flex flex-col gap-1.5 sm:col-span-3">
+              <Label htmlFor={`pkg-desc-${i}`}>Ce qui est compris</Label>
+              <Textarea
+                id={`pkg-desc-${i}`}
+                rows={2}
+                maxLength={300}
+                value={r.description}
+                onChange={(e) => set(i, { description: e.target.value })}
+              />
+            </div>
+          </li>
+        ))}
+        {rows.length === 0 && <li className="p-4 text-sm text-muted-foreground">Aucun forfait proposé.</li>}
+      </ul>
+      <div className="flex flex-wrap justify-between gap-2 border-t p-3">
+        <Button
+          variant="outline"
+          disabled={rows.length >= 10}
+          onClick={() => setRows([...rows, { code: '', name: '', description: '', price: '' }])}
+        >
+          <Plus aria-hidden /> Ajouter un forfait
+        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" disabled={!changed} onClick={() => setRows(initial())}>
+            Annuler
+          </Button>
+          <Button disabled={!changed || !valid || save.isPending} onClick={() => save.mutate(undefined)}>
+            Enregistrer
+          </Button>
+        </div>
       </div>
     </div>
   )

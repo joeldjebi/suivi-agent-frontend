@@ -8,6 +8,8 @@ import {
   Info,
   Pencil,
   PlayCircle,
+  Plus,
+  ReceiptText,
   Settings2,
   ShieldAlert,
   Sparkles,
@@ -17,6 +19,7 @@ import {
 import { useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import { toast } from 'sonner'
+import { InvoiceLines } from '@/components/app/invoice-lines'
 import { Page, QueryState } from '@/components/app/page'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -44,7 +47,10 @@ import { DeleteTenantDialog } from '../tenant/DeleteTenantDialog'
 import { FieldTab } from '../tenant/FieldTab'
 import { JournalTab } from '../tenant/JournalTab'
 import { TeamsTab } from '../tenant/TeamsTab'
-import type { Invoice, Subscription, TenantAlert, TenantDetail } from '../types'
+import type { Invoice, OneTimeCharge, Subscription, TenantAlert, TenantDetail } from '../types'
+
+/** Ancien tarif encore garanti (changement de grille). */
+const legacyActive = (sub: Subscription) => !!sub.legacyUntil && Date.parse(sub.legacyUntil) > Date.now()
 
 const dayLabel = (date: string) =>
   new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(`${date}T12:00:00Z`))
@@ -120,6 +126,8 @@ function Content({ d }: { d: TenantDetail }) {
   const me = usePlatformAdmin()
   const [paying, setPaying] = useState<Invoice | null>(null)
   const [voiding, setVoiding] = useState<Invoice | null>(null)
+  const [viewing, setViewing] = useState<Invoice | null>(null)
+  const [charging, setCharging] = useState(false)
   const sub = d.subscription
   const money = (v: number) => formatMoney(v, d.currency)
   const suspended = sub?.status === SubscriptionStatus.Suspended
@@ -282,7 +290,13 @@ function Content({ d }: { d: TenantDetail }) {
                 </TableHeader>
                 <TableBody>
                   {d.invoices.map((i) => (
-                    <InvoiceRow key={i.id} invoice={i} onPay={() => setPaying(i)} onVoid={() => setVoiding(i)} />
+                    <InvoiceRow
+                      key={i.id}
+                      invoice={i}
+                      onView={() => setViewing(i)}
+                      onPay={() => setPaying(i)}
+                      onVoid={() => setVoiding(i)}
+                    />
                   ))}
                 </TableBody>
               </Table>
@@ -290,6 +304,7 @@ function Content({ d }: { d: TenantDetail }) {
           </Card>
           <div className="flex min-w-0 flex-col gap-4">
             {sub && <SubscriptionCard d={d} sub={sub} />}
+            <ChargesCard d={d} onAdd={() => setCharging(true)} />
             <Card title="Totaux">
               <div className="divide-y">
                 <Row label="Payé">{money(d.invoices.filter((i) => i.status === 'paid').reduce((sum, i) => sum + i.amount, 0))}</Row>
@@ -311,12 +326,24 @@ function Content({ d }: { d: TenantDetail }) {
       {me.isOwner && <DeleteTenantDialog open={editing === 'delete'} d={d} onClose={() => setEditing(null)} />}
       <ReactivateDialog open={editing === 'reactivate'} d={d} onClose={() => setEditing(null)} />
       <PaymentDialog invoice={paying} tenantName={d.tenant.name} onClose={() => setPaying(null)} />
+      {viewing && <InvoiceDetailDialog invoice={viewing} onClose={() => setViewing(null)} />}
+      {charging && <ChargeDialog d={d} onClose={() => setCharging(false)} />}
       <VoidDialog invoice={voiding} onClose={() => setVoiding(null)} />
     </>
   )
 }
 
-function InvoiceRow({ invoice: i, onPay, onVoid }: { invoice: Invoice; onPay: () => void; onVoid: () => void }) {
+function InvoiceRow({
+  invoice: i,
+  onView,
+  onPay,
+  onVoid,
+}: {
+  invoice: Invoice
+  onView: () => void
+  onPay: () => void
+  onVoid: () => void
+}) {
   const planName = usePlanName()
   return (
     <TableRow>
@@ -340,8 +367,18 @@ function InvoiceRow({ invoice: i, onPay, onVoid }: { invoice: Invoice; onPay: ()
         </p>
       </TableCell>
       <TableCell className="text-right">
-        {i.status === 'pending' && (
-          <div className="flex justify-end gap-1">
+        <div className="flex justify-end gap-1">
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            aria-label={`Détail de la facture ${i.number}`}
+            title="Détail"
+            onClick={onView}
+          >
+            <ReceiptText aria-hidden />
+          </Button>
+          {i.status === 'pending' && (
+            <>
             <Button size="sm" onClick={onPay}>
               Paiement reçu
             </Button>
@@ -354,8 +391,9 @@ function InvoiceRow({ invoice: i, onPay, onVoid }: { invoice: Invoice; onPay: ()
             >
               <X aria-hidden />
             </Button>
-          </div>
-        )}
+            </>
+          )}
+        </div>
       </TableCell>
     </TableRow>
   )
@@ -366,6 +404,9 @@ function SubscriptionCard({ d, sub }: { d: TenantDetail; sub: Subscription }) {
   const money = (v: number) => formatMoney(v, d.currency)
   const negotiated = sub.customMonthlyPrice !== null || sub.customIncludedAgents !== null || sub.customIncludedLeads !== null
   const usage = d.usage
+  const legacy = legacyActive(sub)
+  const monthly = sub.customMonthlyPrice ?? (legacy ? sub.legacyMonthlyPrice : null) ?? plan?.monthlyPrice ?? 0
+  const extraPrice = (legacy ? sub.legacyExtraAgentPrice : null) ?? plan?.extraAgentPrice ?? 0
   return (
     <Card
       title="Abonnement"
@@ -388,27 +429,31 @@ function SubscriptionCard({ d, sub }: { d: TenantDetail; sub: Subscription }) {
         )}
         {sub.commitmentEndsAt && <Row label="Engagement jusqu’au">{formatDate(sub.commitmentEndsAt)}</Row>}
         <Row label="Forfait mensuel">
-          {money(sub.customMonthlyPrice ?? plan?.monthlyPrice ?? 0)}
-          {sub.customMonthlyPrice !== null && plan && (
+          {money(monthly)}
+          {plan && monthly !== plan.monthlyPrice && (
             <span className="block text-xs font-normal text-muted-foreground line-through">{money(plan.monthlyPrice)}</span>
           )}
         </Row>
-        <Row label="Agents supplémentaires">
-          {sub.extraAgents} × {money(plan?.extraAgentPrice ?? 0)}
-        </Row>
-        {d.estimate && (
-          <Row label={`Estimation ${monthLabel(d.estimate.month)}`}>
-            {money(d.estimate.amount)}
-            {(d.estimate.prorataPercent < 100 || d.estimate.discountPercent > 0) && (
-              <span className="block text-xs font-normal text-muted-foreground">
-                {d.estimate.prorataPercent < 100 && `prorata ${d.estimate.prorataPercent} %`}
-                {d.estimate.prorataPercent < 100 && d.estimate.discountPercent > 0 && ' · '}
-                {d.estimate.discountPercent > 0 && `remise ${d.estimate.discountPercent} %`}
-              </span>
-            )}
+        {legacy && sub.legacyUntil && (
+          <Row label="Tarif garanti jusqu’au">
+            {formatDate(sub.legacyUntil)}
+            <span className="block text-xs font-normal text-muted-foreground">
+              {sub.legacyNotifiedAt ? 'Administrateurs prévenus' : 'Rappel un mois avant'}
+            </span>
           </Row>
         )}
+        <Row label="Agents supplémentaires">
+          {sub.extraAgents} × {money(extraPrice)}
+        </Row>
       </div>
+      {d.estimate && (
+        <div className="mt-4 border-t pt-3">
+          <p className="mb-1 text-xs text-muted-foreground">
+            Estimation {monthLabel(d.estimate.month)}, camions et photos comptés jusqu’à aujourd’hui
+          </p>
+          <InvoiceLines bill={d.estimate} currency={d.currency} totalLabel="Estimation" />
+        </div>
+      )}
       {usage && (
         <div className="mt-4 flex flex-col gap-3 border-t pt-4">
           <Quota label="Agents actifs" used={usage.agents.used} limit={usage.agents.limit} />
@@ -419,6 +464,193 @@ function SubscriptionCard({ d, sub }: { d: TenantDetail; sub: Subscription }) {
         </div>
       )}
     </Card>
+  )
+}
+
+/** Mise en place et autres frais ponctuels : ajoutés à la prochaine facture. */
+function ChargesCard({ d, onAdd }: { d: TenantDetail; onAdd: () => void }) {
+  const [removing, setRemoving] = useState<OneTimeCharge | null>(null)
+  const remove = useApiMutation((c: OneTimeCharge) => platformApi.delete(`/tenants/${d.tenant.id}/charges/${c.id}`), {
+    success: 'Frais retirés',
+    invalidate: [['platform', 'tenant', d.tenant.id]],
+    onSuccess: () => setRemoving(null),
+  })
+  const invoiceOf = (c: OneTimeCharge) => d.invoices.find((i) => i.id === c.invoiceId)
+  return (
+    <Card
+      title="Mise en place et frais"
+      flush
+      actions={
+        <Button size="sm" variant="outline" onClick={onAdd}>
+          <Plus aria-hidden /> Ajouter
+        </Button>
+      }
+    >
+      {d.charges.length === 0 ? (
+        <p className="p-4 text-sm text-muted-foreground">Aucun frais. Ils s’ajoutent à la prochaine facture mensuelle.</p>
+      ) : (
+        <ul className="divide-y">
+          {d.charges.map((c) => {
+            const invoice = invoiceOf(c)
+            return (
+              <li key={c.id} className="flex items-start justify-between gap-3 px-4 py-2.5 text-sm">
+                <div className="min-w-0">
+                  <p className="font-medium">{c.label}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatDate(c.createdAt)} ·{' '}
+                    {c.invoiceId ? `facture ${invoice ? monthLabel(invoice.month) : 'émise'}` : 'prochaine facture'}
+                    {c.note && ` · ${c.note}`}
+                  </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                  <span className="font-medium tabular-nums">{formatMoney(c.amount, d.currency)}</span>
+                  {!c.invoiceId && (
+                    <Button
+                      size="icon-sm"
+                      variant="ghost"
+                      aria-label={`Retirer ${c.label}`}
+                      title="Retirer"
+                      onClick={() => setRemoving(c)}
+                    >
+                      <X aria-hidden />
+                    </Button>
+                  )}
+                </div>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+      <Dialog open={!!removing} onOpenChange={(o) => !o && setRemoving(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Retirer ces frais ?</DialogTitle>
+            <DialogDescription>
+              {removing?.label} ({formatMoney(removing?.amount ?? 0, d.currency)}) ne sera pas facturé.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRemoving(null)}>
+              Annuler
+            </Button>
+            <Button variant="destructive" disabled={remove.isPending} onClick={() => removing && remove.mutate(removing)}>
+              Retirer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  )
+}
+
+const CUSTOM = '__custom'
+
+/** Ajout de frais : un forfait de mise en place (prix modifiable) ou un montant libre. */
+function ChargeDialog({ d, onClose }: { d: TenantDetail; onClose: () => void }) {
+  const first = d.onboardingPackages[0]
+  const [choice, setChoice] = useState(first?.code ?? CUSTOM)
+  const pkg = d.onboardingPackages.find((p) => p.code === choice)
+  const [label, setLabel] = useState('')
+  const [amount, setAmount] = useState(first ? String(first.price) : '')
+  const [note, setNote] = useState('')
+  const pick = (code: string) => {
+    setChoice(code)
+    const p = d.onboardingPackages.find((x) => x.code === code)
+    setAmount(p ? String(p.price) : '')
+  }
+  const valid = amount !== '' && Number(amount) > 0 && (pkg || label.trim())
+  const save = useApiMutation(
+    () =>
+      platformApi.post(`/tenants/${d.tenant.id}/charges`, {
+        packageCode: pkg?.code,
+        label: pkg ? undefined : label.trim(),
+        amount: Number(amount),
+        note: note.trim() || undefined,
+      }),
+    {
+      success: 'Frais ajoutés à la prochaine facture',
+      invalidate: [['platform', 'tenant', d.tenant.id]],
+      onSuccess: onClose,
+    },
+  )
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Ajouter des frais</DialogTitle>
+          <DialogDescription>Ils s’ajoutent à la prochaine facture mensuelle de {d.tenant.name}.</DialogDescription>
+        </DialogHeader>
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1.5">
+            <Label>Nature</Label>
+            <Select value={choice} onValueChange={(x) => x && pick(x)}>
+              <SelectTrigger className="w-full" aria-label="Nature des frais">
+                <SelectValue>
+                  {(x: string) => d.onboardingPackages.find((p) => p.code === x)?.name ?? 'Autres frais'}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {d.onboardingPackages.map((p) => (
+                  <SelectItem key={p.code} value={p.code}>
+                    Mise en place : {p.name} · {formatMoney(p.price, d.currency)}
+                  </SelectItem>
+                ))}
+                <SelectItem value={CUSTOM}>Autres frais (libellé libre)</SelectItem>
+              </SelectContent>
+            </Select>
+            {pkg?.description && <p className="text-xs text-muted-foreground">{pkg.description}</p>}
+          </div>
+          {!pkg && (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="charge-label">Libellé sur la facture</Label>
+              <Input id="charge-label" value={label} maxLength={120} onChange={(e) => setLabel(e.target.value)} />
+            </div>
+          )}
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="charge-amount">Montant (FCFA)</Label>
+            <Input
+              id="charge-amount"
+              inputMode="numeric"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value.replace(/\D/g, ''))}
+            />
+            {pkg && Number(amount) !== pkg.price && amount !== '' && (
+              <p className="text-xs text-muted-foreground">Prix du forfait : {formatMoney(pkg.price, d.currency)}</p>
+            )}
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="charge-note">Note interne (facultatif)</Label>
+            <Input id="charge-note" value={note} maxLength={300} onChange={(e) => setNote(e.target.value)} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Annuler
+          </Button>
+          <Button disabled={!valid || save.isPending} onClick={() => save.mutate(undefined)}>
+            Ajouter
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+/** Détail d'une facture, ligne par ligne. */
+function InvoiceDetailDialog({ invoice, onClose }: { invoice: Invoice; onClose: () => void }) {
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="capitalize">Facture {monthLabel(invoice.month)}</DialogTitle>
+          <DialogDescription>
+            {invoice.number} · émise le {formatDate(invoice.issuedAt)} · {invoice.agents} agent{invoice.agents > 1 ? 's' : ''}{' '}
+            actif{invoice.agents > 1 ? 's' : ''}
+          </DialogDescription>
+        </DialogHeader>
+        <InvoiceLines bill={invoice} currency={invoice.currency} />
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -493,6 +725,7 @@ function SubscriptionDialog({ open, d, sub, onClose }: { open: boolean; d: Tenan
     agents: sub.customIncludedAgents?.toString() ?? '',
     leads: sub.customIncludedLeads?.toString() ?? '',
     trialEndsAt: sub.trialEndsAt?.slice(0, 10) ?? '',
+    legacyUntil: sub.legacyUntil?.slice(0, 10) ?? '',
   })
   const [v, setV] = useState(initial)
   const [negotiate, setNegotiate] = useState(
@@ -501,6 +734,18 @@ function SubscriptionDialog({ open, d, sub, onClose }: { open: boolean; d: Tenan
   const plan = d.plans.find((p) => p.code === v.planCode)
   const [today] = useState(() => new Date().toISOString().slice(0, 10))
   const trialing = sub.status === SubscriptionStatus.Trialing
+  // Ancien tarif : réglable s'il existe ; une autre formule le lève (grille actuelle).
+  const hasLegacy = sub.legacyMonthlyPrice !== null && sub.legacyUntil !== null
+  const [keepLegacy, setKeepLegacy] = useState(hasLegacy && legacyActive(sub))
+  const planChanged = v.planCode !== sub.planCode
+  const legacyUntil = (): string | null | undefined => {
+    if (!hasLegacy) return undefined
+    if (!keepLegacy) return legacyActive(sub) ? null : undefined
+    if (planChanged) return undefined
+    return v.legacyUntil && v.legacyUntil !== sub.legacyUntil?.slice(0, 10)
+      ? new Date(`${v.legacyUntil}T23:59:00`).toISOString()
+      : undefined
+  }
   const close = () => {
     setV(initial())
     onClose()
@@ -520,6 +765,7 @@ function SubscriptionDialog({ open, d, sub, onClose }: { open: boolean; d: Tenan
             trialing && v.trialEndsAt && v.trialEndsAt !== sub.trialEndsAt?.slice(0, 10)
               ? new Date(`${v.trialEndsAt}T23:59:00`).toISOString()
               : undefined,
+          legacyUntil: legacyUntil(),
         })
       ).data,
     {
@@ -588,6 +834,34 @@ function SubscriptionDialog({ open, d, sub, onClose }: { open: boolean; d: Tenan
                 value={v.trialEndsAt}
                 onChange={(e) => setV({ ...v, trialEndsAt: e.target.value })}
               />
+            </div>
+          )}
+          {hasLegacy && (
+            <div className="flex flex-col gap-2 rounded-lg border p-3 sm:col-span-2">
+              <label className="flex items-center gap-2 text-sm">
+                <Switch checked={keepLegacy} disabled={planChanged} onCheckedChange={setKeepLegacy} />
+                Garder l’ancien tarif ({formatMoney(sub.legacyMonthlyPrice ?? 0, d.currency)} / mois,{' '}
+                {sub.legacyIncludedAgents} agents)
+              </label>
+              {planChanged ? (
+                <p className="text-xs text-muted-foreground">
+                  Une autre formule applique la grille actuelle : l’ancien tarif prend fin.
+                </p>
+              ) : (
+                keepLegacy && (
+                  <div className="flex flex-col gap-1.5 sm:max-w-56">
+                    <Label htmlFor="sub-legacy">Garanti jusqu’au</Label>
+                    <Input
+                      id="sub-legacy"
+                      type="date"
+                      min={today}
+                      value={v.legacyUntil}
+                      onChange={(e) => setV({ ...v, legacyUntil: e.target.value })}
+                    />
+                    <p className="text-xs text-muted-foreground">Les administrateurs sont prévenus un mois avant.</p>
+                  </div>
+                )
+              )}
             </div>
           )}
           <label className="flex items-center gap-2 text-sm sm:col-span-2">

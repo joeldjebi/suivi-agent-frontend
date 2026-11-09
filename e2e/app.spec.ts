@@ -140,7 +140,7 @@ test.describe('Abonnement', () => {
     await page.goto('/subscription')
     await expect(page.getByRole('heading', { name: 'Abonnement' })).toBeVisible()
     await expect(page.getByText('Formule actuelle').first()).toBeVisible()
-    await page.getByRole('button', { name: 'Choisir Base' }).click()
+    await page.getByRole('button', { name: 'Choisir Essentiel' }).click()
     await page.getByRole('button', { name: 'Confirmer' }).click()
     await expect(page.getByText('Changement impossible pour l’instant')).toBeVisible()
     // Le 409 attendu est affiché à l'utilisateur, pas une erreur de l'application.

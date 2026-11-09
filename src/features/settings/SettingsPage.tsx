@@ -14,7 +14,7 @@ import { approvalModeLabel, expirationActionLabel } from '@/lib/labels'
 import { useApiMutation } from '@/lib/queries'
 import type { Settings } from '@/lib/types'
 import { DurationSelect } from '@/components/app/duration-select'
-import { useFeature } from '@/lib/subscription'
+import { formatMoney, useFeature } from '@/lib/subscription'
 import { Progress } from '@/components/ui/progress'
 import { usePhotoAiUsage } from '../photo-ai/photo-ai'
 
@@ -480,6 +480,7 @@ function SettingsForm({ settings }: { settings: Settings }) {
               checked={draft.photoAiAuto ?? true}
               onChange={(v) => set('photoAiAuto', v)}
             />
+            <PhotoAiOverage checked={draft.photoAiOverage ?? false} onChange={(v) => set('photoAiOverage', v)} />
             <PhotoAiQuota />
           </div>
         </Section>
@@ -634,6 +635,24 @@ function SettingsForm({ settings }: { settings: Settings }) {
 }
 
 /** Photos analysées ce mois-ci sur le quota de la formule (et le supplément accordé). */
+/**
+ * Photos au-delà du quota : analysées et facturées par lot de 100, si l'administrateur l'accepte.
+ * Seulement quand la formule a un prix de lot (pas pendant l'essai ni sous l'ancien tarif).
+ */
+function PhotoAiOverage({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+  const u = usePhotoAiUsage().data
+  if (!u || u.lotPrice <= 0) return null
+  return (
+    <Toggle
+      id="photoAiOverage"
+      label="Continuer au-delà du quota"
+      description={`Les photos en plus sont analysées et facturées ${formatMoney(u.lotPrice)} par lot de 100 sur la facture du mois. Désactivé : l’analyse s’arrête au quota, les photos sont gardées sans analyse.`}
+      checked={checked}
+      onChange={onChange}
+    />
+  )
+}
+
 function PhotoAiQuota() {
   const usage = usePhotoAiUsage()
   const u = usage.data
@@ -650,7 +669,12 @@ function PhotoAiQuota() {
       <Progress value={total ? Math.min(100, (100 * u.used) / total) : 100} aria-label="Quota de photos analysées" />
       <p className="text-xs text-muted-foreground">
         {u.bonus > 0 ? `Dont ${u.bonus} photos offertes ce mois-ci. ` : ''}
-        Au-delà du quota, les photos sont gardées sans analyse ; le compteur repart à zéro le 1er du mois.
+        {u.overQuota > 0 &&
+          `${u.overQuota} photo${u.overQuota > 1 ? 's' : ''} au-delà du quota, soit ${Math.ceil(u.overQuota / 100)} lot${Math.ceil(u.overQuota / 100) > 1 ? 's' : ''} de 100 sur la facture. `}
+        {u.overage
+          ? 'Au-delà du quota, les photos continuent d’être analysées (facturées par lot de 100) ; '
+          : 'Au-delà du quota, les photos sont gardées sans analyse ; '}
+        le compteur repart à zéro le 1er du mois.
       </p>
     </div>
   )

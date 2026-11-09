@@ -7,10 +7,12 @@ import type {
   DayStatus,
   ExpirationAction,
   Feature,
+  InvoiceLine,
   InvoiceStatus,
   MissionField,
   MissionPay,
   MissionStatus,
+  OnboardingPackage,
   PayGridComponents,
   PayGridTargets,
   PayPeriod,
@@ -123,6 +125,8 @@ export interface Settings {
   outletVisitFrequencyDays: number
   /** IA photo : photos de rayon analysées automatiquement à l'envoi */
   photoAiAuto?: boolean
+  /** IA photo : continuer au-delà du quota du mois, facturé par lot de 100 */
+  photoAiOverage?: boolean
   /** Durée de travail attendue par jour pour les agents, en minutes */
   workdayMinutes: number
   /** Heure du bilan de fin de journée envoyé aux responsables ; null : pas d'envoi */
@@ -159,6 +163,11 @@ export interface Plan {
   includedLeads: number
   /** Prix mensuel d'un agent au-delà du quota */
   extraAgentPrice: number
+  /** Vente en camion : prix d'un camion actif dans le mois (0 = compris) */
+  vanPrice: number
+  /** IA photo : photos comprises par mois, et prix d'un lot de 100 au-delà */
+  photoAiMonthlyQuota: number
+  photoAiExtraPrice: number
   sort: number
   features: Feature[]
 }
@@ -188,6 +197,26 @@ export interface Invoice {
   dueAt: string
   paidAt: string | null
   paymentReference: string | null
+  vanCount: number
+  vanPrice: number
+  photoAiLots: number
+  photoAiLotPrice: number
+  oneTimeAmount: number
+  /** Détail ligne par ligne (vide pour les factures d'avant novembre 2026) */
+  lines: InvoiceLine[]
+}
+
+/** Conditions en vigueur : sur mesure, ancien tarif garanti, ou formule. */
+export interface SubscriptionTerms {
+  monthlyPrice: number
+  includedAgents: number
+  includedLeads: number
+  extraAgentPrice: number
+  photoAiQuota: number
+  photoAiLotPrice: number
+  vanPrice: number
+  /** Ancien tarif garanti jusqu'à cette date (null : grille en vigueur) */
+  legacyUntil: string | null
 }
 
 export interface SubscriptionDetails {
@@ -207,6 +236,7 @@ export interface SubscriptionDetails {
   annualDiscountPercent: number
   trialDaysLeft: number | null
   features: Feature[]
+  /** Mois en cours, ligne par ligne : camions et photos comptés jusqu'à maintenant */
   estimate: {
     month: string
     basePrice: number
@@ -214,8 +244,21 @@ export interface SubscriptionDetails {
     extraAgentPrice: number
     discountPercent: number
     prorataPercent: number
+    vanCount: number
+    vanPrice: number
+    photoAiPhotos: number
+    photoAiIncluded: number
+    photoAiLots: number
+    photoAiLotPrice: number
+    oneTimeAmount: number
+    lines: InvoiceLine[]
     amount: number
   }
+  terms: SubscriptionTerms
+  /** Ancien tarif garanti : sa fin, le forfait actuel et celui d'après (mois complet) */
+  legacy: { until: string; current: number; after: number } | null
+  /** Forfaits de mise en place proposés par l'éditeur */
+  onboardingPackages: OnboardingPackage[]
   usage: QuotaUsage
   unpaid: { count: number; amount: number }
 }

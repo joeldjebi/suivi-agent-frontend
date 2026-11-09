@@ -24,6 +24,14 @@ export interface PhotoAiUsage {
   bonus: number
   used: number
   remaining: number
+  /** Au-delà du quota, les analyses continuent (facturées par lot de 100) */
+  overage: boolean
+  /** L'administrateur accepte le dépassement (réglage) */
+  overageAllowed: boolean
+  /** Prix d'un lot de 100 photos au-delà du quota (0 : pas de dépassement possible) */
+  lotPrice: number
+  /** Photos au-delà du quota et du supplément ce mois-ci */
+  overQuota: number
   auto: boolean
   configured: boolean
 }

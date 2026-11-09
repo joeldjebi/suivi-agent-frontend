@@ -988,6 +988,18 @@ function Pricing({ section, data, onAction }: { section: PricingSection; data: P
                   <p className={cn('text-[13px]', best ? 'text-white/50' : 'text-[#86868b]')}>
                     puis {money(plan.extraAgentPrice)} {unit} par agent supplémentaire
                   </p>
+                  {/* Options facturées à l'usage : vente en camion, IA photo au-delà du quota. */}
+                  {plan.features.includes(Feature.VanSales) && plan.vanPrice > 0 && (
+                    <p className={cn('text-[13px]', best ? 'text-white/50' : 'text-[#86868b]')}>
+                      Vente en camion : {money(plan.vanPrice)} {unit} par camion actif dans le mois
+                    </p>
+                  )}
+                  {plan.features.includes(Feature.PhotoAi) && plan.photoAiMonthlyQuota > 0 && (
+                    <p className={cn('text-[13px]', best ? 'text-white/50' : 'text-[#86868b]')}>
+                      IA photo : {money(plan.photoAiMonthlyQuota)} photos par mois
+                      {plan.photoAiExtraPrice > 0 && `, puis ${money(plan.photoAiExtraPrice)} ${unit} les 100`}
+                    </p>
+                  )}
                   <button
                     type="button"
                     onClick={() => onAction({ label: 'Essayer', action: 'signup' })}
@@ -1016,6 +1028,25 @@ function Pricing({ section, data, onAction }: { section: PricingSection; data: P
             )
           })}
         </div>
+        {(data.onboardingPackages?.length ?? 0) > 0 && (
+          <div data-reveal className="mt-12 rounded-[30px] bg-white p-8">
+            <h3 className="text-[21px] font-semibold tracking-tight">Mise en place, en option</h3>
+            <p className="mt-1 text-[15px] text-[#6e6e73]">Nous vous aidons à démarrer. Payée une seule fois.</p>
+            <div className="mt-6 grid gap-5 @3xl:grid-cols-2">
+              {data.onboardingPackages.map((p) => (
+                <div key={p.code} className="rounded-[22px] bg-[#f5f5f7] p-6">
+                  <p className="flex flex-wrap items-baseline justify-between gap-2">
+                    <span className="text-[17px] font-semibold">{p.name}</span>
+                    <span className="text-[17px] font-semibold tabular-nums">
+                      {money(p.price)} {unit}
+                    </span>
+                  </p>
+                  {p.description && <p className="mt-2 text-[15px] text-[#6e6e73]">{p.description}</p>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </section>
   )

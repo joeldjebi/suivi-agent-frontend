@@ -1,4 +1,4 @@
-import { BillingCycle, InvoiceStatus, SubscriptionStatus, type PlanCode } from '@suivi/shared'
+import { BillingCycle, Feature, InvoiceStatus, SubscriptionStatus, type PlanCode } from '@suivi/shared'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   AlertTriangle,
@@ -8,6 +8,8 @@ import {
   Clock,
   CreditCard,
   FileText,
+  GraduationCap,
+  Info,
   Minus,
   Plus,
   Receipt,
@@ -18,6 +20,7 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { InvoiceLines } from '@/components/app/invoice-lines'
 import { EmptyState, Page, PageHeader, QueryState } from '@/components/app/page'
 import { StatusPill } from '@/components/app/status'
 import { Button } from '@/components/ui/button'
@@ -61,6 +64,7 @@ export function SubscriptionPage() {
   const [cycleView, setCycleView] = useState<BillingCycle | null>(null)
   const [now] = useState(Date.now)
   const [extra, setExtra] = useState<number | null>(null)
+  const [detail, setDetail] = useState<Invoice | 'estimate' | null>(null)
   // Noms des formules du catalogue (y compris celles créées par l'éditeur).
   const plans = new Map((details.data?.plans ?? []).map((p) => [p.code, p.name]))
 
@@ -92,7 +96,9 @@ export function SubscriptionPage() {
   const discounted = (amount: number) =>
     cycle === BillingCycle.Annual ? Math.round((amount * (100 - (d?.annualDiscountPercent ?? 0))) / 100) : amount
   const priceFor = (p: Plan) => discounted(p.monthlyPrice)
-  const extraTotal = d && extra !== null ? discounted(extra * d.plan.extraAgentPrice) : 0
+  // Prix d'un agent en plus : celui des conditions en vigueur (ancien tarif garanti compris).
+  const extraPrice = d?.terms.extraAgentPrice ?? d?.plan.extraAgentPrice ?? 0
+  const extraTotal = d && extra !== null ? discounted(extra * extraPrice) : 0
 
   return (
     <Page>
@@ -114,6 +120,20 @@ export function SubscriptionPage() {
                   <p className="font-medium">Abonnement suspendu</p>
                   <p>
                     Vos agents et chefs d’équipe n’ont plus accès à l’application. Réglez les factures en attente pour rétablir l’accès.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {d.legacy && (
+              <div className="flex items-start gap-3 rounded-lg border border-primary/30 bg-primary/5 p-4 text-sm">
+                <Info className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
+                <div>
+                  <p className="font-medium">Votre tarif est garanti jusqu’au {formatDate(d.legacy.until)}</p>
+                  <p className="text-muted-foreground">
+                    Vous gardez vos conditions actuelles : {formatMoney(d.legacy.current, d.currency)} par mois pour la formule{' '}
+                    {d.plan.name}. Ensuite, elle passera à {formatMoney(d.legacy.after, d.currency)} par mois (hors options). Changer
+                    de formule met fin à cette garantie.
                   </p>
                 </div>
               </div>
@@ -156,7 +176,14 @@ export function SubscriptionPage() {
                     ` + ${d.estimate.extraAgents} agent${d.estimate.extraAgents > 1 ? 's' : ''} × ${formatMoney(d.estimate.extraAgentPrice, d.currency)}`}
                   {d.estimate.discountPercent > 0 && ` − ${d.estimate.discountPercent} %`}
                   {d.estimate.prorataPercent < 100 && ` · ${d.estimate.prorataPercent} % du mois (après l’essai)`}
+                  {d.estimate.vanCount > 0 &&
+                    ` + ${d.estimate.vanCount} camion${d.estimate.vanCount > 1 ? 's' : ''} actif${d.estimate.vanCount > 1 ? 's' : ''}`}
+                  {d.estimate.photoAiLots > 0 && ` + ${d.estimate.photoAiLots} lot${d.estimate.photoAiLots > 1 ? 's' : ''} de photos`}
+                  {d.estimate.oneTimeAmount > 0 && ' + mise en place'}
                 </p>
+                <Button size="sm" variant="link" className="mt-1 h-auto px-0" onClick={() => setDetail('estimate')}>
+                  Voir le détail
+                </Button>
               </div>
               <div className="rounded-lg border bg-card p-4">
                 <p className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -243,6 +270,12 @@ export function SubscriptionPage() {
                           + {formatMoney(discounted(p.extraAgentPrice), d.currency)} par agent supplémentaire et par mois
                         </span>
                       </p>
+                      <PlanOptions plan={p} currency={d.currency} />
+                      {p.code === sub.planCode && d.legacy && (
+                        <p className="mt-2 text-xs text-primary">
+                          Vous payez {formatMoney(d.legacy.current, d.currency)} jusqu’au {formatDate(d.legacy.until)} (tarif garanti).
+                        </p>
+                      )}
                       <ul className="mt-4 flex flex-1 flex-col gap-1.5 text-sm">
                         {BASE_FEATURES.map((f) => (
                           <li key={f} className="flex items-start gap-2">
@@ -277,6 +310,33 @@ export function SubscriptionPage() {
                 })}
               </div>
             </section>
+
+            {d.onboardingPackages.length > 0 && (
+              <section aria-labelledby="onboarding-title" className="flex flex-col gap-3">
+                <div>
+                  <h2 id="onboarding-title" className="font-semibold">
+                    Mise en place (en option)
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    Nous vous aidons à démarrer. Payée une fois, sur votre prochaine facture : contactez-nous pour la demander.
+                  </p>
+                </div>
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  {d.onboardingPackages.map((p) => (
+                    <div key={p.code} className="flex gap-3 rounded-lg border bg-card p-4">
+                      <GraduationCap className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden />
+                      <div className="min-w-0">
+                        <p className="font-medium">
+                          {p.name}
+                          <span className="ml-2 font-semibold tabular-nums">{formatMoney(p.price, d.currency)}</span>
+                        </p>
+                        {p.description && <p className="mt-0.5 text-sm text-muted-foreground">{p.description}</p>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
           </>
         )}
       </QueryState>
@@ -304,6 +364,9 @@ export function SubscriptionPage() {
                     <TableHead className="text-right">Montant</TableHead>
                     <TableHead>Statut</TableHead>
                     <TableHead>Échéance</TableHead>
+                    <TableHead>
+                      <span className="sr-only">Détail</span>
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -323,6 +386,9 @@ export function SubscriptionPage() {
                             `${i.agents} agent${i.agents > 1 ? 's' : ''} actif${i.agents > 1 ? 's' : ''}`,
                             i.discountPercent > 0 && `−${i.discountPercent} %`,
                             i.prorataPercent < 100 && `${i.prorataPercent} % du mois`,
+                            i.vanCount > 0 && `${i.vanCount} camion${i.vanCount > 1 ? 's' : ''}`,
+                            i.photoAiLots > 0 && `${i.photoAiLots} lot${i.photoAiLots > 1 ? 's' : ''} de photos`,
+                            i.oneTimeAmount > 0 && 'mise en place',
                           ]
                             .filter(Boolean)
                             .join(' · ')}
@@ -343,6 +409,11 @@ export function SubscriptionPage() {
                       <TableCell className="text-sm whitespace-nowrap text-muted-foreground">
                         {i.paidAt ? `Payée le ${formatDate(i.paidAt)}` : `Avant le ${formatDate(i.dueAt)}`}
                         {i.paymentReference && <div className="text-xs">{i.paymentReference}</div>}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button size="sm" variant="ghost" onClick={() => setDetail(i)} aria-label={`Détail de la facture ${i.number}`}>
+                          Détail
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -373,6 +444,11 @@ export function SubscriptionPage() {
                     sub?.billingCycle !== BillingCycle.Annual &&
                     ` L’engagement annuel vous lie pour 12 mois, avec ${d.annualDiscountPercent} % de remise sur chaque facture.`}
                 </DialogDescription>
+                {d.legacy && choice.plan.code !== sub?.planCode && (
+                  <p role="alert" className="rounded-md border border-status-paused/30 bg-status-paused/5 p-3 text-sm">
+                    Votre tarif garanti jusqu’au {formatDate(d.legacy.until)} prend fin : la nouvelle formule est au tarif actuel.
+                  </p>
+                )}
               </DialogHeader>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setChoice(null)}>
@@ -398,7 +474,7 @@ export function SubscriptionPage() {
                 <DialogTitle>Agents supplémentaires</DialogTitle>
                 <DialogDescription>
                   Votre formule inclut {d.usage.agents.included} agents. Chaque agent en plus coûte{' '}
-                  {formatMoney(d.plan.extraAgentPrice, d.currency)} par mois.
+                  {formatMoney(extraPrice, d.currency)} par mois.
                 </DialogDescription>
               </DialogHeader>
               <div className="flex items-center justify-center gap-3 py-2">
@@ -443,6 +519,30 @@ export function SubscriptionPage() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={!!detail} onOpenChange={(o) => !o && setDetail(null)}>
+        <DialogContent className="sm:max-w-md">
+          {detail && d && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="first-letter:uppercase">
+                  {detail === 'estimate' ? `Estimation de ${monthLabel(d.estimate.month)}` : `Facture ${monthLabel(detail.month)}`}
+                </DialogTitle>
+                <DialogDescription>
+                  {detail === 'estimate'
+                    ? 'Camions et photos comptés jusqu’à aujourd’hui : le montant final est connu à la fin du mois.'
+                    : `${detail.number} · émise le ${formatDate(detail.issuedAt)}`}
+                </DialogDescription>
+              </DialogHeader>
+              <InvoiceLines
+                bill={detail === 'estimate' ? { ...d.estimate, planCode: sub?.planCode } : detail}
+                currency={d.currency}
+                totalLabel={detail === 'estimate' ? 'Estimation' : 'Total'}
+              />
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={!!blocking} onOpenChange={(o) => !o && setBlocking(null)}>
         <DialogContent>
           <DialogHeader>
@@ -460,6 +560,29 @@ export function SubscriptionPage() {
         </DialogContent>
       </Dialog>
     </Page>
+  )
+}
+
+/** Options d'une formule : vente en camion et IA photo, facturées à l'usage. */
+function PlanOptions({ plan: p, currency }: { plan: Plan; currency: string }) {
+  const van = p.features.includes(Feature.VanSales) && p.vanPrice > 0
+  const photo = p.features.includes(Feature.PhotoAi) && p.photoAiMonthlyQuota > 0
+  if (!van && !photo) return null
+  return (
+    <ul className="mt-2 flex flex-col gap-1 rounded-md border border-dashed px-2.5 py-1.5 text-xs text-muted-foreground">
+      {van && (
+        <li>
+          Vente en camion : <strong className="text-foreground">{formatMoney(p.vanPrice, currency)}</strong> par camion actif
+          dans le mois
+        </li>
+      )}
+      {photo && (
+        <li>
+          IA photo : <strong className="text-foreground">{p.photoAiMonthlyQuota} photos</strong> comprises par mois
+          {p.photoAiExtraPrice > 0 && `, puis ${formatMoney(p.photoAiExtraPrice, currency)} les 100`}
+        </li>
+      )}
+    </ul>
   )
 }
 

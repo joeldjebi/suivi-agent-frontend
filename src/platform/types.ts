@@ -1,7 +1,9 @@
 import type {
   BillingCycle,
   Feature,
+  InvoiceLine,
   InvoiceStatus,
+  OnboardingPackage,
   PhotoAiProviderChoice,
   PhotoAiProviderId,
   PlanCode,
@@ -110,6 +112,8 @@ export interface Plan {
   photoAiMonthlyQuota: number
   /** IA photo : prix d'un lot de 100 photos au-delà du quota */
   photoAiExtraPrice: number
+  /** Vente en camion : prix d'un camion actif dans le mois (0 = compris) */
+  vanPrice: number
   sort: number
   isActive: boolean
   features: Feature[]
@@ -142,7 +146,46 @@ export interface Subscription {
   customIncludedLeads: number | null
   manualSuspension: boolean
   suspensionReason: string | null
+  /** Ancien tarif garanti jusqu'à cette date (changement de grille) */
+  legacyUntil: string | null
+  legacyMonthlyPrice: number | null
+  legacyIncludedAgents: number | null
+  legacyIncludedLeads: number | null
+  legacyExtraAgentPrice: number | null
+  legacyPhotoAiQuota: number | null
+  legacyNotifiedAt: string | null
   createdAt: string
+}
+
+/** Frais ponctuels (mise en place), ajoutés à la prochaine facture. */
+export interface OneTimeCharge {
+  id: string
+  label: string
+  amount: number
+  packageCode: string | null
+  note: string | null
+  createdAt: string
+  /** Facture qui les porte (null : pas encore facturés) */
+  invoiceId: string | null
+}
+
+/** Mois en cours, ligne par ligne (camions et photos comptés jusqu'à maintenant). */
+export interface BillEstimate {
+  month: string
+  basePrice: number
+  extraAgents: number
+  extraAgentPrice: number
+  discountPercent: number
+  prorataPercent: number
+  vanCount: number
+  vanPrice: number
+  photoAiPhotos: number
+  photoAiIncluded: number
+  photoAiLots: number
+  photoAiLotPrice: number
+  oneTimeAmount: number
+  lines: InvoiceLine[]
+  amount: number
 }
 
 export interface Invoice {
@@ -169,6 +212,13 @@ export interface Invoice {
   paymentMethod: string | null
   recordedBy: string | null
   voidReason: string | null
+  vanCount: number
+  vanPrice: number
+  photoAiLots: number
+  photoAiLotPrice: number
+  oneTimeAmount: number
+  /** Détail ligne par ligne (vide pour les factures d'avant la grille de novembre 2026) */
+  lines: InvoiceLine[]
   overdue?: boolean
 }
 
@@ -196,15 +246,9 @@ export interface TenantDetail {
   plans: Plan[]
   currency: string
   usage: Usage | null
-  estimate: {
-    month: string
-    basePrice: number
-    extraAgents: number
-    extraAgentPrice: number
-    discountPercent: number
-    prorataPercent: number
-    amount: number
-  } | null
+  estimate: BillEstimate | null
+  charges: OneTimeCharge[]
+  onboardingPackages: OnboardingPackage[]
   admins: {
     id: string
     firstName: string
@@ -247,6 +291,8 @@ export interface PlatformSettings {
   appReleaseNotes: string | null
   androidStoreUrl: string | null
   iosStoreUrl: string | null
+  /** Forfaits de mise en place proposés aux structures */
+  onboardingPackages: OnboardingPackage[]
 }
 
 export interface TenantAlert {

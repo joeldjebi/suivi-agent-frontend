@@ -108,6 +108,14 @@ function PlanCard({ plan, onEdit, onRemove }: { plan: Plan; onEdit: () => void; 
               <span className="font-normal text-muted-foreground"> dont {plan.paying ?? 0} payantes</span>
             </dd>
           </div>
+          {plan.features.includes(Feature.VanSales) && (
+            <div>
+              <dt className="text-xs text-muted-foreground">Vente en camion</dt>
+              <dd className="font-medium tabular-nums">
+                {plan.vanPrice > 0 ? `${formatMoney(plan.vanPrice)} / camion actif` : 'Comprise'}
+              </dd>
+            </div>
+          )}
           {plan.features.includes(Feature.PhotoAi) && (
             <div>
               <dt className="text-xs text-muted-foreground">IA photo</dt>
@@ -161,11 +169,19 @@ function PlanDialog({ plan, onClose }: { plan: Plan | null; onClose: () => void 
     extraAgentPrice: plan ? String(plan.extraAgentPrice) : '',
     photoAiMonthlyQuota: String(plan?.photoAiMonthlyQuota ?? 0),
     photoAiExtraPrice: String(plan?.photoAiExtraPrice ?? 0),
+    vanPrice: String(plan?.vanPrice ?? 0),
     isActive: plan?.isActive ?? true,
     features: plan?.features ?? ([] as Feature[]),
   })
   const number = (
-    key: 'monthlyPrice' | 'includedAgents' | 'includedLeads' | 'extraAgentPrice' | 'photoAiMonthlyQuota' | 'photoAiExtraPrice',
+    key:
+      | 'monthlyPrice'
+      | 'includedAgents'
+      | 'includedLeads'
+      | 'extraAgentPrice'
+      | 'photoAiMonthlyQuota'
+      | 'photoAiExtraPrice'
+      | 'vanPrice',
   ) => ({
     inputMode: 'numeric' as const,
     value: v[key],
@@ -180,6 +196,7 @@ function PlanDialog({ plan, onClose }: { plan: Plan | null; onClose: () => void 
     })
   }
   const photoAi = v.features.includes(Feature.PhotoAi)
+  const vanSales = v.features.includes(Feature.VanSales)
   const body = {
     name: v.name.trim(),
     description: v.description.trim(),
@@ -189,6 +206,7 @@ function PlanDialog({ plan, onClose }: { plan: Plan | null; onClose: () => void 
     extraAgentPrice: Number(v.extraAgentPrice),
     photoAiMonthlyQuota: Number(v.photoAiMonthlyQuota || 0),
     photoAiExtraPrice: Number(v.photoAiExtraPrice || 0),
+    vanPrice: Number(v.vanPrice || 0),
     isActive: v.isActive,
     // Ordre de l'application, quel que soit l'ordre des clics.
     features: FEATURES.filter((f) => v.features.includes(f)),
@@ -296,6 +314,19 @@ function PlanDialog({ plan, onClose }: { plan: Plan | null; onClose: () => void 
             </Button>
           </div>
         </fieldset>
+        {vanSales && (
+          <fieldset className="grid gap-3 rounded-lg border p-3 sm:grid-cols-2">
+            <legend className="px-1 text-sm font-medium">Vente en camion</legend>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="plan-van">Prix d’un camion actif par mois (FCFA)</Label>
+              <Input id="plan-van" {...number('vanPrice')} />
+            </div>
+            <p className="text-xs text-muted-foreground sm:col-span-2">
+              Un camion est facturé le mois où il a au moins un mouvement de stock (chargement, vente, retour…). Avec 0, la
+              vente en camion est comprise dans le forfait.
+            </p>
+          </fieldset>
+        )}
         {photoAi && (
           <fieldset className="grid gap-3 rounded-lg border p-3 sm:grid-cols-2">
             <legend className="px-1 text-sm font-medium">IA photo</legend>
@@ -310,7 +341,9 @@ function PlanDialog({ plan, onClose }: { plan: Plan | null; onClose: () => void 
             <p className="text-xs text-muted-foreground sm:col-span-2">
               {Number(v.photoAiMonthlyQuota || 0) === 0
                 ? 'Avec 0, aucune photo n’est analysée : les photos de rayon sont seulement enregistrées.'
-                : 'Au-delà du quota, les photos sont analysées seulement si vous accordez un supplément à la structure.'}
+                : Number(v.photoAiExtraPrice || 0) > 0
+                  ? 'Au-delà du quota, les photos sont analysées si la structure l’accepte dans ses paramètres (facturé par lot de 100), ou si vous lui accordez un supplément.'
+                  : 'Au-delà du quota, les photos sont analysées seulement si vous accordez un supplément à la structure.'}
             </p>
           </fieldset>
         )}

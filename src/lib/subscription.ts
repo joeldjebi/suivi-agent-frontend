@@ -3,8 +3,8 @@ import { useMe } from './auth'
 
 /** Noms des formules installées ; les formules créées par l'éditeur portent leur propre nom. */
 export const planLabel: Record<string, string> = {
-  base: 'Base',
-  advanced: 'Avancée',
+  base: 'Essentiel',
+  advanced: 'Pro',
   enterprise: 'Entreprise',
 }
 
