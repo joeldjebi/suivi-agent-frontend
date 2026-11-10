@@ -19,6 +19,7 @@ import { api } from '@/lib/api'
 import { ALERT_META } from '@/lib/alerts'
 import { useMe } from '@/lib/auth'
 import { formatRelative, formatTime, fullName, initials } from '@/lib/format'
+import { useAvatarUrl } from '@/lib/use-avatar-url'
 import { useGroups, useZones } from '@/lib/queries'
 import { useSocketEvent } from '@/lib/socket'
 import type { LiveAgent, LivePosition, TrackPoint } from '@/lib/types'
@@ -433,20 +434,7 @@ export function LiveMapPage() {
             </Polygon>
           ))}
           {filtered.map((a) =>
-            a.position ? (
-              <Marker
-                key={a.agent.id}
-                position={[a.position.lat, a.position.lng]}
-                title={`${fullName(a.agent)} — ${a.signalLost ? 'signal perdu' : a.status === DayStatus.Paused ? 'en pause' : 'en cours'}`}
-                icon={agentIcon({
-                  initials: initials(a.agent),
-                  status: a.status,
-                  alert: hasAlert(a),
-                  selected: a.agent.id === selectedId,
-                })}
-                eventHandlers={{ click: () => select(a.agent.id) }}
-              />
-            ) : null,
+            a.position ? <AgentMarker key={a.agent.id} agent={a} selected={a.agent.id === selectedId} onSelect={select} /> : null,
           )}
           {showTrack && trackQuery.data && trackQuery.data.length > 1 && (
             <Polyline
@@ -457,6 +445,26 @@ export function LiveMapPage() {
           <FlyTo position={selected?.position ? [selected.position.lat, selected.position.lng] : null} />
         </BaseMap>
       }
+    />
+  )
+}
+
+/** Marqueur d'un agent : sa photo de profil si elle existe, sinon ses initiales. */
+function AgentMarker({ agent, selected, onSelect }: { agent: LiveAgent; selected: boolean; onSelect: (id: string | null) => void }) {
+  const photoUrl = useAvatarUrl(agent.agent.id, agent.agent.avatarVersion)
+  if (!agent.position) return null
+  return (
+    <Marker
+      position={[agent.position.lat, agent.position.lng]}
+      title={`${fullName(agent.agent)} — ${agent.signalLost ? 'signal perdu' : agent.status === DayStatus.Paused ? 'en pause' : 'en cours'}`}
+      icon={agentIcon({
+        initials: initials(agent.agent),
+        status: agent.status,
+        alert: hasAlert(agent),
+        selected,
+        photoUrl,
+      })}
+      eventHandlers={{ click: () => onSelect(agent.agent.id) }}
     />
   )
 }

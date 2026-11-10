@@ -54,6 +54,8 @@ export interface User {
   onProbation: boolean
   isActive: boolean
   createdAt: string
+  /** Version de la photo de profil (null = pas de photo) ; sert au cache des images. */
+  avatarVersion?: number | null
   /** Activité, renvoyée par la liste des utilisateurs */
   lastDay?: string | null
   days30?: number
@@ -387,7 +389,7 @@ export interface LivePosition {
 
 export interface LiveAgent {
   dayId: string
-  agent: Pick<User, 'id' | 'firstName' | 'lastName' | 'groupId'>
+  agent: Pick<User, 'id' | 'firstName' | 'lastName' | 'groupId' | 'avatarVersion'>
   status: DayStatus
   zoneId: string | null
   startedAt: string
