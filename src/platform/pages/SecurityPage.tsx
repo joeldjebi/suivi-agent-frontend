@@ -1,5 +1,5 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { Bot, Gauge, Globe, KeyRound, Lock, ShieldAlert, ShieldCheck } from 'lucide-react'
+import { Bot, Gauge, Globe, KeyRound, Lock, ScanSearch, ShieldAlert, ShieldCheck } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { SECURITY_EVENT_TYPE_HINTS, SECURITY_EVENT_TYPE_LABELS, SecurityEventType } from '@suivi/shared'
 import type { LucideIcon } from 'lucide-react'
@@ -25,6 +25,7 @@ const TYPES: { type: string; icon: LucideIcon }[] = [
   { type: SecurityEventType.RateLimited, icon: Gauge },
   { type: SecurityEventType.CaptchaFailed, icon: ShieldAlert },
   { type: SecurityEventType.Honeypot, icon: Bot },
+  { type: SecurityEventType.PathScan, icon: ScanSearch },
 ]
 
 const typeLabel = (type: string) => SECURITY_EVENT_TYPE_LABELS[type as SecurityEventType] ?? type
