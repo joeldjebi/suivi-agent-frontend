@@ -465,16 +465,42 @@ export interface TenantLog {
 }
 
 /** Événement de sécurité (« attaque ») — journal de l'éditeur. */
+export interface IpIntel {
+  ip: string
+  country: string | null
+  region: string | null
+  city: string | null
+  loc: string | null
+  org: string | null
+  postal: string | null
+  timezone: string | null
+  hostname: string | null
+  privacy: Record<string, unknown> | null
+}
+
 export interface SecurityEvent {
   id: string
   type: string
   ip: string | null
   target: string | null
   path: string | null
+  method: string | null
+  referer: string | null
   userAgent: string | null
   tenantId: string | null
   details: Record<string, unknown> | null
   createdAt: string
+  intel?: IpIntel | null
+}
+
+export interface Attacker {
+  ip: string
+  count: number
+  types: string[]
+  firstSeen: string
+  lastSeen: string
+  targets: string[]
+  intel: IpIntel | null
 }
 
 export interface SecuritySummary {

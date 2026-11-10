@@ -51,5 +51,8 @@ test('la page Sécurité s’affiche avec ses compteurs et son graphe', async ({
   await expect(page.getByText('Mot de passe refusé')).toBeVisible()
   await expect(page.getByText('Attaques par jour (14 jours)')).toBeVisible()
   await expect(page.getByText('Dernières attaques')).toBeVisible()
+  // L'onglet « Attaquants » s'affiche aussi.
+  await page.getByRole('tab', { name: 'Attaquants (par IP)' }).click()
+  await expect(page.getByText('Attaquants des 7 derniers jours')).toBeVisible()
   expect(errors).toEqual([])
 })
