@@ -16,6 +16,7 @@ import {
   Package,
   Receipt,
   Settings,
+  ShieldAlert,
   ShieldCheck,
   UserCog,
   UserPen,
@@ -89,6 +90,7 @@ const NAV: { title: string; items: { to: string; label: string; icon: LucideIcon
     title: 'Santé et sécurité',
     items: [
       { to: '/supervision', label: 'Supervision', icon: Activity },
+      { to: '/security', label: 'Sécurité', icon: ShieldAlert },
       { to: '/errors', label: 'Erreurs', icon: Bug },
       { to: '/admins', label: 'Comptes éditeur', icon: UserCog },
       { to: '/audit', label: 'Journal', icon: FileClock },

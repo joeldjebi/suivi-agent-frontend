@@ -463,3 +463,22 @@ export interface TenantLog {
   userName: string | null
   userRole: string | null
 }
+
+/** Événement de sécurité (« attaque ») — journal de l'éditeur. */
+export interface SecurityEvent {
+  id: string
+  type: string
+  ip: string | null
+  target: string | null
+  path: string | null
+  userAgent: string | null
+  tenantId: string | null
+  details: Record<string, unknown> | null
+  createdAt: string
+}
+
+export interface SecuritySummary {
+  byType: { type: string; last24h: number; last7d: number }[]
+  topIps: { ip: string; count: number }[]
+  daily: { day: string; type: string; count: number }[]
+}
