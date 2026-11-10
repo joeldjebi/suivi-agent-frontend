@@ -7,7 +7,7 @@ interface AuthState {
   me: Me | null
   loading: boolean
   login(identifier: string, password: string): Promise<void>
-  register(input: RegisterInput): Promise<void>
+  register(input: RegisterInput, captchaToken?: string | null): Promise<void>
   logout(): Promise<void>
   reload(): Promise<void>
 }
@@ -59,8 +59,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         session.store(data)
         await reload()
       },
-      async register(input) {
-        const { data } = await api.post<Tokens>('/auth/register', input)
+      async register(input, captchaToken) {
+        const { data } = await api.post<Tokens>('/auth/register', input, {
+          headers: captchaToken ? { 'x-captcha-token': captchaToken } : undefined,
+        })
         session.store(data)
         await reload()
       },

@@ -9,6 +9,7 @@ import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/c
 import { Input } from '@/components/ui/input'
 import { errorMessage } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
+import { Turnstile, TURNSTILE_ENABLED } from '@/components/turnstile'
 import { AuthLayout } from './AuthLayout'
 
 const schema = z.object({
@@ -23,6 +24,7 @@ type Values = z.infer<typeof schema>
 export function RegisterPage() {
   const { register: signUp } = useAuth()
   const [error, setError] = useState<string | null>(null)
+  const [captcha, setCaptcha] = useState<string | null>(null)
   const form = useForm<Values>({
     resolver: zodResolver(schema),
     defaultValues: { organizationName: '', firstName: '', lastName: '', email: '', password: '' },
@@ -31,9 +33,13 @@ export function RegisterPage() {
 
   const onSubmit = form.handleSubmit(async (values) => {
     setError(null)
+    if (TURNSTILE_ENABLED && !captcha) {
+      setError('Validez la vérification anti-robot avant de continuer.')
+      return
+    }
     try {
       // PublicOnly ouvre ensuite les paramètres de la nouvelle structure.
-      await signUp(values)
+      await signUp(values, captcha)
     } catch (e) {
       setError(errorMessage(e))
     }
@@ -80,12 +86,18 @@ export function RegisterPage() {
             <FieldDescription>8 caractères minimum.</FieldDescription>
             <FieldError errors={[errors.password]} />
           </Field>
+          <Turnstile onToken={setCaptcha} className="flex justify-center" />
           {error && (
             <p role="alert" className="text-sm text-destructive">
               {error}
             </p>
           )}
-          <Button type="submit" size="lg" disabled={isSubmitting} className="w-full">
+          <Button
+            type="submit"
+            size="lg"
+            disabled={isSubmitting || (TURNSTILE_ENABLED && !captcha)}
+            className="w-full"
+          >
             {isSubmitting && <Loader2 className="animate-spin" aria-hidden />}
             Créer mon espace
           </Button>

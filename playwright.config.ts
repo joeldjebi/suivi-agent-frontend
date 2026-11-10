@@ -29,6 +29,9 @@ export default defineConfig({
       url: 'http://localhost:3000/api/health',
       reuseExistingServer: true,
       timeout: 120_000,
+      // Les tests enchaînent connexions et inscriptions depuis une même adresse : on désactive
+      // le plafond de requêtes (aucun test ne le vérifie) pour éviter des 429 parasites.
+      env: { ...process.env, RATE_LIMIT: 'off' },
     },
     {
       command: 'npm run dev -- --port 5173 --strictPort',

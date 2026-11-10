@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Turnstile, TURNSTILE_ENABLED } from '@/components/turnstile'
 import { errorMessage } from '@/lib/api'
 
 /** Demande de démo : un conseiller rappelle la structure. */
@@ -14,6 +15,7 @@ export function DemoDialog({ open, onClose }: { open: boolean; onClose: () => vo
   const [v, setV] = useState(empty)
   const [state, setState] = useState<'idle' | 'sending' | 'sent'>('idle')
   const [error, setError] = useState<string | null>(null)
+  const [captcha, setCaptcha] = useState<string | null>(null)
   const set = (key: keyof typeof empty) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setV((x) => ({ ...x, [key]: e.target.value }))
   const close = () => {
@@ -32,18 +34,26 @@ export function DemoDialog({ open, onClose }: { open: boolean; onClose: () => vo
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!valid) return
+    if (TURNSTILE_ENABLED && !captcha) {
+      setError('Validez la vérification anti-robot avant d’envoyer.')
+      return
+    }
     setState('sending')
     setError(null)
     try {
-      await axios.post('/api/public/demo-requests', {
-        name: v.name,
-        organization: v.organization,
-        email: v.email,
-        phone: v.phone,
-        agents: v.agents ? Number(v.agents) : undefined,
-        message: v.message || undefined,
-        website: v.website || undefined,
-      })
+      await axios.post(
+        '/api/public/demo-requests',
+        {
+          name: v.name,
+          organization: v.organization,
+          email: v.email,
+          phone: v.phone,
+          agents: v.agents ? Number(v.agents) : undefined,
+          message: v.message || undefined,
+          website: v.website || undefined,
+        },
+        { headers: captcha ? { 'x-captcha-token': captcha } : undefined },
+      )
       setState('sent')
     } catch (err) {
       setError(errorMessage(err))
@@ -113,12 +123,20 @@ export function DemoDialog({ open, onClose }: { open: boolean; onClose: () => vo
                 onChange={set('website')}
               />
             </div>
+            <div className="mt-4 flex justify-center">
+              <Turnstile onToken={setCaptcha} />
+            </div>
             {error && (
               <p role="alert" className="mt-3 text-sm text-destructive">
                 {error}
               </p>
             )}
-            <Button type="submit" size="lg" className="mt-5 w-full" disabled={!valid || state === 'sending'}>
+            <Button
+              type="submit"
+              size="lg"
+              className="mt-5 w-full"
+              disabled={!valid || state === 'sending' || (TURNSTILE_ENABLED && !captcha)}
+            >
               {state === 'sending' && <Loader2 className="animate-spin" aria-hidden />}
               Envoyer ma demande
             </Button>
