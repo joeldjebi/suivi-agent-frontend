@@ -9,6 +9,7 @@ import type {
   PhotoAiProviderId,
   PlanCode,
   SubscriptionStatus,
+  TenantApprovalStatus,
 } from '@suivi/shared'
 
 export interface PlatformAdmin {
@@ -296,6 +297,20 @@ export interface TenantDetail {
   activity: { date: string; days: number }[]
   invoices: Invoice[]
   history: AuditEntry[]
+}
+
+/** Structure inscrite en attente de validation (ou toutes, avec le filtre). */
+export interface PlatformRegistration {
+  tenantId: string
+  tenantName: string
+  contactPhone: string | null
+  approvalStatus: TenantApprovalStatus
+  createdAt: string
+  approvedAt: string | null
+  rejectionReason: string | null
+  adminName: string | null
+  adminEmail: string | null
+  adminPhone: string | null
 }
 
 export interface PlatformSettings {

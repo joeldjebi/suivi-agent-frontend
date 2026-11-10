@@ -38,7 +38,7 @@ test.describe('Authentification', () => {
     await expect(page.getByRole('heading', { name: "Utilisez l'application mobile" })).toBeVisible()
   })
 
-  test('inscrit une nouvelle structure et ouvre ses paramètres', async ({ page }) => {
+  test('inscrit une nouvelle structure : compte en attente de validation', async ({ page }) => {
     await page.goto('/register')
     await page.getByLabel('Nom de la structure').fill('Société E2E')
     await page.getByLabel('Prénom').fill('Jo')
@@ -46,11 +46,9 @@ test.describe('Authentification', () => {
     await page.getByLabel('Email professionnel').fill(`e2e.${Date.now()}@test.ci`)
     await page.getByLabel('Mot de passe').fill('Password123!')
     await page.getByRole('button', { name: 'Créer mon espace' }).click()
-    // L'inscription ouvre l'assistant de démarrage, puis les paramètres restent accessibles.
-    await expect(page.getByRole('heading', { name: 'Préparons Société E2E ensemble' })).toBeVisible()
-    await page.goto('/settings')
-    await expect(page.getByRole('heading', { name: 'Paramètres de la structure' })).toBeVisible()
-    await expect(page.getByRole('navigation', { name: 'Navigation principale' }).getByText('Société E2E')).toBeVisible()
+    // Nouvelle inscription : la structure attend la validation de l'éditeur avant d'accéder à l'app.
+    await expect(page.getByRole('heading', { name: 'Compte en attente de validation' })).toBeVisible()
+    await expect(page.getByText('Se déconnecter')).toBeVisible()
   })
 })
 

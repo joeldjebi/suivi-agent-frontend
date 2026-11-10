@@ -2,9 +2,7 @@ import {
   BillingCycle,
   Feature,
   InvoiceStatus,
-  ONBOARDING_REQUEST_STATUS_LABELS,
   SubscriptionStatus,
-  type OnboardingPackage,
   type PlanCode,
 } from '@suivi/shared'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -16,7 +14,6 @@ import {
   Clock,
   CreditCard,
   FileText,
-  GraduationCap,
   Info,
   Minus,
   Plus,
@@ -35,13 +32,12 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
-import { Textarea } from '@/components/ui/textarea'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { api, errorCode, errorMessage } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
 import { formatDate } from '@/lib/format'
 import { BASE_FEATURES, featureLabel, formatMoney, planName, subscriptionStatusLabel } from '@/lib/subscription'
-import type { Invoice, OnboardingRequest, Plan, SubscriptionDetails } from '@/lib/types'
+import type { Invoice, Plan, SubscriptionDetails } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
 const monthLabel = (month: string) =>
@@ -74,32 +70,6 @@ export function SubscriptionPage() {
   const [now] = useState(Date.now)
   const [extra, setExtra] = useState<number | null>(null)
   const [detail, setDetail] = useState<Invoice | 'estimate' | null>(null)
-  const [asking, setAsking] = useState<OnboardingPackage | null>(null)
-  const [message, setMessage] = useState('')
-  const onboarding = useQuery({
-    queryKey: ['subscription', 'onboarding-requests'],
-    queryFn: async () => (await api.get<OnboardingRequest[]>('/subscription/onboarding-requests')).data,
-  })
-  const pendingRequest = onboarding.data?.find((r) => r.status === 'pending')
-  const ask = useMutation({
-    mutationFn: async (input: { packageCode: string; message?: string }) =>
-      (await api.post<OnboardingRequest>('/subscription/onboarding-requests', input)).data,
-    onSuccess: async () => {
-      setAsking(null)
-      setMessage('')
-      toast.success('Demande envoyée : nous vous répondons rapidement')
-      await queryClient.invalidateQueries({ queryKey: ['subscription', 'onboarding-requests'] })
-    },
-    onError: (error) => toast.error(errorMessage(error)),
-  })
-  const withdraw = useMutation({
-    mutationFn: async (id: string) => (await api.post(`/subscription/onboarding-requests/${id}/cancel`)).data,
-    onSuccess: async () => {
-      toast.success('Demande retirée')
-      await queryClient.invalidateQueries({ queryKey: ['subscription', 'onboarding-requests'] })
-    },
-    onError: (error) => toast.error(errorMessage(error)),
-  })
   // Noms des formules du catalogue (y compris celles créées par l'éditeur).
   const plans = new Map((details.data?.plans ?? []).map((p) => [p.code, p.name]))
 
@@ -345,85 +315,6 @@ export function SubscriptionPage() {
                 })}
               </div>
             </section>
-
-            {d.onboardingPackages.length > 0 && (
-              <section aria-labelledby="onboarding-title" className="flex flex-col gap-3">
-                <div>
-                  <h2 id="onboarding-title" className="font-semibold">
-                    Mise en place (en option)
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    Nous vous aidons à démarrer. Payée une fois, sur votre prochaine facture une fois votre demande acceptée.
-                  </p>
-                </div>
-                {onboarding.data && onboarding.data.length > 0 && (
-                  <ul className="flex flex-col gap-2" aria-label="Vos demandes de mise en place">
-                    {onboarding.data.slice(0, 3).map((r) => (
-                      <li
-                        key={r.id}
-                        className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-card px-4 py-2.5 text-sm"
-                      >
-                        <div className="min-w-0">
-                          <p className="font-medium">
-                            {r.packageName} · demandée le {formatDate(r.createdAt)}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {r.status === 'pending' && 'Nous vous répondons rapidement.'}
-                            {r.status === 'accepted' &&
-                              `${formatMoney(r.amount ?? r.packagePrice, d.currency)} sur votre prochaine facture.`}
-                            {r.decisionNote && ` ${r.decisionNote}`}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <StatusPill
-                            tone={
-                              r.status === 'accepted'
-                                ? 'active'
-                                : r.status === 'pending'
-                                  ? 'paused'
-                                  : r.status === 'rejected'
-                                    ? 'alert'
-                                    : 'ended'
-                            }
-                            icon={r.status === 'accepted' ? CheckCircle2 : r.status === 'pending' ? Clock : XCircle}
-                            label={ONBOARDING_REQUEST_STATUS_LABELS[r.status]}
-                          />
-                          {r.status === 'pending' && (
-                            <Button size="sm" variant="ghost" disabled={withdraw.isPending} onClick={() => withdraw.mutate(r.id)}>
-                              Retirer
-                            </Button>
-                          )}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                  {d.onboardingPackages.map((p) => (
-                    <div key={p.code} className="flex gap-3 rounded-lg border bg-card p-4">
-                      <GraduationCap className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden />
-                      <div className="min-w-0">
-                        <p className="font-medium">
-                          {p.name}
-                          <span className="ml-2 font-semibold tabular-nums">{formatMoney(p.price, d.currency)}</span>
-                        </p>
-                        {p.description && <p className="mt-0.5 text-sm text-muted-foreground">{p.description}</p>}
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="mt-2"
-                          disabled={!!pendingRequest || !onboarding.data}
-                          title={pendingRequest ? `Votre demande « ${pendingRequest.packageName} » attend une réponse` : undefined}
-                          onClick={() => setAsking(p)}
-                        >
-                          Demander
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
           </>
         )}
       </QueryState>
@@ -630,46 +521,6 @@ export function SubscriptionPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!asking} onOpenChange={(o) => !o && setAsking(null)}>
-        <DialogContent className="sm:max-w-md">
-          {asking && d && (
-            <>
-              <DialogHeader>
-                <DialogTitle>Demander la mise en place « {asking.name} »</DialogTitle>
-                <DialogDescription>
-                  {formatMoney(asking.price, d.currency)}, payée une fois sur votre prochaine facture si nous acceptons. Nous vous
-                  contactons pour organiser la suite.
-                </DialogDescription>
-              </DialogHeader>
-              {asking.description && <p className="text-sm text-muted-foreground">{asking.description}</p>}
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="onboarding-message" className="text-sm font-medium">
-                  Message (facultatif)
-                </label>
-                <Textarea
-                  id="onboarding-message"
-                  rows={3}
-                  maxLength={500}
-                  value={message}
-                  placeholder="ex. Formation sur place la semaine du 20, pour 12 agents."
-                  onChange={(e) => setMessage(e.target.value)}
-                />
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setAsking(null)}>
-                  Annuler
-                </Button>
-                <Button
-                  disabled={ask.isPending}
-                  onClick={() => ask.mutate({ packageCode: asking.code, message: message.trim() || undefined })}
-                >
-                  Envoyer la demande
-                </Button>
-              </DialogFooter>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={!!blocking} onOpenChange={(o) => !o && setBlocking(null)}>
         <DialogContent>

@@ -216,6 +216,7 @@ interface PackageRow {
   name: string
   description: string
   price: string
+  discountPercent: string
 }
 
 /**
@@ -224,7 +225,11 @@ interface PackageRow {
  */
 function OnboardingPackagesForm({ settings }: { settings: PlatformSettings }) {
   const initial = (): PackageRow[] =>
-    settings.onboardingPackages.map((p) => ({ ...p, price: String(p.price) }))
+    settings.onboardingPackages.map((p) => ({
+      ...p,
+      price: String(p.price),
+      discountPercent: String(p.discountPercent ?? 0),
+    }))
   const [rows, setRows] = useState(initial)
   const changed = JSON.stringify(rows) !== JSON.stringify(initial())
   const valid = rows.every((r) => r.name.trim() && r.price !== '')
@@ -236,7 +241,13 @@ function OnboardingPackagesForm({ settings }: { settings: PlatformSettings }) {
         onboardingPackages: rows.map((r) => {
           const code = r.code || packageCode(r.name, taken)
           taken.push(code)
-          return { code, name: r.name.trim(), description: r.description.trim(), price: Number(r.price) }
+          return {
+            code,
+            name: r.name.trim(),
+            description: r.description.trim(),
+            price: Number(r.price),
+            discountPercent: Number(r.discountPercent) || 0,
+          }
         }),
       })
     },
@@ -250,7 +261,7 @@ function OnboardingPackagesForm({ settings }: { settings: PlatformSettings }) {
       </p>
       <ul className="divide-y">
         {rows.map((r, i) => (
-          <li key={i} className="grid gap-3 p-4 sm:grid-cols-[minmax(0,1fr)_10rem_auto] sm:items-start">
+          <li key={i} className="grid gap-3 p-4 sm:grid-cols-[minmax(0,1fr)_8rem_7rem_auto] sm:items-start">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor={`pkg-name-${i}`}>Nom</Label>
               <Input
@@ -271,6 +282,20 @@ function OnboardingPackagesForm({ settings }: { settings: PlatformSettings }) {
                 onChange={(e) => set(i, { price: e.target.value.replace(/\D/g, '') })}
               />
               {r.price !== '' && <p className="text-xs text-muted-foreground">{formatMoney(Number(r.price))}</p>}
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor={`pkg-discount-${i}`}>Réduction (%)</Label>
+              <Input
+                id={`pkg-discount-${i}`}
+                inputMode="numeric"
+                value={r.discountPercent}
+                onChange={(e) => set(i, { discountPercent: e.target.value.replace(/\D/g, '').slice(0, 3) })}
+              />
+              {r.price !== '' && Number(r.discountPercent) > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Facturé : {formatMoney(Math.round(Number(r.price) * (1 - Math.min(100, Number(r.discountPercent)) / 100)))}
+                </p>
+              )}
             </div>
             <Button
               variant="ghost"
@@ -299,7 +324,7 @@ function OnboardingPackagesForm({ settings }: { settings: PlatformSettings }) {
         <Button
           variant="outline"
           disabled={rows.length >= 10}
-          onClick={() => setRows([...rows, { code: '', name: '', description: '', price: '' }])}
+          onClick={() => setRows([...rows, { code: '', name: '', description: '', price: '', discountPercent: '0' }])}
         >
           <Plus aria-hidden /> Ajouter un forfait
         </Button>
