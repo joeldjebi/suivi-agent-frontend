@@ -4,7 +4,7 @@ import {
   Activity,
   Building2,
   Globe,
-  GraduationCap,
+  UserPlus,
   Smartphone,
   Inbox,
   FileClock,
@@ -59,7 +59,7 @@ const NAV: { title: string; items: { to: string; label: string; icon: LucideIcon
       { to: '', label: 'Tableau de bord', icon: LayoutDashboard, end: true },
       { to: '/tenants', label: 'Structures', icon: Building2 },
       { to: '/invoices', label: 'Factures', icon: Receipt },
-      { to: '/onboarding', label: 'Mise en place', icon: GraduationCap },
+      { to: '/registrations', label: 'Inscriptions', icon: UserPlus },
       { to: '/presentations', label: 'Présentations', icon: Presentation },
     ],
   },
@@ -103,10 +103,10 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
     queryFn: async () => (await platformApi.get<{ open: number }>('/support', { params: { status: 'open' } })).data.open,
     refetchInterval: 60_000,
   })
-  // Demandes de mise en place à traiter (pastille du menu).
-  const onboarding = useQuery({
-    queryKey: ['platform', 'onboarding-requests', 'pending-count'],
-    queryFn: async () => (await platformApi.get<{ pending: number }>('/onboarding-requests')).data.pending,
+  // Inscriptions à valider (pastille du menu).
+  const registrations = useQuery({
+    queryKey: ['platform', 'registrations', 'pending-count'],
+    queryFn: async () => (await platformApi.get<{ pending: number }>('/registrations')).data.pending,
     refetchInterval: 60_000,
   })
   // Erreurs à traiter (pastille du menu).
@@ -149,9 +149,9 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
                   {support.data}
                 </span>
               )}
-              {item.to === '/onboarding' && !!onboarding.data && (
+              {item.to === '/registrations' && !!registrations.data && (
                 <span className="rounded-full bg-amber-500 px-1.5 text-[11px] leading-5 font-semibold text-white tabular-nums">
-                  {onboarding.data}
+                  {registrations.data}
                 </span>
               )}
               {item.to === '/errors' && !!errors.data && (

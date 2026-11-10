@@ -23,6 +23,7 @@ import type {
   Role,
   SubmissionStatus,
   SubscriptionStatus,
+  TenantApprovalStatus,
   ZoneAccessWithoutGroups,
   ZoneExitInfo,
   ZoneRequestStatus,
@@ -79,6 +80,10 @@ export interface UserStats {
 export interface Tenant {
   id: string
   name: string
+  /** Validation par l'éditeur : « pending » à l'inscription, « approved » une fois validée. */
+  approvalStatus?: TenantApprovalStatus
+  /** Motif du refus, le cas échéant */
+  rejectionReason?: string | null
 }
 
 export interface MixedCriteria {
@@ -148,6 +153,8 @@ export interface SubscriptionSummary {
   planName: string
   billingCycle: BillingCycle
   trialEndsAt: string | null
+  /** Validation par l'éditeur : accès bloqué tant que ce n'est pas « approved ». */
+  approvalStatus: TenantApprovalStatus
   /** Fonctionnalités ouvertes maintenant (toutes pendant l'essai, aucune si suspendu) */
   features: Feature[]
   /** Formule la moins chère qui inclut chaque fonctionnalité absente */

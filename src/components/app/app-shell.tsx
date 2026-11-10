@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Feature, Role, SubscriptionStatus } from '@suivi/shared'
+import { Feature, Role, SubscriptionStatus, TenantApprovalStatus } from '@suivi/shared'
 import { LogoMark } from './logo'
 import {
   ClipboardCheck,
@@ -72,6 +72,7 @@ import { cn } from '@/lib/utils'
 import { NotificationsButton } from './notifications'
 import { SubscriptionBanner } from './subscription-banner'
 import { SuspendedScreen } from './suspended-screen'
+import { PendingScreen } from './pending-screen'
 import { RouteErrorBoundary } from './route-error'
 
 interface NavTab {
@@ -531,6 +532,8 @@ function SetupRedirect() {
 
 export function AppShell() {
   const { subscription } = useMe()
+  // Structure pas encore validée (ou refusée) par l'éditeur : écran d'attente, rien d'autre.
+  if (subscription.approvalStatus !== TenantApprovalStatus.Approved) return <PendingScreen />
   const suspended = subscription.status === SubscriptionStatus.Suspended
   const [mobileOpen, setMobileOpen] = useState(false)
   const [collapsed, setCollapsed] = usePersistentState('layout.sidebar.collapsed', false)

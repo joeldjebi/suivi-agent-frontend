@@ -1030,8 +1030,8 @@ function Pricing({ section, data, onAction }: { section: PricingSection; data: P
         </div>
         {(data.onboardingPackages?.length ?? 0) > 0 && (
           <div data-reveal className="mt-12 rounded-[30px] bg-white p-8">
-            <h3 className="text-[21px] font-semibold tracking-tight">Mise en place, en option</h3>
-            <p className="mt-1 text-[15px] text-[#6e6e73]">Nous vous aidons à démarrer. Payée une seule fois.</p>
+            <h3 className="text-[21px] font-semibold tracking-tight">Mise en place incluse</h3>
+            <p className="mt-1 text-[15px] text-[#6e6e73]">Nous vous accompagnons au démarrage. Payée une seule fois, à l’activation de votre compte.</p>
             <div className="mt-6 grid gap-5 @3xl:grid-cols-2">
               {data.onboardingPackages.map((p) => (
                 <div key={p.code} className="rounded-[22px] bg-[#f5f5f7] p-6">

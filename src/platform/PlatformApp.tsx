@@ -8,7 +8,7 @@ import { PlatformLoginPage } from './pages/LoginPage'
 import { PlatformShell } from './shell'
 
 const SupervisionPage = lazyPage(() => import('./pages/SupervisionPage').then((m) => ({ default: m.SupervisionPage })))
-const OnboardingPage = lazyPage(() => import('./pages/OnboardingPage').then((m) => ({ default: m.OnboardingPage })))
+const RegistrationsPage = lazyPage(() => import('./pages/RegistrationsPage').then((m) => ({ default: m.RegistrationsPage })))
 const ErrorsPage = lazyPage(() => import('./pages/ErrorsPage').then((m) => ({ default: m.ErrorsPage })))
 const DashboardPage = lazyPage(() => import('./pages/DashboardPage').then((m) => ({ default: m.DashboardPage })))
 const TenantsPage = lazyPage(() => import('./pages/TenantsPage').then((m) => ({ default: m.TenantsPage })))
@@ -84,7 +84,7 @@ export function PlatformApp() {
           <Route path="tenants" element={<TenantsPage />} />
           <Route path="tenants/:id" element={<TenantPage />} />
           <Route path="invoices" element={<InvoicesPage />} />
-          <Route path="onboarding" element={<OnboardingPage />} />
+          <Route path="registrations" element={<RegistrationsPage />} />
           <Route path="presentations" element={<PresentationsPage />} />
           <Route path="presentations/:id" element={<PresentationPage />} />
           <Route path="plans" element={<PlansPage />} />

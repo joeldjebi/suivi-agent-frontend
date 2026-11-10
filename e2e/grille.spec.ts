@@ -86,8 +86,6 @@ test('structure : options des formules, mise en place et détail du mois', async
   await expect(page.getByRole('heading', { name: 'Abonnement' })).toBeVisible()
   await expect(page.getByText('par camion actif dans le mois')).toBeVisible()
   await expect(page.getByText(/200 photos/)).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Mise en place (en option)' })).toBeVisible()
-  await expect(page.getByText('Démarrage')).toBeVisible()
   await page.getByRole('button', { name: 'Voir le détail' }).click()
   const detail = page.getByRole('dialog')
   await expect(detail.getByRole('rowheader', { name: 'Estimation' })).toBeVisible()
@@ -99,48 +97,40 @@ test('site : options des formules et mise en place', async ({ page }) => {
   await page.goto('/')
   await page.locator('#tarifs').scrollIntoViewIfNeeded()
   await expect(page.getByText(/par camion actif dans le mois/)).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Mise en place, en option' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Mise en place incluse' })).toBeVisible()
   await expect(page.getByText('Accompagné')).toBeVisible()
 })
 
-test('mise en place : la structure demande, la console accepte, la structure voit la réponse', async ({ page, browser }) => {
+test('inscription : structure en attente, validée par la console avec réduction', async ({ page, browser }) => {
   const base = consolePath()
   test.skip(!base, 'Console éditeur désactivée (VITE_PLATFORM_PATH vide)')
-  const errors = trackConsoleErrors(page)
-  // La structure de démo demande « Démarrage », avec un message.
-  await loginUi(page, 'admin@demo.ci')
-  await page.goto('/subscription')
-  const section = page.getByRole('region', { name: 'Mise en place (en option)' })
-  await section.getByRole('button', { name: 'Demander' }).first().click()
-  await page.getByLabel('Message (facultatif)').fill('Formation sur place la semaine du 20')
-  await page.getByRole('button', { name: 'Envoyer la demande' }).click()
-  await expect(page.getByText('Demande envoyée')).toBeVisible()
-  const requests = page.getByRole('list', { name: 'Vos demandes de mise en place' })
-  await expect(requests.getByText('En attente')).toBeVisible()
-  // Une seule demande en attente : les boutons sont désactivés.
-  await expect(section.getByRole('button', { name: 'Demander' }).first()).toBeDisabled()
+  // Une structure toute neuve s'inscrit : elle est « en attente ».
+  const stamp = Date.now().toString(36)
+  const email = `inscription-${stamp}@test.ci`
+  const api = await request.newContext({ baseURL: 'http://localhost:3000/api/' })
+  const reg = await api.post('auth/register', {
+    data: { organizationName: `Inscription ${stamp}`, firstName: 'Awa', lastName: 'Neuve', email, password: 'Password123!' },
+  })
+  expect(reg.ok(), await reg.text()).toBeTruthy()
 
-  // La console : le compteur du menu, puis l'acceptation à un prix négocié.
+  // Connectée, elle voit l'écran d'attente, pas l'application.
+  await loginUi(page, email)
+  await expect(page.getByRole('heading', { name: 'Compte en attente de validation' })).toBeVisible()
+
+  // La console : l'inscription à valider, avec une réduction sur la mise en place.
   const sa = await browser.newPage()
   await loginConsole(sa, base!)
-  await expect(sa.getByRole('link', { name: /Mise en place\s*\d+/ })).toBeVisible()
-  await sa.getByRole('link', { name: /Mise en place/ }).click()
-  const row = sa.getByRole('row', { name: /Démo Abidjan/ }).first()
-  await expect(row.getByText('Formation sur place la semaine du 20')).toBeVisible()
-  await row.getByRole('button', { name: 'Accepter' }).click()
-  await sa.getByLabel('Montant facturé (FCFA)').fill('40000')
-  await sa.getByRole('dialog').getByRole('button', { name: 'Accepter' }).click()
-  await expect(sa.getByText('Demande acceptée : frais ajoutés à la prochaine facture')).toBeVisible()
+  await sa.getByRole('link', { name: /Inscriptions/ }).click()
+  const row = sa.getByRole('row', { name: new RegExp(`Inscription ${stamp}`) }).first()
+  await row.getByRole('button', { name: 'Valider' }).click()
+  const dialog = sa.getByRole('dialog')
+  await dialog.getByLabel('Réduction (%)').fill('100')
+  await expect(dialog.getByText(/offerte/)).toBeVisible()
+  await dialog.getByRole('button', { name: 'Valider' }).click()
+  await expect(sa.getByText(/Structure validée/)).toBeVisible()
   await sa.close()
 
-  // La structure voit la réponse ; une nouvelle demande peut être retirée.
+  // La structure validée accède maintenant à l'application.
   await page.reload()
-  await expect(requests.getByText('Acceptée')).toBeVisible()
-  await expect(requests.getByText(/40\s000\sF\sCFA sur votre prochaine facture/)).toBeVisible()
-  await section.getByRole('button', { name: 'Demander' }).last().click()
-  await page.getByRole('button', { name: 'Envoyer la demande' }).click()
-  await requests.getByRole('button', { name: 'Retirer' }).click()
-  await expect(page.getByText('Demande retirée')).toBeVisible()
-  await expect(requests.getByText('Annulée')).toBeVisible()
-  expect(errors).toEqual([])
+  await expect(page.getByRole('heading', { name: 'Compte en attente de validation' })).toHaveCount(0)
 })
