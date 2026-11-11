@@ -8,11 +8,16 @@ import { DEFAULT_CENTER } from './geo'
 // Tuiles publiques OSM : développement uniquement. En production, configurer
 // VITE_TILE_URL (MapTiler, Stadia Maps…) — voir section 9 du cahier des charges.
 export const TILE_URL = import.meta.env.VITE_TILE_URL || 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+// Serveur de tuiles dédié (ex. MapTiler) configuré : attribution à ajouter (conditions MapTiler).
+const CUSTOM_TILES = !!import.meta.env.VITE_TILE_URL
+export const TILE_ATTRIBUTION = CUSTOM_TILES
+  ? '&copy; <a href="https://www.maptiler.com/">MapTiler</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+  : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
 
 export function BaseMap({ children, className, mapRef }: { children?: ReactNode; className?: string; mapRef?: Ref<L.Map> }) {
   return (
     <MapContainer ref={mapRef} center={DEFAULT_CENTER} zoom={12} className={cn('h-full w-full', className)}>
-      <TileLayer url={TILE_URL} attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' />
+      <TileLayer url={TILE_URL} attribution={TILE_ATTRIBUTION} />
       <AutoResize />
       {children}
     </MapContainer>
