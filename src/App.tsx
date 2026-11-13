@@ -24,6 +24,7 @@ const SharedPresentationPage = lazyPage(() =>
   import('@/presentation/SharedPresentationPage').then((m) => ({ default: m.SharedPresentationPage })),
 )
 const DownloadPage = lazyPage(() => import('@/landing/DownloadPage').then((m) => ({ default: m.DownloadPage })))
+const VideoPage = lazyPage(() => import('@/landing/VideoPage').then((m) => ({ default: m.VideoPage })))
 const AccountDeletionPage = lazyPage(() => import('@/landing/LegalPages').then((m) => ({ default: m.AccountDeletionPage })))
 const AuditPage = lazyPage(() => import('@/features/admin/AuditPage').then((m) => ({ default: m.AuditPage })))
 const BillingPage = lazyPage(() => import('@/features/admin/BillingPage').then((m) => ({ default: m.BillingPage })))
@@ -179,6 +180,8 @@ function TenantApp() {
             }
           />
           <Route path="/telecharger" element={<DownloadPage />} />
+          {/* Vidéo de présentation publique (lien à envoyer aux prospects). */}
+          <Route path="/video" element={<VideoPage />} />
           {/* Présentation client partagée par la console éditeur (lien secret). */}
           <Route
             path="/presentation/:token"
