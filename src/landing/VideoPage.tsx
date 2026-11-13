@@ -4,7 +4,8 @@ import { Link } from 'react-router'
 
 /**
  * Page vidéo publique : une présentation de PerformX en une minute, à envoyer aux
- * prospects (lien partageable). Vidéo servie en fichier statique (public/video/).
+ * prospects (lien partageable /video). Vidéo servie en fichier statique (public/media/ —
+ * un dossier distinct de la route, sinon Nginx redirige /video vers /video/ et renvoie 403).
  */
 export function VideoPage() {
   useEffect(() => {
@@ -43,11 +44,11 @@ export function VideoPage() {
             controls
             playsInline
             preload="metadata"
-            poster="/video/performx-poster.jpg"
+            poster="/media/performx-poster.jpg"
           >
-            <source src="/video/performx-presentation.mp4" type="video/mp4" />
+            <source src="/media/performx-presentation.mp4" type="video/mp4" />
             Votre navigateur ne peut pas lire cette vidéo.{' '}
-            <a href="/video/performx-presentation.mp4" className="underline">
+            <a href="/media/performx-presentation.mp4" className="underline">
               Télécharger la vidéo
             </a>
             .
