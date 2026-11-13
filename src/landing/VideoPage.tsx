@@ -1,13 +1,36 @@
 import { MapPin, ClipboardCheck, BarChart3 } from 'lucide-react'
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
+
+/** Téléphone (écran étroit) : on sert la vidéo verticale, plein cadre et immersive. */
+const PORTRAIT_QUERY = '(max-width: 640px)'
+
+function usePortrait() {
+  const [portrait, setPortrait] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia(PORTRAIT_QUERY).matches,
+  )
+  useEffect(() => {
+    const mq = window.matchMedia(PORTRAIT_QUERY)
+    const update = () => setPortrait(mq.matches)
+    update()
+    mq.addEventListener('change', update)
+    return () => mq.removeEventListener('change', update)
+  }, [])
+  return portrait
+}
 
 /**
  * Page vidéo publique : une présentation de PerformX en une minute, à envoyer aux
- * prospects (lien partageable /video). Vidéo servie en fichier statique (public/media/ —
+ * prospects (lien partageable /video). Vidéos servies en fichiers statiques (public/media/ —
  * un dossier distinct de la route, sinon Nginx redirige /video vers /video/ et renvoie 403).
+ * Sur téléphone, la version verticale ; sur ordinateur, la version horizontale.
  */
 export function VideoPage() {
+  const portrait = usePortrait()
+  const video = portrait
+    ? { src: '/media/performx-presentation-vertical.mp4', poster: '/media/performx-poster-vertical.jpg' }
+    : { src: '/media/performx-presentation.mp4', poster: '/media/performx-poster.jpg' }
+
   useEffect(() => {
     const previous = document.title
     document.title = 'PerformX en vidéo'
@@ -38,17 +61,22 @@ export function VideoPage() {
           </p>
         </div>
 
-        <div className="overflow-hidden rounded-2xl bg-black shadow-[0_8px_30px_rgba(0,0,0,0.12)]">
+        <div
+          className={`mx-auto w-full overflow-hidden rounded-2xl bg-black shadow-[0_8px_30px_rgba(0,0,0,0.12)] ${
+            portrait ? 'max-w-[320px]' : ''
+          }`}
+        >
           <video
-            className="aspect-video w-full"
+            key={video.src}
+            className={`w-full ${portrait ? 'aspect-[9/16]' : 'aspect-video'}`}
             controls
             playsInline
             preload="metadata"
-            poster="/media/performx-poster.jpg"
+            poster={video.poster}
           >
-            <source src="/media/performx-presentation.mp4" type="video/mp4" />
+            <source src={video.src} type="video/mp4" />
             Votre navigateur ne peut pas lire cette vidéo.{' '}
-            <a href="/media/performx-presentation.mp4" className="underline">
+            <a href={video.src} className="underline">
               Télécharger la vidéo
             </a>
             .
