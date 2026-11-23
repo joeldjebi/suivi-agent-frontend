@@ -25,6 +25,7 @@ import {
   BookOpen,
   Bug,
   Presentation,
+  Target,
 } from 'lucide-react'
 import { Suspense, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router'
@@ -62,6 +63,7 @@ const NAV: { title: string; items: { to: string; label: string; icon: LucideIcon
       { to: '/invoices', label: 'Factures', icon: Receipt },
       { to: '/registrations', label: 'Inscriptions', icon: UserPlus },
       { to: '/presentations', label: 'Présentations', icon: Presentation },
+      { to: '/prospection', label: 'Prospection', icon: Target },
     ],
   },
   {
