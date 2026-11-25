@@ -20,6 +20,7 @@ const AdminsPage = lazyPage(() => import('./pages/AdminsPage').then((m) => ({ de
 const SitePage = lazyPage(() => import('./pages/SitePage').then((m) => ({ default: m.SitePage })))
 const LeadsPage = lazyPage(() => import('./pages/LeadsPage').then((m) => ({ default: m.LeadsPage })))
 const ProspectionPage = lazyPage(() => import('./pages/ProspectionPage').then((m) => ({ default: m.ProspectionPage })))
+const VideoStatsPage = lazyPage(() => import('./pages/VideoStatsPage').then((m) => ({ default: m.VideoStatsPage })))
 const AccountPage = lazyPage(() => import('./pages/AccountPage').then((m) => ({ default: m.AccountPage })))
 const SupportPage = lazyPage(() => import('./pages/SupportPage').then((m) => ({ default: m.SupportPage })))
 const DocsPage = lazyPage(() => import('./pages/DocsPage').then((m) => ({ default: m.DocsPage })))
@@ -101,6 +102,7 @@ export function PlatformApp() {
           <Route path="app-onboarding" element={<AppOnboardingPage />} />
           <Route path="leads" element={<LeadsPage />} />
           <Route path="prospection" element={<ProspectionPage />} />
+          <Route path="video" element={<VideoStatsPage />} />
           <Route path="support" element={<SupportPage />} />
           <Route path="documentation" element={<DocsPage />} />
           <Route path="*" element={<Navigate to={to()} replace />} />

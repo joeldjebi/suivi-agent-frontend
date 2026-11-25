@@ -1,9 +1,81 @@
 import { MapPin, ClipboardCheck, BarChart3 } from 'lucide-react'
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 
 /** Téléphone (écran étroit) : on sert la vidéo verticale, plein cadre et immersive. */
 const PORTRAIT_QUERY = '(max-width: 640px)'
+
+/**
+ * Suit le temps réellement regardé et le % atteint, et remonte au serveur (anonyme, ou lié à
+ * un prospect si le lien est …/video?p=<id>). Envois périodiques + à la fermeture (sendBeacon).
+ */
+function useVideoTracking(portrait: boolean) {
+  const videoRef = useRef<HTMLVideoElement | null>(null)
+  const st = useRef({ viewId: '', prospectId: null as string | null, seconds: 0, percent: 0, duration: 0, last: 0, sent: 0 })
+
+  useEffect(() => {
+    const s = st.current
+    if (s.viewId) return
+    s.viewId = globalThis.crypto?.randomUUID?.() ?? `v-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    const p = new URLSearchParams(window.location.search).get('p')
+    s.prospectId = p && /^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(p) ? p : null
+  }, [])
+
+  useEffect(() => {
+    const el = videoRef.current
+    if (!el) return
+    const s = st.current
+    const send = (beacon = false) => {
+      s.sent = s.seconds
+      const body = JSON.stringify({
+        viewId: s.viewId,
+        prospectId: s.prospectId ?? undefined,
+        seconds: Math.round(s.seconds),
+        percent: Math.round(s.percent),
+        duration: s.duration || undefined,
+        orientation: portrait ? 'portrait' : 'landscape',
+      })
+      if (beacon && navigator.sendBeacon) {
+        navigator.sendBeacon('/api/public/video/view', new Blob([body], { type: 'application/json' }))
+      } else {
+        fetch('/api/public/video/view', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body, keepalive: true }).catch(() => {})
+      }
+    }
+    const onMeta = () => { s.duration = Math.round(el.duration || 0); s.last = el.currentTime }
+    const onTime = () => {
+      const d = el.currentTime - s.last
+      s.last = el.currentTime
+      if (d > 0 && d < 1.5) s.seconds += d
+      if (el.duration) s.percent = Math.max(s.percent, (el.currentTime / el.duration) * 100)
+      if (s.seconds - s.sent >= 10) send()
+    }
+    const onPlay = () => { s.last = el.currentTime; send() }
+    const onPause = () => send()
+    const onEnded = () => { s.percent = 100; send() }
+    const onHide = () => { if (document.visibilityState === 'hidden') send(true) }
+    const onPageHide = () => send(true)
+
+    el.addEventListener('loadedmetadata', onMeta)
+    el.addEventListener('timeupdate', onTime)
+    el.addEventListener('play', onPlay)
+    el.addEventListener('pause', onPause)
+    el.addEventListener('ended', onEnded)
+    document.addEventListener('visibilitychange', onHide)
+    window.addEventListener('pagehide', onPageHide)
+    return () => {
+      el.removeEventListener('loadedmetadata', onMeta)
+      el.removeEventListener('timeupdate', onTime)
+      el.removeEventListener('play', onPlay)
+      el.removeEventListener('pause', onPause)
+      el.removeEventListener('ended', onEnded)
+      document.removeEventListener('visibilitychange', onHide)
+      window.removeEventListener('pagehide', onPageHide)
+      if (s.seconds > s.sent) send(true)
+    }
+  }, [portrait])
+
+  return videoRef
+}
 
 function usePortrait() {
   const [portrait, setPortrait] = useState(
@@ -27,6 +99,7 @@ function usePortrait() {
  */
 export function VideoPage() {
   const portrait = usePortrait()
+  const videoRef = useVideoTracking(portrait)
   const video = portrait
     ? { src: '/media/performx-presentation-vertical.mp4', poster: '/media/performx-poster-vertical.jpg' }
     : { src: '/media/performx-presentation.mp4', poster: '/media/performx-poster.jpg' }
@@ -68,6 +141,7 @@ export function VideoPage() {
         >
           <video
             key={video.src}
+            ref={videoRef}
             className={`w-full ${portrait ? 'aspect-[9/16]' : 'aspect-video'}`}
             controls
             playsInline
